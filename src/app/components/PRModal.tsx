@@ -163,7 +163,7 @@ const PRModal: React.FC<PRModalProps> = ({
                 <div className="flex justify-end">
                     <button
                         onClick={handleCreatePullRequest}
-                        className="bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-600 transition disabled:bg-gray-300"
+                        className="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-600 transition disabled:bg-gray-300"
                         disabled={isCreating}
                     >
                         {isCreating ? "Creating..." : "Create Pull Request"}

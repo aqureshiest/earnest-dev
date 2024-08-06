@@ -130,7 +130,7 @@ const Home: React.FC = () => {
                 <header className="flex justify-between items-center mb-4 text-gray-800">
                     <h1 className="text-3xl font-bold">Pull Requests</h1>
                     <button
-                        className="bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-600 transition"
+                        className="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-600 transition"
                         onClick={openModal}
                         disabled={!selectedRepo || !selectedBranch}
                     >
@@ -237,7 +237,7 @@ const Home: React.FC = () => {
                                         <span
                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                                 pr.state === "open"
-                                                    ? "bg-teal-100 text-teal-800"
+                                                    ? "bg-red-100 text-red-800"
                                                     : "bg-red-100 text-red-800"
                                             }`}
                                         >
