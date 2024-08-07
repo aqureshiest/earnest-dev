@@ -45,14 +45,13 @@ as outlined in the implementation plan, while ensuring seamless integration with
 # Instructions:
 
 1. Review the provided coding task description and the implementation plan thoroughly.
-2. Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase.
-3. Include all necessary imports, dependencies, and exports.
-4. Provide the full content of each new and modified file. This is necessary as we will be creating a pull request from this generated code.
-5. When modifying existing files, preserve all existing content unless explicitly instructed otherwise. Add new code where appropriate without removing or altering unrelated existing code.
-6. For documentation files like README.md, add new information while preserving all existing content, unless specifically instructed to remove or replace certain sections.
-7. Ensure no important details are missing, especially for complex tasks.
-8. Consider the broader context of the codebase and how new changes integrate with existing functionality.
-9. **Important**: A file should only appear in one of the following sections: new, modified, or deleted. Double-check to avoid listing a file in multiple sections.
+2. Generate code based on the detailed implementation plan, ensuring that all steps are accurately implemented.
+3. Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase.
+4. Include all necessary imports, dependencies, and exports. Ensure no important details are missing, especially for complex tasks.
+5. Provide the full content of each new and modified file. This is necessary as we will be creating a pull request from this generated code.
+6. When modifying existing files, preserve all existing content unless explicitly instructed otherwise. Add new content where appropriate without removing or altering unrelated existing content.
+7. Consider the broader context of the codebase and how new changes integrate with existing functionality.
+8. **Important**: A file should only appear in one of the following sections: new, modified, or deleted. Double-check to avoid listing a file in multiple sections.
 
 Input provided:
 - Task Description: Information about the task.
@@ -81,9 +80,9 @@ ${plan}
 
 PR Title: Provide a descriptive title for the pull request.
 New files:
-- Include the full content of each new file.
+- Include the full contents of each new file.
 Modified files:
-- Include the full content of each modified file, preserving all existing content and clearly indicating where new code has been added or changes have been made.
+- Include the full contents of each modified file.
 Deleted files:
 - List only the paths of the files to be deleted.
 
@@ -131,9 +130,9 @@ deletedFiles:
   - "src/oldFeature.js"
 
 **Reminders**: 
+- Implement all the steps outlined in the implementation plan.
 - Include the full content of each modified file in the 'content' section, clearly indicating where changes or additions have been made.
-- Ensure all necessary exports are included, especially in modified files.
-- Do not exclude unrelated existing code unless explicitly instructed to do so.
+- Do not exclude unrelated existing content unless explicitly instructed to do so.
 - A file should only be listed in one section: new, modified, or deleted.
 - Focus on the task at hand while considering the broader context of the codebase.
 `;
