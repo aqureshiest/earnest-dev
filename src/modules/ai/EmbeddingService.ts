@@ -35,13 +35,13 @@ export class EmbeddingService {
         // Create a map of updated files to their embeddings
         const updatedFilesMap = new Map();
         filesToUpdate.forEach((file, index) => {
-            const key = `${file.owner}/${file.repo}/${file.ref}/${file.path}`;
+            const key = `${file.branch.owner}/${file.branch.repo}/${file.branch.ref}/${file.path}`;
             updatedFilesMap.set(key, embeddings[index]);
         });
 
         // Update files array with new embeddings
         return files.map((file) => {
-            const key = `${file.owner}/${file.repo}/${file.ref}/${file.path}`;
+            const key = `${file.branch.owner}/${file.branch.repo}/${file.branch.ref}/${file.path}`;
             return {
                 ...file,
                 embeddings:

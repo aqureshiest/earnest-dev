@@ -81,25 +81,57 @@ module.exports = {
 `;
 
     const embeddingService = new EmbeddingService();
-    const embedding1 = await embeddingService.generateEmbeddings(text);
+    // const embedding1 = await embeddingService.generateEmbeddings(text);
 
-    // // save file details
-    const fileDetails = {
-        name: "file1",
+    // create new branch
+    const branch: StoredBranch = {
         owner: "owner1",
         repo: "repo1",
         ref: "ref1",
-        path: "path1",
-        content: "content1",
         commitHash: "commitHash1",
-        tokenCount: 1,
-        embeddings: embedding1,
     };
-    const result = await dbService.saveFileDetails(fileDetails);
-    console.log(result);
 
-    // const embedding2 = await embeddingService.generateEmbeddings(text);
-    // console.log(embedding1 == embedding2);
+    const savedBranch = await dbService.saveBranch(branch);
+    if (savedBranch) {
+        console.log("saved branch >>> ", savedBranch);
+
+        // sample files
+        const filesContents = [
+            "fox ran in the hole",
+            "man built the house",
+            "apples are red",
+            "sky is blue",
+            "birds fly high",
+            "cat is lazy",
+        ];
+
+        for (let i = 0; i < filesContents.length; i++) {
+            const embedding = await embeddingService.generateEmbeddings(filesContents[i]);
+
+            const fileDetails = {
+                name: `file${i}`,
+                branch: savedBranch,
+                path: `path${i}`,
+                content: filesContents[i],
+                commitHash: "commitHash1",
+                tokenCount: 1,
+                embeddings: embedding,
+            };
+
+            await dbService.saveFileDetails(fileDetails);
+        }
+
+        // get file details
+        const fetchedFile = await dbService.getFileDetails(savedBranch.id, "path2");
+        console.log("fetched file >>> ", fetchedFile);
+
+        // const embedding2 = await embeddingService.generateEmbeddings(text);
+        // console.log(embedding1 == embedding2);
+
+        // search for similar files
+        // const similarFiles = await dbService.findSimilar("construction", 3, savedBranch.id);
+        // console.log("similar files >>> ", similarFiles);
+    }
 }
 
 main();

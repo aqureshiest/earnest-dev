@@ -3,27 +3,10 @@ import { EmbeddingService } from "@/modules/ai/EmbeddingService";
 import { PlannerAssistant } from "@/modules/ai/PlannerAssistant";
 import PullRequestService from "@/modules/github/PullRequestService";
 import { RepositoryService } from "@/modules/github/RepositoryService";
-import { encode } from "gpt-tokenizer";
 import Ably from "ably";
 import { DatabaseService } from "@/modules/db/SupDatabaseService";
-
-async function tokenizeFiles(files: FileDetails[]) {
-    return files
-        .map((file) => {
-            // no need to tokenize if tokene count is already there
-            if (file.tokenCount) {
-                return file;
-            }
-
-            console.log("Tokenizing file >>", file.path);
-            const tokens = encode(file.content);
-            return {
-                ...file,
-                tokenCount: tokens.length,
-            };
-        })
-        .filter((file) => file.tokenCount! > 0 && file.tokenCount! < 8000);
-}
+import { BranchService } from "@/modules/github/BranchService";
+import { TokenLimiter } from "@/modules/ai/TokenLimiter";
 
 // private function to send message to ably
 async function sendMessage(channel: any, message: string, messagePrefix = "progress") {
@@ -31,55 +14,90 @@ async function sendMessage(channel: any, message: string, messagePrefix = "progr
 }
 
 export async function POST(req: Request) {
+    const MAX_SIMIALAR_FILES = 50;
+
+    // Initialize services
     const repositoryService = new RepositoryService();
     const dbService = new DatabaseService();
     const embeddingService = new EmbeddingService();
+    const branchService = new BranchService();
 
+    // Initialize assistants
     const planner = new PlannerAssistant();
     const coder = new CodingAssistant();
 
+    // Parse request body
     const { owner, repo, branch, description, selectedModel, useAllFiles } = await req.json();
 
+    // Initialize Ably for realtime updates
     const ably = new Ably.Rest(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
 
     try {
+        let filesToUse = [];
+
         const channel = ably.channels.get("generate-pr-channel");
         await sendMessage(channel, "Starting to create pull request...");
 
-        await sendMessage(channel, "Fetching repository...");
-        const files: FileDetails[] = await repositoryService.getRepositoryFiles(
-            owner,
-            repo,
-            branch
-        );
-        await sendMessage(channel, `Fetched ${files.length} files.`);
+        // Check if branch is up to date
+        const { upToDate: branchUpToDate, branch: storedBranch } =
+            await branchService.prepareBranchForPR(owner, repo, branch);
+        console.log("branchUpToDate", branchUpToDate);
+        console.log("storedBranch", storedBranch);
 
-        await sendMessage(channel, "Tokenizing files...");
-        const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(files);
-        const tokenizedFiles: FileDetails[] = await tokenizeFiles(filesWithContent);
+        if (!storedBranch || !storedBranch.id) {
+            throw new Error(`Unable to prepare branch ${branch} for PR`);
+        }
 
-        await sendMessage(channel, "Embedding files...");
-        const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFiles(
-            tokenizedFiles
-        );
+        // if branch up to date then download, prepare and save all files
+        if (!branchUpToDate) {
+            // Fetch files from repository
+            await sendMessage(channel, "Fetching repository...");
+            const files: FileDetails[] = await repositoryService.getRepositoryFiles(storedBranch);
+            await sendMessage(channel, `Fetched ${files.length} files.`);
 
-        filesWithEmbeddings.forEach(async (file) => {
-            await dbService.saveFileDetails(file);
-        });
+            // Tokenize files
+            await sendMessage(channel, "Tokenizing files...");
+            const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(
+                storedBranch,
+                files
+            );
+            const tokenizedFiles: FileDetails[] = await TokenLimiter.tokenizeFiles(
+                filesWithContent
+            );
 
-        let filesToUse = [];
+            // Embed files
+            await sendMessage(channel, "Embedding files...");
+            const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFiles(
+                tokenizedFiles
+            );
 
-        if (!useAllFiles) {
-            try {
-                console.log("Finding similar files in database");
-                filesToUse = await dbService.findSimilar(description, 5, owner, repo, branch);
-                await sendMessage(channel, `Limiting context to ${filesToUse.length} files.`);
-            } catch (e) {
-                console.log("Error in finding similar files", e);
-                filesToUse = filesWithEmbeddings;
-            }
+            // Save files to database
+            filesWithEmbeddings.forEach(async (file) => {
+                await dbService.saveFileDetails(file);
+            });
         } else {
-            filesToUse = filesWithEmbeddings;
+            await sendMessage(channel, "Branch is up to date. Ready to process...");
+        }
+
+        // process all files
+        if (useAllFiles) {
+            // get all files from database
+            filesToUse = await dbService.getAllFiles(storedBranch.id);
+            await sendMessage(channel, `Operating on all ${filesToUse.length} files.`);
+        }
+        // process only relevant files
+        else {
+            await sendMessage(channel, `Looking for relevant files...`);
+            filesToUse = await dbService.findSimilar(
+                description,
+                MAX_SIMIALAR_FILES,
+                storedBranch.id
+            );
+            await sendMessage(channel, `Top relevant files...`);
+            // show only the top few files
+            filesToUse.slice(0, 3).forEach(async (file) => {
+                await sendMessage(channel, `*${file.name}`);
+            });
         }
 
         await sendMessage(channel, "Generating plan...");
@@ -89,7 +107,7 @@ export async function POST(req: Request) {
             inputTokens: planITokens,
             outputTokens: planOTokens,
             cost: planCost,
-        } = await planner.executePlan(selectedModel, description, filesWithEmbeddings);
+        } = await planner.executePlan(selectedModel, description, filesToUse);
         await sendMessage(channel, "Implementation plan ready.");
         await sendMessage(channel, `*Approximated tokens: ${planCTokens}`);
         await sendMessage(channel, `*Actual Input tokens: ${planITokens}`);
@@ -103,7 +121,7 @@ export async function POST(req: Request) {
             inputTokens: codeITokens,
             outputTokens: codeOTokens,
             cost: codeCost,
-        } = (await coder.generateCode(selectedModel, description, plan, filesWithEmbeddings)) || {};
+        } = (await coder.generateCode(selectedModel, description, plan, filesToUse)) || {};
 
         if (
             codeChanges &&

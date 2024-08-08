@@ -1,10 +1,17 @@
-interface FileDetails {
-    name: string;
-    path: string;
-    content: string;
+interface StoredBranch {
+    id?: string;
     owner: string;
     repo: string;
     ref: string;
+    commitHash: string;
+}
+
+interface FileDetails {
+    id?: string;
+    name: string;
+    path: string;
+    content: string;
+    branch: StoredBranch;
     commitHash: string;
     tokenCount: number;
     embeddings: number[];

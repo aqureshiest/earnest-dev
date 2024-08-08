@@ -47,24 +47,39 @@ export class GitHubService {
     }
 
     async getFiles(owner: string, repo: string, ref: string = "main", path: string = "") {
-        const { data: files } = await this.octokit.repos.getContent({
-            owner,
-            repo,
-            ref,
-            path,
-        });
-
+        const { data: files } = await this.getContent(owner, repo, ref, path);
         return Array.isArray(files) ? files : [files];
     }
 
     async readFile(owner: string, repo: string, ref: string = "main", path: string) {
-        const { data: content } = await this.octokit.repos.getContent({
-            owner,
-            repo,
-            ref,
-            path,
-        });
-
+        const { data: content } = await this.getContent(owner, repo, ref, path);
         return content;
+    }
+
+    private async getContent(owner: string, repo: string, ref: string, path: string): Promise<any> {
+        const maxRetries = 3;
+        const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const { data: content } = await this.octokit.repos.getContent({
+                    owner,
+                    repo,
+                    ref,
+                    path,
+                });
+
+                return content;
+            } catch (error: any) {
+                if (error.status === 403) {
+                    const backoffDelay = Math.pow(2, attempt) * 1000; // Exponential backoff
+                    await delay(backoffDelay);
+                } else {
+                    throw error; // Re-throw if it's not a 403 error
+                }
+            }
+        }
+
+        throw new Error(`Failed to fetch content from GitHub after ${maxRetries} attempts.`);
     }
 }
