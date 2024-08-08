@@ -18,6 +18,7 @@ const PRModal: React.FC<PRModalProps> = ({
     branch = "main",
 }) => {
     const [description, setDescription] = useState("");
+    const [author, setAuthor] = useState(""); // New state for author
     const [progress, setProgress] = useState<string[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
@@ -75,6 +76,7 @@ const PRModal: React.FC<PRModalProps> = ({
                     description,
                     selectedModel,
                     useAllFiles,
+                    author, // Include author
                 }),
             });
 
@@ -121,6 +123,14 @@ const PRModal: React.FC<PRModalProps> = ({
                     value={description}
                     onChange={handleDescriptionChange}
                     disabled={isCreating}
+                />
+                <input
+                    type="text"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)} // Handle author input
+                    placeholder="Enter author name"
+                    disabled={isCreating}
+                    className="w-full p-2 border border-gray-300 rounded mb-4"
                 />
                 <div className="mb-4 flex items-center justify-between">
                     <div>

@@ -12,12 +12,11 @@ CREATE TABLE IF NOT EXISTS FileDetails (
     commitHash TEXT NOT NULL,
     tokenCount INT NOT NULL DEFAULT 0,
     embeddings VECTOR(256),
+    author TEXT, -- New field for author information
     UNIQUE (owner, repo, ref, path)
 );
 
 CREATE INDEX IF NOT EXISTS idx_embeddings ON FileDetails USING ivfflat (embeddings vector_cosine_ops);
-
-
 
 -- 002_create_similarity_search_function.sql
 CREATE OR REPLACE FUNCTION find_similar_files(given_owner TEXT, given_repo TEXT, given_ref TEXT, query_embeddings vector, top_k INT)
@@ -30,8 +29,9 @@ RETURNS TABLE (
     repo TEXT,
     ref TEXT,
     commitHash TEXT,
+    author TEXT, -- Include author in the return type
     similarity FLOAT
-) AS $$
+) AS $
 BEGIN
     RETURN QUERY
     SELECT
@@ -43,16 +43,16 @@ BEGIN
         FileDetails.repo,
         FileDetails.ref,
         FileDetails.commitHash,
+        FileDetails.author, -- Include author in the select statement
         (1 - (FileDetails.embeddings <=> query_embeddings)) AS similarity
     FROM
         FileDetails
     WHERE 
-         filedetails.owner = given_owner AND 
-         filedetails.repo = given_repo AND 
-         filedetails.ref = given_ref AND 
-         (1 - (FileDetails.embeddings <=> query_embeddings)) > 0.01
+        filedetails.owner = given_owner AND 
+        filedetails.repo = given_repo AND 
+        filedetails.ref = given_ref AND 
+        (1 - (FileDetails.embeddings <=> query_embeddings)) > 0.01
     ORDER BY similarity desc
     LIMIT top_k;
 END;
-$$ LANGUAGE plpgsql;
-
+$ LANGUAGE plpgsql;

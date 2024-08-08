@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const planner = new PlannerAssistant();
     const coder = new CodingAssistant();
 
-    const { owner, repo, branch, description, selectedModel, useAllFiles } = await req.json();
+    const { owner, repo, branch, description, selectedModel, useAllFiles, author } = await req.json(); // Include author
 
     const ably = new Ably.Rest(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
 
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
         await sendMessage(channel, `*Approximated tokens: ${planCTokens}`);
         await sendMessage(channel, `*Actual Input tokens: ${planITokens}`);
         await sendMessage(channel, `*Actual Output tokens: ${planOTokens}`);
-        await sendMessage(channel, `*Cost: $${planCost.toFixed(6)}`);
+        await sendMessage(channel, `*Cost: ${planCost.toFixed(6)}`);
 
         await sendMessage(channel, "Generating code...");
         const {
@@ -115,14 +115,15 @@ export async function POST(req: Request) {
             await sendMessage(channel, `*Approximated tokens: ${codeCTokens}`);
             await sendMessage(channel, `*Actual Input tokens: ${codeITokens}`);
             await sendMessage(channel, `*Actual Output tokens: ${codeOTokens}`);
-            await sendMessage(channel, `*Cost: $${codeCost?.toFixed(6)}`);
+            await sendMessage(channel, `*Cost: ${codeCost?.toFixed(6)}`);
 
             await sendMessage(channel, "Creating pull request...");
             const prService = new PullRequestService(owner, repo, branch);
             const prLink = await prService.createPullRequest(
                 codeChanges,
                 codeChanges.prTitle,
-                `${description}\n\n${plan}`
+                `${description}\n\n${plan}`,
+                author // Pass author to the PullRequestService
             );
 
             return new Response(JSON.stringify({ prLink }), {
