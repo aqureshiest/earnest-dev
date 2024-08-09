@@ -74,7 +74,6 @@ const Home: React.FC = () => {
         }
     };
 
-    // Fetch repositories on page load
     useEffect(() => {
         async function fetchRepos() {
             try {
@@ -88,14 +87,12 @@ const Home: React.FC = () => {
         fetchRepos();
     }, [octokit]);
 
-    // Fetch branches when a repository is selected
     useEffect(() => {
         if (!selectedRepo) return;
 
         fetchBranches();
     }, [selectedRepo]);
 
-    // Fetch pull requests when a repository is selected
     useEffect(() => {
         if (!selectedRepo || !selectedBranch) return;
 
@@ -117,9 +114,7 @@ const Home: React.FC = () => {
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => {
         setIsModalOpen(false);
-        // refresh branches
         fetchBranches();
-        // refetch pull requests
         fetchPullRequests();
     };
 
@@ -130,7 +125,7 @@ const Home: React.FC = () => {
                 <header className="flex justify-between items-center mb-4 text-gray-800">
                     <h1 className="text-3xl font-bold">Pull Requests</h1>
                     <button
-                        className="bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-600 transition"
+                        className="bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-600 transition"
                         onClick={openModal}
                         disabled={!selectedRepo || !selectedBranch}
                     >
@@ -237,7 +232,7 @@ const Home: React.FC = () => {
                                         <span
                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                                 pr.state === "open"
-                                                    ? "bg-teal-100 text-teal-800"
+                                                    ? "bg-purple-100 text-purple-800"
                                                     : "bg-red-100 text-red-800"
                                             }`}
                                         >

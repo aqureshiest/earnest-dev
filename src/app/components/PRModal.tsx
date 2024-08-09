@@ -35,13 +35,11 @@ const PRModal: React.FC<PRModalProps> = ({
 
     useEffect(() => {
         if (isOpen) {
-            // Initialize Ably and start listening to generate-pr-channel
             const ably = new Ably.Realtime(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
             const channel = ably.channels.get("generate-pr-channel");
 
             channel.subscribe("progress", (message) => {
                 setProgress((prev) => [...prev, message.data]);
-                // scroll createPRModalDiv to bottom
                 const element = document.getElementById("createPRModalDiv");
                 if (element) {
                     element.scrollTop = element.scrollHeight;
@@ -87,14 +85,12 @@ const PRModal: React.FC<PRModalProps> = ({
         }
     };
 
-    // handle modal close and call onRequestClose
     const handleModalClose = () => {
         setGeneratedPRLink(null);
         setProgress([]);
         onRequestClose();
     };
 
-    // Scroll to the bottom of the messages div whenever progress updates
     const scrollToBottom = () => {
         if (messagesEndRef && messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -145,7 +141,6 @@ const PRModal: React.FC<PRModalProps> = ({
                         </select>
                     </div>
                     <div className="text-center">
-                        {/* show label with a tool tip */}
                         <label
                             htmlFor="useAllFiles"
                             className="block mb-2 text-sm font-medium text-gray-700"
@@ -163,7 +158,7 @@ const PRModal: React.FC<PRModalProps> = ({
                 <div className="flex justify-end">
                     <button
                         onClick={handleCreatePullRequest}
-                        className="bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-600 transition disabled:bg-gray-300"
+                        className="bg-purple-700 text-white px-4 py-2 rounded hover:bg-purple-600 transition disabled:bg-gray-300"
                         disabled={isCreating}
                     >
                         {isCreating ? "Creating..." : "Create Pull Request"}
@@ -179,16 +174,13 @@ const PRModal: React.FC<PRModalProps> = ({
                 {progress.length > 0 && (
                     <div className="mt-4 border rounded-sm p-2 gap-y-2 overflow-y-auto max-h-48">
                         {progress.map((message, index) => {
-                            // Check if message starts with '*' for bullet list item
                             if (message.trim().startsWith("*")) {
                                 return (
                                     <p key={index} className="text-sm text-gray-600">
                                         <span className="ml-2">&#8226; {message.slice(1)}</span>
                                     </p>
                                 );
-                            }
-                            // Default rendering
-                            else {
+                            } else {
                                 return (
                                     <p key={index} className="text-sm text-gray-600">
                                         {message}
