@@ -6,6 +6,7 @@ import { RepositoryService } from "@/modules/github/RepositoryService";
 import { encode } from "gpt-tokenizer";
 import Ably from "ably";
 import { DatabaseService } from "@/modules/db/SupDatabaseService";
+import { SpecificationsAssistant } from "@/modules/ai/SpecificationsAssistant";
 
 async function tokenizeFiles(files: FileDetails[]) {
     return files
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
     const dbService = new DatabaseService();
     const embeddingService = new EmbeddingService();
 
+    const thinker = new SpecificationsAssistant();
     const planner = new PlannerAssistant();
     const coder = new CodingAssistant();
 
@@ -71,9 +73,11 @@ export async function POST(req: Request) {
 
         if (!useAllFiles) {
             try {
-                console.log("Finding similar files in database");
+                console.log("Limiting context to relevant files...");
                 filesToUse = await dbService.findSimilar(description, 5, owner, repo, branch);
-                await sendMessage(channel, `Limiting context to ${filesToUse.length} files.`);
+                filesToUse.slice(0, 10).forEach(async (file) => {
+                    await sendMessage(channel, `*${file.path}`);
+                });
             } catch (e) {
                 console.log("Error in finding similar files", e);
                 filesToUse = filesWithEmbeddings;
@@ -82,6 +86,41 @@ export async function POST(req: Request) {
             filesToUse = filesWithEmbeddings;
         }
 
+        // call the thoughts assistant
+        await sendMessage(channel, "Generating thoughts...");
+        const response = await thinker.process({
+            model: selectedModel,
+            task: description,
+            files: filesToUse,
+        });
+        await sendMessage(channel, "Thoughts ready.");
+
+        const specifications = response?.response as Specifications;
+        // print specifications as text
+        const specsText = specifications.specifications.map(
+            (spec, index) =>
+                `#### Specification #${index + 1}:\n${spec.title}\n\n#### Considerations: ${
+                    spec.thoughts
+                }\n#### Details:\n${spec.specification}`
+        );
+
+        // call planner assistant
+        await sendMessage(channel, "Generating plan...");
+        const response2 = await planner.process({
+            model: selectedModel,
+            task: description,
+            files: filesToUse,
+            params: {
+                specifications: specsText.join("\n"),
+            },
+        });
+        await sendMessage(channel, "Plan ready.");
+
+        // terminate
+        return new Response(JSON.stringify({}), {
+            headers: { "Content-Type": "application/json" },
+        });
+
         await sendMessage(channel, "Generating plan...");
         const {
             plan,
@@ -89,7 +128,7 @@ export async function POST(req: Request) {
             inputTokens: planITokens,
             outputTokens: planOTokens,
             cost: planCost,
-        } = await planner.executePlan(selectedModel, description, filesWithEmbeddings);
+        } = await planner.process(selectedModel, description, filesWithEmbeddings);
         await sendMessage(channel, "Implementation plan ready.");
         await sendMessage(channel, `*Approximated tokens: ${planCTokens}`);
         await sendMessage(channel, `*Actual Input tokens: ${planITokens}`);

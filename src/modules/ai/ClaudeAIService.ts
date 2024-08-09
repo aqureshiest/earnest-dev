@@ -1,4 +1,3 @@
-import { getSystemPrompt } from "../utilities/prompts";
 import { calculateLLMCost } from "../utilities/llmCost";
 import { LLM_MODELS, LLMS } from "../utilities/llmInfo";
 import Anthropic from "@anthropic-ai/sdk";
@@ -12,7 +11,7 @@ export class ClaudeAIService {
         this.model = model;
     }
 
-    async generateResponse(prompt: string): Promise<AIResponse> {
+    async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
         try {
             const LLM = LLMS.find((m) => m.model === this.model);
             if (!LLM) {
@@ -21,8 +20,8 @@ export class ClaudeAIService {
 
             const completion = await this.anthropic.messages.create({
                 model: this.model,
-                max_tokens: LLM?.maxOutputTokens,
-                system: getSystemPrompt(),
+                max_tokens: LLM.maxOutputTokens,
+                system: systemPrompt,
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0,
             });

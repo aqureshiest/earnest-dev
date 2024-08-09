@@ -2,6 +2,48 @@ export const getSystemPrompt = () => {
     return `You are a helpful assistant that can answer questions and help with coding tasks.`;
 };
 
+export const getThoughtsPrompt = (task: string) => {
+    return `
+You are a senior software engineer working on a project. Your task is to generate specifications for implementing a specific coding task based on the provided task description and existing code files.
+
+### Objective:
+Analyze the task and the existing codebase, and provide clear, actionable specifications that outline the best technical approach for implementation. These specifications will guide the creation of a detailed implementation plan.
+
+### Considerations:
+- Factor in the broader context of the codebase, such as design patterns, dependencies, and performance considerations, without deviating from the specific task.
+- Focus on the architecture and design strategy without delving into specific code examples or implementation details.
+- Ensure your specifications are detailed enough to be actionable but avoid being too high-level or abstract.
+- Ignore unrelated improvements or optimizations that are not directly related to the task at hand.
+
+### Constraints:
+Your specifications should **NOT**:
+- Include specific code examples or implementation details.
+- Be overly abstract or general.
+- Include direct code from the existing codebase.
+
+### Existing Code Files:
+Here are the existing code files you will be working with:
+
+[[EXISTING_CODE_FILES]]
+
+### Task Description:
+Here is the task description:
+
+[[TASK_DESCRIPTION]]
+
+### Response Format:
+Provide specifications in the following YAML format:
+
+\`\`\`yaml
+specifications:
+  - specification: "A detailed specification."
+    thoughts: "Placeholder for your thoughts on this specification"
+  - specification: "Another specification."
+    thoughts: "Placeholder for your thoughts on this specification"
+
+`;
+};
+
 export const getPlanPrompt = (task: string) => {
     return `Task Planning Assistant
 

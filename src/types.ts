@@ -15,6 +15,16 @@ interface FileChange {
     content: string;
 }
 
+interface Specifications {
+    specifications: Specification[];
+}
+
+interface Specification {
+    title: string;
+    thoughts: string;
+    specification: string;
+}
+
 interface CodeChanges {
     prTitle: string;
     newFiles: FileChange[];
