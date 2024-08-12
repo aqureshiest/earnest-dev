@@ -1,7 +1,7 @@
 import OpenAI from "openai";
-import { getSystemPrompt } from "../utilities/prompts";
-import { calculateLLMCost } from "../utilities/llmCost";
-import { LLM_MODELS } from "../utilities/llmInfo";
+import { getSystemPrompt } from "../../utilities/prompts";
+import { calculateLLMCost } from "../../utilities/llmCost";
+import { LLM_MODELS } from "../../utilities/llmInfo";
 
 export class OpenAIService {
     private openai: OpenAI;
@@ -12,13 +12,13 @@ export class OpenAIService {
         this.model = model;
     }
 
-    async generateResponse(prompt: string): Promise<AIResponse> {
+    async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
         try {
             const completion = await this.openai.chat.completions.create({
                 messages: [
                     {
                         role: "system",
-                        content: getSystemPrompt(),
+                        content: systemPrompt,
                     },
                     {
                         role: "user",

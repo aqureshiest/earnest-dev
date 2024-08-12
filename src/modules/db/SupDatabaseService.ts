@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { EmbeddingService } from "../ai/EmbeddingService";
+import { EmbeddingService } from "../ai/support/EmbeddingService";
 
 export class DatabaseService {
     private supabase: SupabaseClient;

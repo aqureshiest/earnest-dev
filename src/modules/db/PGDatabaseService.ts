@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { EmbeddingService } from "../ai/EmbeddingService";
+import { EmbeddingService } from "../ai/support/EmbeddingService";
 
 export class PGDatabaseService {
     private pool: Pool;

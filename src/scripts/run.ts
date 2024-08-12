@@ -1,4 +1,4 @@
-import { EmbeddingService } from "@/modules/ai/EmbeddingService";
+import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
 import { PGDatabaseService } from "@/modules/db/PGDatabaseService";
 import { DatabaseService } from "@/modules/db/SupDatabaseService";
 import { loadEnvConfig } from "@next/env";

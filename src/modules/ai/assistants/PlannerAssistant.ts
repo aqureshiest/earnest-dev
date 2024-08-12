@@ -1,6 +1,6 @@
 import { BaseAssistant } from "./BaseAssistant";
 
-export class PlannerAssistant extends BaseAssistant<string> {
+export class PlannerAssistant extends BaseAssistant<ImplementationPlan> {
     constructor() {
         super();
     }
@@ -59,15 +59,15 @@ Respond in the following YAML format:
 
 \`\`\`yaml
 implementationPlan:
-    - step: "A detailed description."
-        thoughts: "Placeholder for your thoughts on this step."
-        files:
-            - path: "path/to/file"
-                status: "new"
-                todos: 
-                    - "Todo 1"
-                    - "Todo 2"
-  
+  - step: "A detailed description."
+    thoughts: "Placeholder for your thoughts on this step."
+    files:
+      - path: "path/to/file"
+        status: "new"
+        todos: 
+          - "Todo 1"
+          - "Todo 2"
+
 Now, using the task description, existing code files, and specifications generate a detailed implementation plan for the task in the specified YAML format.
 `;
     }

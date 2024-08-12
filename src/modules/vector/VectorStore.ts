@@ -1,6 +1,6 @@
 // File: modules/vector/VectorStore.ts
 import { Pinecone } from "@pinecone-database/pinecone";
-import { OpenAIService } from "../ai/OpenAIService";
+import { OpenAIService } from "../ai/clients/OpenAIService";
 
 export class VectorStore {
     private index;

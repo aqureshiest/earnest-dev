@@ -94,8 +94,6 @@ class PullRequestService {
                     throw new Error(`Cannot update file ${modifiedFile}. It is a directory.`);
                 }
 
-                console.log(">>>> Adding file to PR", modifiedFile.path, modifiedFile.content);
-
                 changes.push({
                     path: modifiedFile.path,
                     mode: "100644",

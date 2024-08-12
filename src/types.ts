@@ -12,6 +12,7 @@ interface FileDetails {
 
 interface FileChange {
     path: string;
+    thoughts: string;
     content: string;
 }
 
@@ -23,6 +24,22 @@ interface Specification {
     title: string;
     thoughts: string;
     specification: string;
+}
+
+interface ImplementationPlan {
+    implementationPlan: Step[];
+}
+
+interface Step {
+    step: string;
+    thoughts: string;
+    files: FileChanges[];
+}
+
+interface FileChanges {
+    path: string;
+    status: "new" | "modified" | "deleted";
+    todos: string[];
 }
 
 interface CodeChanges {
