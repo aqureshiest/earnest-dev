@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Header from "./components/Header";
 import { Octokit } from "@octokit/rest";
 import PRModal from "./components/PRModal";
+import Link from "next/link";
 
 interface PullRequest {
     id: number;
@@ -124,37 +125,41 @@ const Home: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <Header />
-            <main className="container mx-auto py-8">
-                <header className="flex justify-between items-center mb-4 text-gray-800">
+        <div className="min-h-screen bg-gray-50 py-8 px-6">
+            <main className="max-w-7xl mx-auto">
+                <header className="flex justify-between items-center mb-6 text-gray-800">
                     <h1 className="text-3xl font-bold">Pull Requests</h1>
-                    <button
-                        className="bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-600 transition"
-                        onClick={openModal}
-                        disabled={!selectedRepo || !selectedBranch}
-                    >
-                        Create New Pull Request
-                    </button>
-                </header>
-                <div className="flex items-center gap-2">
-                    <div className="mb-4">
-                        <label
-                            htmlFor="repo-select"
-                            className="block text-sm font-medium text-gray-700"
+                    <div className="flex items-center gap-x-3">
+                        <button
+                            className="bg-teal-600 text-white px-4 py-2 rounded-lg shadow hover:bg-teal-500 transition duration-150"
+                            onClick={openModal}
+                            disabled={!selectedRepo || !selectedBranch}
                         >
+                            Create Pull Request
+                        </button>
+                        <Link
+                            href={`/pullrequest?repo=${selectedRepo}&branch=${selectedBranch}`}
+                            className="bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-500 transition duration-150"
+                        >
+                            Advanced Mode
+                        </Link>
+                    </div>
+                </header>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 max-w-[800px]">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600">
                             Select Repository
                         </label>
                         <select
-                            id="repo-select"
                             value={selectedRepo ?? ""}
                             onChange={handleRepoChange}
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         >
                             <option value="" disabled>
                                 Select a repository...
                             </option>
-                            {repos.map((repo: any) => (
+                            {repos.map((repo) => (
                                 <option key={repo.name} value={repo.name}>
                                     {repo.name}
                                 </option>
@@ -163,18 +168,14 @@ const Home: React.FC = () => {
                     </div>
 
                     {selectedRepo && (
-                        <div className="mb-4">
-                            <label
-                                htmlFor="branch-select"
-                                className="block text-sm font-medium text-gray-700"
-                            >
+                        <div>
+                            <label className="block text-sm font-medium text-gray-600">
                                 Select Branch
                             </label>
                             <select
-                                id="branch-select"
                                 value={selectedBranch ?? ""}
                                 onChange={handleBranchChange}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                             >
                                 {branches.map((branch) => (
                                     <option key={branch} value={branch}>
@@ -186,32 +187,20 @@ const Home: React.FC = () => {
                     )}
                 </div>
 
-                <div className="bg-white shadow rounded-lg p-6">
+                <div className="bg-white rounded-lg shadow p-6">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th
-                                    scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Title
                                 </th>
-                                <th
-                                    scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Author
                                 </th>
-                                <th
-                                    scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Date Created
                                 </th>
-                                <th
-                                    scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status
                                 </th>
                             </tr>
@@ -249,6 +238,7 @@ const Home: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
                 {selectedRepo && selectedBranch && (
                     <PRModal
                         isOpen={isModalOpen}

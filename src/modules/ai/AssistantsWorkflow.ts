@@ -7,10 +7,14 @@ export class AssistantsWorkflow {
     private plannerAssistant: PlannerAssistant;
     private codingAssistant: CodingAssistant;
 
-    constructor() {
+    private updatesChannel: any;
+
+    constructor(updatesChannel: any) {
         this.specificationsAssistant = new SpecificationsAssistant();
         this.plannerAssistant = new PlannerAssistant();
         this.codingAssistant = new CodingAssistant();
+
+        this.updatesChannel = updatesChannel;
     }
 
     async runWorkflow(
@@ -19,49 +23,73 @@ export class AssistantsWorkflow {
         files: FileDetails[],
         params?: any
     ): Promise<AIAssistantResponse<any> | null> {
+        await this.updatesChannel.publish("overall", "Generating specifications...");
         // generate specifications
-        const specificationsResult = await this.specificationsAssistant.process({
+        const specs = await this.specificationsAssistant.process({
             model,
             task,
             files,
             params,
         });
 
-        if (!specificationsResult) {
+        if (!specs) {
             throw new Error("Specifications not generated.");
         }
 
+        await this.emitMetrics(specs);
+        await this.updatesChannel.publish("specifications", specs);
+
+        await this.updatesChannel.publish("overall", "Generating implementation plan...");
         // generate plan
-        const plannerResult = await this.plannerAssistant.process({
+        const plan = await this.plannerAssistant.process({
             model,
             task,
             files,
             params: {
                 ...params,
-                specifications: this.formatSpecifications(specificationsResult.response),
+                specifications: this.formatSpecifications(specs.response),
             },
         });
 
-        if (!plannerResult) {
+        if (!plan) {
             throw new Error("Plan not generated.");
         }
 
+        await this.emitMetrics(plan);
+        await this.updatesChannel.publish("implementationplan", plan);
+
+        await this.updatesChannel.publish("overall", "Generating code...");
         // generate code
-        const codingResult = await this.codingAssistant.process({
+        const code = await this.codingAssistant.process({
             model,
             task,
             files,
             params: {
                 ...params,
-                implementationPlan: this.formatImplementationPlan(plannerResult.response),
+                implementationPlan: this.formatImplementationPlan(plan.response),
             },
         });
 
-        if (!codingResult) {
+        if (!code) {
             throw new Error("Code not generated.");
         }
 
-        return codingResult;
+        await this.emitMetrics(code);
+
+        return code;
+    }
+
+    private async emitMetrics(result: AIAssistantResponse<any>) {
+        await this.updatesChannel.publish(
+            "overall",
+            `*Approximated tokens: ${result.calculatedTokens}`
+        );
+        await this.updatesChannel.publish("overall", `*Actual Input tokens: ${result.inputTokens}`);
+        await this.updatesChannel.publish(
+            "overall",
+            `*Actual Output tokens: ${result.outputTokens}`
+        );
+        await this.updatesChannel.publish("overall", `*Cost: $${result.cost.toFixed(6)}`);
     }
 
     private formatSpecifications(specifications: Specifications): string {

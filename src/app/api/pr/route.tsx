@@ -1,14 +1,13 @@
 import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
 import PullRequestService from "@/modules/github/PullRequestService";
 import { RepositoryService } from "@/modules/github/RepositoryService";
-import { encode } from "gpt-tokenizer";
 import Ably from "ably";
 import { DatabaseService } from "@/modules/db/SupDatabaseService";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { AssistantsWorkflow } from "@/modules/ai/AssistantsWorkflow";
 
 // private function to send message to ably
-async function sendMessage(channel: any, message: string, messagePrefix = "progress") {
+async function sendMessage(channel: any, message: string, messagePrefix = "overall") {
     await channel.publish(messagePrefix, message);
 }
 
@@ -17,14 +16,13 @@ export async function POST(req: Request) {
     const dbService = new DatabaseService();
     const embeddingService = new EmbeddingService();
 
-    const assistantsWorkflow = new AssistantsWorkflow();
-
-    const { owner, repo, branch, description, selectedModel, useAllFiles } = await req.json();
+    const { owner, repo, branch, description, selectedModel, useAllFiles, updatesChannel } =
+        await req.json();
 
     const ably = new Ably.Rest(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
 
     try {
-        const channel = ably.channels.get("generate-pr-channel");
+        const channel = ably.channels.get(updatesChannel);
         await sendMessage(channel, "Starting to create pull request...");
 
         await sendMessage(channel, "Fetching repository...");
@@ -65,6 +63,8 @@ export async function POST(req: Request) {
             filesToUse = filesWithEmbeddings;
         }
 
+        const assistantsWorkflow = new AssistantsWorkflow(channel);
+
         // call the assistants workflow
         await sendMessage(channel, "Starting assistants workflow...");
         const result = await assistantsWorkflow.runWorkflow(selectedModel, description, filesToUse);
@@ -85,6 +85,7 @@ export async function POST(req: Request) {
                 `${description}`
             );
 
+            await sendMessage(channel, "Pull request created.");
             return new Response(JSON.stringify({ prLink }), {
                 headers: { "Content-Type": "application/json" },
             });
