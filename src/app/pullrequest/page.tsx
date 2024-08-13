@@ -67,7 +67,7 @@ const PullRequest: React.FC = () => {
                     owner,
                     repo,
                     branch,
-                    description,
+                    description: description.trim(),
                     selectedModel,
                     useAllFiles,
                     updatesChannel: channelName,

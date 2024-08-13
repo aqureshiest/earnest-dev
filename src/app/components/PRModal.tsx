@@ -33,27 +33,34 @@ const PRModal: React.FC<PRModalProps> = ({
         LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
     ];
 
-    useEffect(() => {
-        if (isOpen) {
-            // Initialize Ably and start listening to generate-pr-channel
-            const ably = new Ably.Realtime(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
-            const channel = ably.channels.get("generate-pr-channel");
+    const channelName = `earnest-dev-ch-${Date.now()}`;
 
-            channel.subscribe("progress", (message) => {
-                setProgress((prev) => [...prev, message.data]);
-                // scroll createPRModalDiv to bottom
-                const element = document.getElementById("createPRModalDiv");
-                if (element) {
-                    element.scrollTop = element.scrollHeight;
-                }
-            });
+    let ably: any = null;
+    let channel: any = null;
 
-            return () => {
-                channel.unsubscribe();
-                ably.close();
-            };
+    const openAblyConnection = () => {
+        ably = new Ably.Realtime(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
+        channel = ably.channels.get(channelName);
+
+        channel.subscribe((message: any) => {
+            const { name, data } = message;
+            switch (name) {
+                case "overall":
+                    setProgress((prev) => [...prev, data]);
+                    break;
+            }
+        });
+    };
+
+    const closeAblyConnection = () => {
+        if (channel) {
+            channel.unsubscribe();
         }
-    }, [isOpen]);
+
+        if (ably && ably.connection.state === "connected") {
+            ably.close();
+        }
+    };
 
     const handleDescriptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setDescription(event.target.value);
@@ -65,6 +72,8 @@ const PRModal: React.FC<PRModalProps> = ({
         setProgress([]);
 
         try {
+            openAblyConnection();
+
             const response = await fetch(`/api/pr`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -72,9 +81,10 @@ const PRModal: React.FC<PRModalProps> = ({
                     owner,
                     repo,
                     branch,
-                    description,
+                    descript: description.trim(),
                     selectedModel,
                     useAllFiles,
+                    updatesChannel: channelName,
                 }),
             });
 
@@ -84,6 +94,7 @@ const PRModal: React.FC<PRModalProps> = ({
             setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
         } finally {
             setIsCreating(false);
+            closeAblyConnection();
         }
     };
 
@@ -109,13 +120,12 @@ const PRModal: React.FC<PRModalProps> = ({
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-            <div
-                className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg"
-                id="createPRModalDiv"
-            >
-                <h2 className="text-2xl font-bold mb-4">Create New Pull Request</h2>
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+                    Create New Pull Request
+                </h2>
                 <textarea
-                    className="w-full p-2 border border-gray-300 rounded mb-4"
+                    className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mb-4"
                     rows={4}
                     placeholder="Enter pull request description..."
                     value={description}
@@ -134,7 +144,7 @@ const PRModal: React.FC<PRModalProps> = ({
                             id="selectedModel"
                             value={selectedModel}
                             onChange={(e) => setSelectedModel(e.target.value)}
-                            className="block w-full p-2 border border-gray-300 rounded"
+                            className="block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                             disabled={isCreating}
                         >
                             {availableModels.map((model) => (
@@ -145,7 +155,6 @@ const PRModal: React.FC<PRModalProps> = ({
                         </select>
                     </div>
                     <div className="text-center">
-                        {/* show label with a tool tip */}
                         <label
                             htmlFor="useAllFiles"
                             className="block mb-2 text-sm font-medium text-gray-700"
@@ -154,30 +163,32 @@ const PRModal: React.FC<PRModalProps> = ({
                         </label>
                         <input
                             type="checkbox"
+                            id="useAllFiles"
                             checked={useAllFiles}
                             onChange={() => setUseAllFiles((prev) => !prev)}
                             disabled={isCreating}
+                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                         />
                     </div>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
                     <button
                         onClick={handleCreatePullRequest}
-                        className="bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-600 transition disabled:bg-gray-300"
+                        className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
                         disabled={isCreating}
                     >
                         {isCreating ? "Creating..." : "Create Pull Request"}
                     </button>
                     <button
                         onClick={handleModalClose}
-                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded ml-2 hover:bg-gray-200 transition"
+                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition"
                         disabled={isCreating}
                     >
                         Close
                     </button>
                 </div>
                 {progress.length > 0 && (
-                    <div className="mt-4 border rounded-sm p-2 gap-y-2 overflow-y-auto max-h-48">
+                    <div className="mt-4 bg-gray-50 border border-gray-200 rounded-md p-3 space-y-1 overflow-y-auto max-h-48">
                         {progress.map((message, index) => {
                             // Check if message starts with '*' for bullet list item
                             if (message.trim().startsWith("*")) {
@@ -199,14 +210,13 @@ const PRModal: React.FC<PRModalProps> = ({
                         <div ref={messagesEndRef} />
                     </div>
                 )}
-
                 <div className="text-center">
                     {generatedPRLink && (
                         <a
                             href={generatedPRLink}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-4 bg-gray-100 text-gray-600 px-4 py-2 rounded hover:bg-gray-200 transition inline-block"
+                            className="mt-4 inline-block bg-gray-100 text-gray-600 px-4 py-2 rounded-md hover:bg-gray-200 transition"
                         >
                             View Pull Request
                         </a>

@@ -58,23 +58,33 @@ export class AssistantsWorkflow {
         await this.emitMetrics(plan);
         await this.updatesChannel.publish("implementationplan", plan);
 
-        await this.updatesChannel.publish("overall", "Generating code...");
-        // generate code
-        const code = await this.codingAssistant.process({
-            model,
-            task,
-            files,
-            params: {
-                ...params,
-                implementationPlan: this.formatImplementationPlan(plan.response),
-            },
-        });
+        let code: any = null;
+        let continuationPrompt = "";
 
-        if (!code) {
-            throw new Error("Code not generated.");
+        for (let i = 0; i < 1; i++) {
+            if (i > 0) {
+                continuationPrompt = this.formatContinuationPrompt(code.response as CodeChanges);
+            }
+
+            await this.updatesChannel.publish("overall", "Generating code...");
+            // generate code
+            code = await this.codingAssistant.process({
+                model,
+                task,
+                files,
+                params: {
+                    ...params,
+                    implementationPlan: this.formatImplementationPlan(plan.response),
+                    continuationPrompt,
+                },
+            });
+
+            if (!code) {
+                throw new Error("Code not generated.");
+            }
+
+            await this.emitMetrics(code);
         }
-
-        await this.emitMetrics(code);
 
         return code;
     }
@@ -117,6 +127,24 @@ export class AssistantsWorkflow {
                     )}`
             )
             .join("\n\n");
+    }
+
+    private formatCodeChanges(codeChanges: CodeChanges): string {
+        return `#### PR Title: ${codeChanges.prTitle}\n\n#### New Files:\n${codeChanges.newFiles
+            .map((file) => `File: ${file.path}\n${file.content}`)
+            .join("\n---\n")}\n\n#### Modified Files:\n${codeChanges.modifiedFiles
+            .map((file) => `File: ${file.path}\n${file.content}`)
+            .join("\n---\n")}\n\n#### Deleted Files:\n${codeChanges.deletedFiles.join("\n")}`;
+    }
+
+    private formatContinuationPrompt(codeChanges: CodeChanges): string {
+        return `
+**Continue from where you left off. Here is the implementation you've generated so far**:
+
+### Previously generated code:
+
+${this.formatCodeChanges(codeChanges)}
+`;
     }
 
     private formatTodos(todos: string[]): string {

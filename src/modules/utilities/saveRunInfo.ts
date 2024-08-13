@@ -37,7 +37,7 @@ export function saveRunInfo<T>(
     }
 
     // create a new file in the runDir
-    const runInfoFile = path.join(runDir, `${infoType}.${infoExtension}`);
+    const runInfoFile = path.join(runDir, `${infoType}_${timestamp}.${infoExtension}`);
 
     let infoString = "";
 

@@ -100,6 +100,7 @@ deletedFiles:
   - "src/oldFeature.js"
 
 Now, using the task description, existing code files, and implementation plan generate the code for the task in the specified YAML format.
+[[CONTINUATIONPROMPT]]
 `;
     }
 
