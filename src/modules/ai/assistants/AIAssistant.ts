@@ -7,6 +7,7 @@ interface AIAssistantRequest {
 
 interface AIAssistantResponse<T> {
     response: T;
+    responseStr: string;
     calculatedTokens: number;
     inputTokens: number;
     outputTokens: number;

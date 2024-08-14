@@ -2,6 +2,12 @@ import { CodingAssistant } from "./assistants/CodingAssistant";
 import { PlannerAssistant } from "./assistants/PlannerAssistant";
 import { SpecificationsAssistant } from "./assistants/SpecificationsAssistant";
 
+interface WorkflowResponse {
+    specs: AIAssistantResponse<Specifications>;
+    plan: AIAssistantResponse<ImplementationPlan>;
+    code: AIAssistantResponse<CodeChanges>;
+}
+
 export class AssistantsWorkflow {
     private specificationsAssistant: SpecificationsAssistant;
     private plannerAssistant: PlannerAssistant;
@@ -22,7 +28,7 @@ export class AssistantsWorkflow {
         task: string,
         files: FileDetails[],
         params?: any
-    ): Promise<AIAssistantResponse<any> | null> {
+    ): Promise<WorkflowResponse | null> {
         await this.updatesChannel.publish("overall", "Generating specifications...");
         // generate specifications
         const specs = await this.specificationsAssistant.process({
@@ -47,7 +53,7 @@ export class AssistantsWorkflow {
             files,
             params: {
                 ...params,
-                specifications: this.formatSpecifications(specs.response),
+                specifications: specs.responseStr,
             },
         });
 
@@ -58,35 +64,25 @@ export class AssistantsWorkflow {
         await this.emitMetrics(plan);
         await this.updatesChannel.publish("implementationplan", plan);
 
-        let code: any = null;
-        let continuationPrompt = "";
+        await this.updatesChannel.publish("overall", "Generating code...");
+        // generate code
+        const code = await this.codingAssistant.process({
+            model,
+            task,
+            files,
+            params: {
+                ...params,
+                implementationPlan: plan.responseStr,
+            },
+        });
 
-        for (let i = 0; i < 1; i++) {
-            if (i > 0) {
-                continuationPrompt = this.formatContinuationPrompt(code.response as CodeChanges);
-            }
-
-            await this.updatesChannel.publish("overall", "Generating code...");
-            // generate code
-            code = await this.codingAssistant.process({
-                model,
-                task,
-                files,
-                params: {
-                    ...params,
-                    implementationPlan: this.formatImplementationPlan(plan.response),
-                    continuationPrompt,
-                },
-            });
-
-            if (!code) {
-                throw new Error("Code not generated.");
-            }
-
-            await this.emitMetrics(code);
+        if (!code) {
+            throw new Error("Code not generated.");
         }
 
-        return code;
+        await this.emitMetrics(code);
+
+        return { specs, plan, code };
     }
 
     private async emitMetrics(result: AIAssistantResponse<any>) {
@@ -129,6 +125,10 @@ export class AssistantsWorkflow {
             .join("\n\n");
     }
 
+    private formatTodos(todos: string[]): string {
+        return todos.map((todo, index) => `- ${todo}`).join("\n");
+    }
+
     private formatCodeChanges(codeChanges: CodeChanges): string {
         return `#### PR Title: ${codeChanges.prTitle}\n\n#### New Files:\n${codeChanges.newFiles
             .map((file) => `File: ${file.path}\n${file.content}`)
@@ -145,9 +145,5 @@ export class AssistantsWorkflow {
 
 ${this.formatCodeChanges(codeChanges)}
 `;
-    }
-
-    private formatTodos(todos: string[]): string {
-        return todos.map((todo, index) => `- ${todo}`).join("\n");
     }
 }

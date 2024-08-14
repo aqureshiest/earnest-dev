@@ -59,6 +59,7 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         return {
             ...aiResponse,
             response: parsed,
+            responseStr: aiResponse.response,
             calculatedTokens: totalTokens,
         };
     }
@@ -71,7 +72,7 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         model: string,
         systemPrompt: string,
         prompt: string
-    ): Promise<AIAssistantResponse<string> | null> {
+    ): Promise<AIResponse | null> {
         // pick the ai model
         const aiService =
             model === LLM_MODELS.OPENAI_GPT_4O_MINI || LLM_MODELS.OPENAI_GPT_4O
@@ -86,7 +87,6 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
 
         return {
             response,
-            calculatedTokens: 0,
             inputTokens,
             outputTokens,
             cost,

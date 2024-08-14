@@ -18,6 +18,7 @@
     "ably": "^2.3.1",
     "better-sqlite3": "^11.1.2",
     "gpt-tokenizer": "^2.2.1",
+    "highlight.js": "^11.10.0",
     "js-yaml": "^4.1.0",
     "next": "14.2.5",
     "octokit": "^4.0.2",
@@ -26,6 +27,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-modal": "^3.16.1",
+    "react-syntax-highlighter": "^15.4.4",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7"
   },
@@ -37,6 +39,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/react-modal": "^3.16.3",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.16.2",

@@ -100,7 +100,6 @@ deletedFiles:
   - "src/oldFeature.js"
 
 Now, using the task description, existing code files, and implementation plan generate the code for the task in the specified YAML format.
-[[CONTINUATIONPROMPT]]
 `;
     }
 
@@ -115,3 +114,5 @@ Now, using the task description, existing code files, and implementation plan ge
 // - Do not exclude unrelated existing content unless explicitly instructed to do so.
 // - A file should only be listed in one section: new, modified, or deleted.
 // - Focus on the task at hand while considering the broader context of the codebase.
+
+// [[CONTINUATIONPROMPT]]

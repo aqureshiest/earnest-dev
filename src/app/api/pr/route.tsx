@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         const tokenizedFiles: FileDetails[] = TokenLimiter.tokenizeFiles(filesWithContent);
 
         await sendMessage(channel, "Embedding files...");
-        const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFiles(
+        const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFilesInChunks(
             tokenizedFiles
         );
 
@@ -50,8 +50,8 @@ export async function POST(req: Request) {
 
         if (!useAllFiles) {
             try {
-                console.log("Limiting context to relevant files...");
-                filesToUse = await dbService.findSimilar(description, 5, owner, repo, branch);
+                console.log("Using relevant files...");
+                filesToUse = await dbService.findSimilar(description, owner, repo, branch);
                 filesToUse.slice(0, 10).forEach(async (file) => {
                     await sendMessage(channel, `*${file.path}`);
                 });
@@ -67,9 +67,13 @@ export async function POST(req: Request) {
 
         // call the assistants workflow
         await sendMessage(channel, "Starting assistants workflow...");
-        const result = await assistantsWorkflow.runWorkflow(selectedModel, description, filesToUse);
+        const response = await assistantsWorkflow.runWorkflow(
+            selectedModel,
+            description,
+            filesToUse
+        );
 
-        const codeChanges = result?.response as CodeChanges;
+        const codeChanges = response?.code.response;
 
         if (
             codeChanges &&
@@ -78,11 +82,12 @@ export async function POST(req: Request) {
                 codeChanges?.deletedFiles.length > 0)
         ) {
             await sendMessage(channel, "Creating pull request...");
+
             const prService = new PullRequestService(owner, repo, branch);
             const prLink = await prService.createPullRequest(
                 codeChanges,
                 codeChanges.prTitle,
-                `${description}`
+                `${description}\n\n${response.plan.responseStr}`
             );
 
             await sendMessage(channel, "Pull request created.");
@@ -94,88 +99,6 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ prLink: null, message: "No code changes needed" }), {
             headers: { "Content-Type": "application/json" },
         });
-
-        // call the thoughts assistant
-        // await sendMessage(channel, "Generating thoughts...");
-        // const response = await thinker.process({
-        //     model: selectedModel,
-        //     task: description,
-        //     files: filesToUse,
-        // });
-        // await sendMessage(channel, "Thoughts ready.");
-
-        // const specifications = response?.response as Specifications;
-        // // print specifications as text
-        // const specsText = specifications.specifications.map(
-        //     (spec, index) =>
-        //         `#### Specification #${index + 1}:\n${spec.title}\n\n#### Considerations: ${
-        //             spec.thoughts
-        //         }\n#### Details:\n${spec.specification}`
-        // );
-
-        // call planner assistant
-        // await sendMessage(channel, "Generating plan...");
-        // const response2 = await planner.process({
-        //     model: selectedModel,
-        //     task: description,
-        //     files: filesToUse,
-        //     params: {
-        //         specifications: specsText.join("\n"),
-        //     },
-        // });
-        // await sendMessage(channel, "Plan ready.");
-
-        // await sendMessage(channel, "Generating plan...");
-        // const {
-        //     plan,
-        //     calculatedTokens: planCTokens,
-        //     inputTokens: planITokens,
-        //     outputTokens: planOTokens,
-        //     cost: planCost,
-        // } = await planner.process(selectedModel, description, filesWithEmbeddings);
-        // await sendMessage(channel, "Implementation plan ready.");
-        // await sendMessage(channel, `*Approximated tokens: ${planCTokens}`);
-        // await sendMessage(channel, `*Actual Input tokens: ${planITokens}`);
-        // await sendMessage(channel, `*Actual Output tokens: ${planOTokens}`);
-        // await sendMessage(channel, `*Cost: $${planCost.toFixed(6)}`);
-
-        // await sendMessage(channel, "Generating code...");
-        // const {
-        //     codeChanges,
-        //     calculatedTokens: codeCTokens,
-        //     inputTokens: codeITokens,
-        //     outputTokens: codeOTokens,
-        //     cost: codeCost,
-        // } = (await coder.generateCode(selectedModel, description, plan, filesWithEmbeddings)) || {};
-
-        // if (
-        //     codeChanges &&
-        //     (codeChanges?.newFiles.length > 0 ||
-        //         codeChanges?.modifiedFiles.length > 0 ||
-        //         codeChanges?.deletedFiles.length > 0)
-        // ) {
-        //     await sendMessage(channel, "Code ready.");
-        //     await sendMessage(channel, `*Approximated tokens: ${codeCTokens}`);
-        //     await sendMessage(channel, `*Actual Input tokens: ${codeITokens}`);
-        //     await sendMessage(channel, `*Actual Output tokens: ${codeOTokens}`);
-        //     await sendMessage(channel, `*Cost: $${codeCost?.toFixed(6)}`);
-
-        //     await sendMessage(channel, "Creating pull request...");
-        //     const prService = new PullRequestService(owner, repo, branch);
-        //     const prLink = await prService.createPullRequest(
-        //         codeChanges,
-        //         codeChanges.prTitle,
-        //         `${description}\n\n${plan}`
-        //     );
-
-        //     return new Response(JSON.stringify({ prLink }), {
-        //         headers: { "Content-Type": "application/json" },
-        //     });
-        // }
-
-        // return new Response(JSON.stringify({ prLink: null, message: "No code changes needed" }), {
-        //     headers: { "Content-Type": "application/json" },
-        // });
     } catch (e) {
         console.log(e);
         return new Response(JSON.stringify({ error: (e as any).message }), {

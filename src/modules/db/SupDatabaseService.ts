@@ -90,7 +90,6 @@ export class DatabaseService {
 
     async findSimilar(
         text: string,
-        topK: number = 5,
         owner: string,
         repo: string,
         ref: string
@@ -99,13 +98,10 @@ export class DatabaseService {
 
         const { data, error } = await this.supabase.rpc("find_similar_files", {
             query_embeddings: embeddings,
-            top_k: topK,
             given_owner: owner,
             given_repo: repo,
             given_ref: ref,
         });
-
-        // console.log(data);
 
         if (error) {
             throw new Error(`Error finding similar files: ${error.message}`);

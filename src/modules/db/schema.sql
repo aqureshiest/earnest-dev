@@ -19,8 +19,9 @@ CREATE INDEX IF NOT EXISTS idx_embeddings ON FileDetails USING ivfflat (embeddin
 
 
 
--- 002_create_similarity_search_function.sql
-CREATE OR REPLACE FUNCTION find_similar_files(given_owner TEXT, given_repo TEXT, given_ref TEXT, query_embeddings vector, top_k INT)
+-- 002_create_similarity_search_function.sql 
+-- top_k INT
+CREATE OR REPLACE FUNCTION find_similar_files(given_owner TEXT, given_repo TEXT, given_ref TEXT, query_embeddings vector)
 RETURNS TABLE (
     id INT,
     name TEXT,
@@ -49,10 +50,10 @@ BEGIN
     WHERE 
          filedetails.owner = given_owner AND 
          filedetails.repo = given_repo AND 
-         filedetails.ref = given_ref AND 
-         (1 - (FileDetails.embeddings <=> query_embeddings)) > 0.01
+         filedetails.ref = given_ref 
+        --  (1 - (FileDetails.embeddings <=> query_embeddings)) > 0.01
     ORDER BY similarity desc
-    LIMIT top_k;
+    -- LIMIT top_k;
 END;
 $$ LANGUAGE plpgsql;
 

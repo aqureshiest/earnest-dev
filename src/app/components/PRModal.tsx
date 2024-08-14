@@ -81,7 +81,7 @@ const PRModal: React.FC<PRModalProps> = ({
                     owner,
                     repo,
                     branch,
-                    descript: description.trim(),
+                    description: description.trim(),
                     selectedModel,
                     useAllFiles,
                     updatesChannel: channelName,

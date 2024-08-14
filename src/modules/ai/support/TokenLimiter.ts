@@ -34,7 +34,7 @@ export class TokenLimiter {
             let fileTokens = file.tokenCount || encode(contents).length;
 
             // keep adding to token length
-            if (totalTokens + fileTokens < LLM.maxInputTokens) {
+            if (totalTokens + fileTokens < LLM.maxInputTokens - 100) {
                 totalTokens += fileTokens;
                 allowedFiles.push(file);
             } else {
