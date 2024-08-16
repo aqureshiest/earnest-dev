@@ -4,8 +4,8 @@ import { LLM_MODELS } from "@/modules/utilities/llmInfo";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import Ably from "ably";
-import YamlDisplay from "../components/YamlDisplay";
-import YamlDisplay2 from "../components/YamlDisplay2";
+import SpecificationsCard from "../components/SpecificationsCard";
+import ImplementationPlanCard from "../components/ImplementationPlanCard";
 
 const PullRequest: React.FC = () => {
     const params = useSearchParams();
@@ -33,9 +33,6 @@ const PullRequest: React.FC = () => {
         useState<AIAssistantResponse<Specifications> | null>(null);
     const [implementationPlan, setImplementationPlan] =
         useState<AIAssistantResponse<ImplementationPlan> | null>(null);
-
-    const [isEditingSpecs, setIsEditingSpecs] = useState(false);
-    const [isEditingPlan, setIsEditingPlan] = useState(false);
 
     const availableModels = [
         LLM_MODELS.OPENAI_GPT_4O,
@@ -87,14 +84,6 @@ const PullRequest: React.FC = () => {
             setIsCreating(false);
             closeAblyConnection();
         }
-    };
-
-    const toggleEditSpecs = () => {
-        setIsEditingSpecs((prev) => !prev);
-    };
-
-    const toggleEditPlan = () => {
-        setIsEditingPlan((prev) => !prev);
     };
 
     let ably: any = null;
@@ -209,19 +198,6 @@ const PullRequest: React.FC = () => {
                                 </select>
                             </div>
 
-                            {/* <div className="flex items-center space-x-2">
-                                <label className="text-sm font-medium text-gray-600">
-                                    Use All Files
-                                </label>
-                                <input
-                                    type="checkbox"
-                                    checked={useAllFiles}
-                                    onChange={() => setUseAllFiles((prev) => !prev)}
-                                    disabled={isCreating}
-                                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                />
-                            </div> */}
-
                             {/* Create Pull Request Button */}
                             <div className="flex justify-end">
                                 <button
@@ -240,7 +216,7 @@ const PullRequest: React.FC = () => {
                                         href={generatedPRLink}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="inline-block bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition"
+                                        className="inline-block bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-500 transition"
                                     >
                                         View Pull Request
                                     </a>
@@ -273,130 +249,10 @@ const PullRequest: React.FC = () => {
                         </div>
 
                         {/* Specifications Assistant Progress */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <h2 className="font-semibold text-gray-800 mb-4">Specifications</h2>
-
-                                {specifications && (
-                                    <div className="text-xs text-end">
-                                        <div className="text-gray-500">
-                                            Cost: ${specifications?.cost.toFixed(6)}
-                                        </div>
-                                        <div className="text-gray-500">
-                                            Input Tokens: {specifications?.inputTokens}
-                                        </div>
-                                        <div className="text-gray-500">
-                                            Output Tokens: {specifications?.outputTokens}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-4  max-h-96 overflow-auto">
-                                {specifications?.response?.specifications.map((spec, index) => (
-                                    <div
-                                        key={index}
-                                        className={`p-4 border ${
-                                            isEditingSpecs ? "border-blue-500" : "border-gray-300"
-                                        } rounded-md`}
-                                    >
-                                        <h3 className="font-medium text-gray-700">{spec.title}</h3>
-                                        <p className="text-sm text-gray-600 mt-2">
-                                            <strong>Thoughts:</strong> {spec.thoughts}
-                                        </p>
-                                        <p className="text-sm text-gray-600 mt-2">
-                                            <strong>Specification:</strong>
-                                            {spec.specification.split("\n").map((line, index) => (
-                                                <div key={index}>{line}</div>
-                                            ))}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* <div className="flex justify-end space-x-4 mt-4">
-                                <button
-                                    onClick={toggleEditSpecs}
-                                    className={`text-sm ${
-                                        isEditingSpecs ? "text-red-500" : "text-blue-500"
-                                    }`}
-                                >
-                                    {isEditingSpecs ? "Cancel Edit" : "Edit"}
-                                </button>
-                                {!isEditingSpecs && (
-                                    <button className="text-sm text-green-500">Proceed</button>
-                                )}
-                            </div> */}
-                        </div>
+                        <SpecificationsCard specifications={specifications} />
 
                         {/* Implementation Plan Assistant Progress */}
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <h2 className="font-semibold text-gray-800 mb-4">
-                                    Implementation Plan
-                                </h2>
-
-                                {implementationPlan && (
-                                    <div className="text-xs text-end">
-                                        <div className="text-gray-500">
-                                            Cost: ${implementationPlan?.cost.toFixed(6)}
-                                        </div>
-                                        <div className="text-gray-500">
-                                            Input Tokens: {implementationPlan?.inputTokens}
-                                        </div>
-                                        <div className="text-gray-500">
-                                            Output Tokens: {implementationPlan?.outputTokens}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-4  max-h-96 overflow-auto">
-                                {implementationPlan?.response?.implementationPlan.map(
-                                    (step, index) => (
-                                        <div
-                                            key={index}
-                                            className={`p-4 border ${
-                                                isEditingPlan
-                                                    ? "border-blue-500"
-                                                    : "border-gray-300"
-                                            } rounded-md`}
-                                        >
-                                            <h3 className="font-medium text-gray-700">
-                                                {step.step}
-                                            </h3>
-                                            <p className="text-sm text-gray-600 mt-2">
-                                                <strong>Thoughts:</strong> {step.thoughts}
-                                            </p>
-                                            {step.files.map((file, fileIndex) => (
-                                                <div key={fileIndex} className="mt-2">
-                                                    <p className="text-sm text-gray-600">
-                                                        <strong>File:</strong> {file.path} (
-                                                        {file.status})
-                                                    </p>
-                                                    <p className="text-sm text-gray-600">
-                                                        <strong>Changes:</strong>{" "}
-                                                        {file.todos.map((todo, todoIndex) => (
-                                                            <div key={todoIndex}>{todo}</div>
-                                                        ))}
-                                                    </p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                            {/* <div className="flex justify-end space-x-4 mt-4">
-                                <button
-                                    onClick={toggleEditPlan}
-                                    className={`text-sm ${
-                                        isEditingPlan ? "text-red-500" : "text-blue-500"
-                                    }`}
-                                >
-                                    {isEditingPlan ? "Cancel Edit" : "Edit"}
-                                </button>
-                                {!isEditingPlan && (
-                                    <button className="text-sm text-green-500">Proceed</button>
-                                )}
-                            </div> */}
-                        </div>
+                        <ImplementationPlanCard implementationPlan={implementationPlan} />
                     </div>
                 </div>
             </div>
