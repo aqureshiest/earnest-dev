@@ -13,94 +13,72 @@ export class EmbeddingService {
     }
 
     async generateEmbeddingsForFilesInChunks(files: FileDetails[]) {
-        const filesToUpdate = files.filter(
-            (file) => !file.embeddings || file.embeddings.length === 0
-        );
+        const maxTokenSize = 8192;
+        const buffer = 500;
+        const chunks: FileDetails[][] = [];
+        let chunk: FileDetails[] = [];
+        let chunkSize = 0;
 
-        if (filesToUpdate.length === 0) {
-            console.log("No files to update embeddings");
-            return files;
-        }
+        console.log("Generating embeddings for", files.length, "files");
 
-        const maxTokens = 8192; // Maximum tokens allowed by the model
-        const reservedTokens = 500; // Reserve space for overhead
-        const inputTexts = filesToUpdate.map((file) => `${file.path}\n${file.content}`);
+        for (const file of files) {
+            const tokens = encode(`${file.path}\n${file.content}`).length;
 
-        const chunks: { chunk: string[]; filesInChunk: FileDetails[] }[] = [];
-        let currentChunk: string[] = [];
-        let currentFiles: FileDetails[] = [];
-        let currentTokens = 0;
-
-        for (let i = 0; i < inputTexts.length; i++) {
-            const text = inputTexts[i];
-            const tokens = encode(text).length;
-
-            // Check if adding this text exceeds the max tokens allowed
-            if (currentTokens + tokens + reservedTokens > maxTokens) {
-                console.log(
-                    `Chunking due to token limit ${currentTokens + tokens} ${
-                        maxTokens - reservedTokens
-                    }`
+            if (tokens >= maxTokenSize - buffer) {
+                console.warn(
+                    `File ${file.path} has ${tokens} tokens. Too large to process. Skipping`
                 );
-                chunks.push({ chunk: currentChunk, filesInChunk: currentFiles });
-                currentChunk = [];
-                currentFiles = [];
-                currentTokens = 0;
+            } else {
+                if (chunkSize + tokens < maxTokenSize - buffer) {
+                    chunk.push(file);
+                    chunkSize += tokens;
+                } else {
+                    chunks.push(chunk);
+                    chunk = [file];
+                    chunkSize = tokens;
+                }
             }
-
-            currentChunk.push(text);
-            currentFiles.push(filesToUpdate[i]);
-            currentTokens += tokens;
+        }
+        if (chunk.length > 0) {
+            chunks.push(chunk);
         }
 
-        // Add the last chunk if any
-        if (currentChunk.length > 0) {
-            console.log(`Adding last chunk of ${currentChunk.length} files`);
-            chunks.push({ chunk: currentChunk, filesInChunk: currentFiles });
-        }
+        const updatedFiles: FileDetails[] = [];
 
-        console.log(
-            `Generating embeddings for ${filesToUpdate.length} files in ${chunks.length} chunks`
-        );
-
-        const embeddings: any[] = [];
-        for (const { chunk, filesInChunk } of chunks) {
-            const chunkTokens = encode(chunk.join("\n")).length; // Calculate the token size of the chunk
-            console.log(
-                `Generating embeddings for chunk of ${chunk.length} files  chunk size: ${chunk.length}, tokens: ${chunkTokens}`
-            );
-
-            const response = await this.openai.embeddings.create({
-                model: EMBEDDINGS_MODEL,
-                dimensions: EMBEDDINGS_DIMENSIONS,
-                input: chunk,
-            });
-
-            const chunkEmbeddings = response?.data?.map((item) => item.embedding) || [];
-            embeddings.push(...chunkEmbeddings);
-        }
-
-        // Create a map of updated files to their embeddings
-        const updatedFilesMap = new Map();
-        filesToUpdate.forEach((file, index) => {
-            const key = `${file.owner}/${file.repo}/${file.ref}/${file.path}`;
-            updatedFilesMap.set(key, embeddings[index]);
+        console.log("Processing", chunks.length, "chunks");
+        // Process chunks in parallel with a concurrency limit
+        const concurrencyLimit = 5; // Adjust based on API capacity
+        const chunkPromises = chunks.map((chunk) => async () => {
+            try {
+                const updatedChunk = await this.generateEmbeddingsForFiles(chunk);
+                updatedFiles.push(...updatedChunk);
+            } catch (error) {
+                console.error("Error generating embeddings:", error);
+            }
         });
 
-        // Update files array with new embeddings
-        return files.map((file) => {
-            const key = `${file.owner}/${file.repo}/${file.ref}/${file.path}`;
-            return {
-                ...file,
-                embeddings:
-                    file.embeddings && file.embeddings.length > 0
-                        ? file.embeddings
-                        : updatedFilesMap.get(key),
-            };
-        });
+        await this.processInParallel(chunkPromises, concurrencyLimit);
+        return updatedFiles;
     }
 
-    async generateEmbeddingsForFiles(files: FileDetails[]) {
+    private async processInParallel(tasks: (() => Promise<void>)[], concurrencyLimit: number) {
+        const runningTasks = new Set<Promise<void>>();
+
+        for (const task of tasks) {
+            const runningTask = task();
+            runningTasks.add(runningTask);
+
+            runningTask.finally(() => runningTasks.delete(runningTask));
+
+            if (runningTasks.size >= concurrencyLimit) {
+                await Promise.race(runningTasks);
+            }
+        }
+
+        await Promise.all(runningTasks);
+    }
+
+    async generateEmbeddingsForFiles(files: FileDetails[]): Promise<FileDetails[]> {
         const filesToUpdate = files.filter(
             (file) => !file.embeddings || file.embeddings.length === 0
         );

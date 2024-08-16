@@ -126,13 +126,13 @@ const PRModal: React.FC<PRModalProps> = ({
                 </h2>
                 <textarea
                     className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mb-4"
-                    rows={4}
+                    rows={6}
                     placeholder="Enter pull request description..."
                     value={description}
                     onChange={handleDescriptionChange}
                     disabled={isCreating}
                 />
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4">
                     <div>
                         <label
                             htmlFor="selectedModel"
@@ -140,6 +140,8 @@ const PRModal: React.FC<PRModalProps> = ({
                         >
                             AI Model
                         </label>
+                    </div>
+                    <div>
                         <select
                             id="selectedModel"
                             value={selectedModel}
@@ -154,7 +156,7 @@ const PRModal: React.FC<PRModalProps> = ({
                             ))}
                         </select>
                     </div>
-                    <div className="text-center">
+                    {/* <div className="text-center">
                         <label
                             htmlFor="useAllFiles"
                             className="block mb-2 text-sm font-medium text-gray-700"
@@ -169,7 +171,7 @@ const PRModal: React.FC<PRModalProps> = ({
                             disabled={isCreating}
                             className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                         />
-                    </div>
+                    </div> */}
                 </div>
                 <div className="flex justify-end gap-2">
                     <button

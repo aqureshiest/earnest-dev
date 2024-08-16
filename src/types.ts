@@ -8,6 +8,8 @@ interface FileDetails {
     commitHash: string;
     tokenCount: number;
     embeddings: number[];
+    chunked?: boolean;
+    chunkCount?: number;
 }
 
 interface FileChange {

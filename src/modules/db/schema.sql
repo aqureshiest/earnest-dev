@@ -52,7 +52,7 @@ BEGIN
          filedetails.repo = given_repo AND 
          filedetails.ref = given_ref 
         --  (1 - (FileDetails.embeddings <=> query_embeddings)) > 0.01
-    ORDER BY similarity desc
+    ORDER BY similarity desc;
     -- LIMIT top_k;
 END;
 $$ LANGUAGE plpgsql;

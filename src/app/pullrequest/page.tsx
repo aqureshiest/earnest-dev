@@ -14,6 +14,9 @@ const PullRequest: React.FC = () => {
     const [branch, setBranch] = useState<string | null>(null);
 
     const [description, setDescription] = useState("");
+
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+
     const [progress, setProgress] = useState<string[]>([
         "Fill in the task description and click 'Create Pull Request' to start the process.",
         "You can monitor the progress of the pull request creation below.",
@@ -22,7 +25,7 @@ const PullRequest: React.FC = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
     const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
-    const [useAllFiles, setUseAllFiles] = useState(true);
+    const [useAllFiles, setUseAllFiles] = useState(false);
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
 
@@ -127,6 +130,17 @@ const PullRequest: React.FC = () => {
         }
     };
 
+    // Scroll to the bottom of the messages div whenever progress updates
+    const scrollToBottom = () => {
+        if (messagesContainerRef && messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [progress, generatedPRLink]);
+
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-6">
             <div className="max-w-7xl mx-auto">
@@ -195,7 +209,7 @@ const PullRequest: React.FC = () => {
                                 </select>
                             </div>
 
-                            <div className="flex items-center space-x-2">
+                            {/* <div className="flex items-center space-x-2">
                                 <label className="text-sm font-medium text-gray-600">
                                     Use All Files
                                 </label>
@@ -206,7 +220,7 @@ const PullRequest: React.FC = () => {
                                     disabled={isCreating}
                                     className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                 />
-                            </div>
+                            </div> */}
 
                             {/* Create Pull Request Button */}
                             <div className="flex justify-end">
@@ -242,7 +256,10 @@ const PullRequest: React.FC = () => {
                             <h2 className="font-semibold text-gray-800 text-center mb-4">
                                 Overall Progress
                             </h2>
-                            <div className="space-y-1 overflow-y-auto max-h-60">
+                            <div
+                                ref={messagesContainerRef}
+                                className="space-y-1 overflow-y-auto max-h-60"
+                            >
                                 {progress.map((message, index) => (
                                     <p key={index} className="text-sm text-gray-700">
                                         {message.startsWith("*") ? (
@@ -275,7 +292,7 @@ const PullRequest: React.FC = () => {
                                 )}
                             </div>
                             <div className="space-y-4  max-h-96 overflow-auto">
-                                {specifications?.response.specifications.map((spec, index) => (
+                                {specifications?.response?.specifications.map((spec, index) => (
                                     <div
                                         key={index}
                                         className={`p-4 border ${
@@ -332,7 +349,7 @@ const PullRequest: React.FC = () => {
                                 )}
                             </div>
                             <div className="space-y-4  max-h-96 overflow-auto">
-                                {implementationPlan?.response.implementationPlan.map(
+                                {implementationPlan?.response?.implementationPlan.map(
                                     (step, index) => (
                                         <div
                                             key={index}

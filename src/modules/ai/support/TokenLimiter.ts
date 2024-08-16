@@ -3,20 +3,31 @@ import { LLMS } from "../../utilities/llmInfo";
 
 export class TokenLimiter {
     static tokenizeFiles(files: FileDetails[]) {
-        return files.map((file) => {
-            // no need to tokenize if tokene count is already there
-            if (file.tokenCount) {
-                return file;
-            }
+        const tokenizedFiles = files
+            .map((file) => {
+                // no need to tokenize if tokene count is already there
+                if (file.tokenCount) {
+                    return file;
+                }
 
-            console.log("Tokenizing file >>", file.path);
-            const tokens = encode(file.content);
-            return {
-                ...file,
-                tokenCount: tokens.length,
-            };
-        });
-        // .filter((file) => file.tokenCount! > 0 && file.tokenCount! < 8000);
+                console.log("Tokenizing file >>", file.path);
+                const tokens = encode(file.content);
+                return {
+                    ...file,
+                    tokenCount: tokens.length,
+                };
+            })
+            .filter((file) => file.tokenCount! > 0 && file.tokenCount! < 8000);
+
+        if (tokenizedFiles.length !== files.length) {
+            console.log(
+                `Some files (${
+                    files.length - tokenizedFiles.length
+                }) were skipped due to token count being too high or too low`
+            );
+        }
+
+        return tokenizedFiles;
     }
 
     static applyTokenLimit(model: string, prompt: string, files: FileDetails[]) {

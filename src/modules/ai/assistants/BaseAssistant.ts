@@ -12,7 +12,7 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
 
     async process(request: AIAssistantRequest): Promise<AIAssistantResponse<T> | null> {
         const { model, task, files, params } = request;
-        this.log(`Processing task:\n>>${task}\n>>with model: ${model}`);
+        console.log(`Processing task:\n>>${task}\n>>with model: ${model}`);
 
         const systemPrompt = this.getSystemPrompt();
         saveRunInfo(model, task, this.constructor.name, "system_prompt", systemPrompt);
@@ -50,11 +50,23 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         if (!aiResponse) {
             return null;
         }
-        saveRunInfo(model, task, this.constructor.name, "ai_response", aiResponse.response);
+        saveRunInfo(
+            model,
+            task,
+            this.constructor.name,
 
+            "ai_response",
+            aiResponse.response
+        );
+
+        let parsed = null;
         // parse the response to specifications
-        const parsed = parseYaml(aiResponse.response) as T;
-        saveRunInfo(model, task, this.constructor.name, "ai_response", parsed, "yaml");
+        try {
+            parsed = parseYaml(aiResponse.response) as T;
+            saveRunInfo(model, task, this.constructor.name, "ai_response", parsed, "yaml");
+        } catch (error) {
+            console.error("Error parsing AI response:", error);
+        }
 
         return {
             ...aiResponse,
@@ -62,10 +74,6 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
             responseStr: aiResponse.response,
             calculatedTokens: totalTokens,
         };
-    }
-
-    protected log(message: string): void {
-        console.log(`[${this.constructor.name}] ${message}`);
     }
 
     protected async generateResponse(

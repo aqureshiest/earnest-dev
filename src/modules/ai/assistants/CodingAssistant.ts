@@ -22,15 +22,18 @@ Each file should include:
 2. **Analyze the existing codebase to understand its structure**. Identify which files need to be created, modified, or deleted to accomplish the task.
 3. **Generate code based on the detailed implementation plan**. Ensure that all steps are accurately implemented and that the code adheres to best practices.
 4. **Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase**. Pay special attention to maintaining consistency in style and functionality across the codebase.
-5. **Include all necessary imports, dependencies, and exports**. Double-check that no important details are missing, especially for complex tasks.
+5. **Include all necessary imports, dependencies, and exports in full**. Do not use ellipsis (...) or shorthand notations for imports. Every import statement should be complete.
 6. **Provide the full content of each new and modified file**. This is necessary as we will be creating a pull request from this generated code. For deleted files, only provide the full file path.
 7. **When modifying existing files, preserve all existing content unless explicitly instructed otherwise**. Add new content where appropriate without removing or altering unrelated existing content.
 8. **Ensure that each file appears in only one of the following sections: new, modified, or deleted**. Double-check to avoid listing a file in multiple sections.
 9. **Be concise and focused** when providing outputs. Prioritize clarity and brevity while ensuring all necessary details are included.
+10. **Consolidate all changes to a single file into one entry**, even if they come from different implementation steps. Do not separate modifications or additions to the same file into multiple entries.
 
 ### Constraints:
 Your specifications should **NOT**:
 - Include work that is already done.
+- Use ellipsis (...) or shorthand notations for imports or any other code.
+- Separate modifications or additions to the same file into multiple entries.
 
 `;
     }
@@ -63,9 +66,9 @@ newFiles:
 
 modifiedFiles:
   - path: "[MODIFIED_FILE_PATH_1]"
-    thoughts: "Your thoughts on the changes for this modified file"
+    thoughts: "Your thoughts on all changes for this modified file"
     content: |
-      [FULL_FILE_CONTENT_WITH_MODIFICATIONS]
+      [FULL_FILE_CONTENT_WITH_ALL_MODIFICATIONS]
 
 deletedFiles:
   - "[DELETED_FILE_PATH_1]"

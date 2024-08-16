@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         const channel = ably.channels.get(updatesChannel);
         await sendMessage(channel, "Starting to create pull request...");
 
-        await sendMessage(channel, "Fetching repository...");
+        await sendMessage(channel, "Indexing repository...");
         const files: FileDetails[] = await repositoryService.getRepositoryFiles(
             owner,
             repo,
@@ -42,6 +42,8 @@ export async function POST(req: Request) {
             tokenizedFiles
         );
 
+        // throw new Error("Not implemented");
+
         filesWithEmbeddings.forEach(async (file) => {
             await dbService.saveFileDetails(file);
         });
@@ -52,9 +54,6 @@ export async function POST(req: Request) {
             try {
                 console.log("Using relevant files...");
                 filesToUse = await dbService.findSimilar(description, owner, repo, branch);
-                filesToUse.slice(0, 10).forEach(async (file) => {
-                    await sendMessage(channel, `*${file.path}`);
-                });
             } catch (e) {
                 console.log("Error in finding similar files", e);
                 filesToUse = filesWithEmbeddings;

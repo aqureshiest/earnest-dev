@@ -1,6 +1,7 @@
 import { calculateLLMCost } from "@/modules/utilities/llmCost";
 import { LLM_MODELS, LLMS } from "@/modules/utilities/llmInfo";
 import Anthropic from "@anthropic-ai/sdk";
+import { headers } from "next/headers";
 
 export class ClaudeAIService {
     private anthropic: Anthropic;
@@ -18,13 +19,20 @@ export class ClaudeAIService {
                 throw new Error(`LLM {this.model} not found`);
             }
 
-            const completion = await this.anthropic.messages.create({
-                model: this.model,
-                max_tokens: LLM.maxOutputTokens,
-                system: systemPrompt,
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0,
-            });
+            const completion = await this.anthropic.messages.create(
+                {
+                    model: this.model,
+                    max_tokens: LLM.maxOutputTokens,
+                    system: systemPrompt,
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0,
+                },
+                {
+                    headers: {
+                        "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
+                    },
+                }
+            );
 
             const response =
                 completion.content[0]?.type == "text" ? completion.content[0].text : "";

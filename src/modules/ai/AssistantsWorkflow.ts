@@ -65,6 +65,7 @@ export class AssistantsWorkflow {
         await this.updatesChannel.publish("implementationplan", plan);
 
         await this.updatesChannel.publish("overall", "Generating code...");
+
         // generate code
         const code = await this.codingAssistant.process({
             model,
@@ -137,13 +138,14 @@ export class AssistantsWorkflow {
             .join("\n---\n")}\n\n#### Deleted Files:\n${codeChanges.deletedFiles.join("\n")}`;
     }
 
-    private formatContinuationPrompt(codeChanges: CodeChanges): string {
-        return `
+    private formatContinuationPrompt(prevResponse: string | undefined): string {
+        return prevResponse
+            ? `
 **Continue from where you left off. Here is the implementation you've generated so far**:
 
 ### Previously generated code:
 
-${this.formatCodeChanges(codeChanges)}
-`;
+${prevResponse}`
+            : "";
     }
 }

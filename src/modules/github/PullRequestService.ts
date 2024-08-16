@@ -111,18 +111,20 @@ class PullRequestService {
         }
 
         for (const newFile of codeChanges.newFiles || []) {
-            changes.push({
-                path: newFile.path,
-                mode: "100644",
-                type: "blob",
-                content: newFile.content,
-            });
+            if (newFile) {
+                changes.push({
+                    path: newFile.path,
+                    mode: "100644",
+                    type: "blob",
+                    content: newFile.content,
+                });
+            }
         }
 
         for (const deletedFile of codeChanges.deletedFiles || []) {
             try {
-                // skip . directory
-                if (deletedFile == ".") {
+                // skip empty or current directory
+                if (!deletedFile || deletedFile == ".") {
                     continue;
                 }
 
@@ -135,6 +137,7 @@ class PullRequestService {
 
                 // check if file is a directory
                 if (Array.isArray(fileData)) {
+                    console.log(`Cannot delete file ${deletedFile}. It is a directory.`);
                     throw new Error(`Cannot delete file ${deletedFile}. It is a directory.`);
                 }
 
