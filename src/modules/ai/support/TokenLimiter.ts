@@ -25,17 +25,17 @@ export class TokenLimiter {
         const LLM: any = LLMS.find((m) => m.model === model);
 
         // start with token length of the prompt
-        let totalTokens = encode(prompt).length;
+        let totalTokens = encode(prompt).length * 1.4;
 
         const allowedFiles = [];
         let index = 0;
         // add files to the prompt
         for (const file of files) {
             const contents = `File: ${file.path}\n${file.content}`;
-            let fileTokens = file.tokenCount || encode(contents).length;
+            let fileTokens = file.tokenCount || encode(contents).length * 1.4;
 
             // keep adding to token length
-            if (totalTokens + fileTokens < LLM.maxInputTokens) {
+            if (totalTokens + fileTokens < LLM.maxInputTokens - 500) {
                 totalTokens += fileTokens;
                 allowedFiles.push(file);
             } else {

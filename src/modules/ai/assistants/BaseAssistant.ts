@@ -31,10 +31,8 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         const keys = Object.keys(userParams || []).filter(
             (key) => key.toUpperCase() !== CODEFILES_PLACEHOLDER
         );
-        console.log("keys", keys);
 
         const userPrompt = keys.reduce((acc, key) => {
-            console.log("replace key", key);
             return acc.replace(`[[${key.toUpperCase()}]]`, userParams[key]);
         }, basePrompt);
 
