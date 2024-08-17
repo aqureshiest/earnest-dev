@@ -15,6 +15,17 @@
         --background-end-rgb: 0, 0, 0;
     }
 }
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.animate-blink {
+    animation: blink 1s step-start infinite;
+}
+
 /* 
 body {
   color: rgb(var(--foreground-rgb));

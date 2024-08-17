@@ -81,3 +81,8 @@ export const EXCLUDE_PATTERNS = [
 
 export const EMBEDDINGS_MODEL = "text-embedding-3-large";
 export const EMBEDDINGS_DIMENSIONS = 256;
+
+export const CODEFILES_PLACEHOLDER = "[[EXISTINGCODEFILES]]";
+export const TASK_PLACEHOLDER = "[[TASKDESCRIPTION]]";
+export const SPECS_PLACEHOLDER = "[[SPECIFICATIONS]]";
+export const PLAN_PLACEHOLDER = "[[IMPLEMENTATIONPLAN]]";

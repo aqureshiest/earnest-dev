@@ -15,7 +15,8 @@ export class RepositoryService {
         owner: string,
         repo: string,
         ref: string = "main",
-        path: string = ""
+        path: string = "",
+        channel: any
     ): Promise<FileDetails[]> {
         let result: FileDetails[] = [];
 
@@ -26,6 +27,9 @@ export class RepositoryService {
         // process each file
         for (const file of filteredFiles) {
             if (file.type === "file") {
+                // send message
+                await channel.publish("overall", `file:${file.path}`);
+
                 // check if we already have this file in the store
                 const savedFile = await this.dbService.getFileDetails(owner, repo, ref, file.path);
                 // make sure the commit hash is the same
@@ -47,7 +51,13 @@ export class RepositoryService {
                     });
                 }
             } else if (file.type === "dir" && !file.name.startsWith(".")) {
-                const nestedFiles = await this.getRepositoryFiles(owner, repo, ref, file.path);
+                const nestedFiles = await this.getRepositoryFiles(
+                    owner,
+                    repo,
+                    ref,
+                    file.path,
+                    channel
+                );
                 result.push(...nestedFiles);
             }
         }

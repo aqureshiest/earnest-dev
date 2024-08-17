@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import { getSystemPrompt } from "../../utilities/prompts";
 import { calculateLLMCost } from "../../utilities/llmCost";
 import { LLM_MODELS } from "../../utilities/llmInfo";
 

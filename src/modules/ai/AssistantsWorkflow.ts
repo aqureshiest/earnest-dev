@@ -1,3 +1,4 @@
+import { displayTime } from "../utilities/displayTime";
 import { CodingAssistant } from "./assistants/CodingAssistant";
 import { PlannerAssistant } from "./assistants/PlannerAssistant";
 import { SpecificationsAssistant } from "./assistants/SpecificationsAssistant";
@@ -29,6 +30,9 @@ export class AssistantsWorkflow {
         files: FileDetails[],
         params?: any
     ): Promise<WorkflowResponse | null> {
+        // track start time
+        const startTime = new Date().getTime();
+
         await this.updatesChannel.publish("overall", "Generating specifications...");
         // generate specifications
         const specs = await this.specificationsAssistant.process({
@@ -83,6 +87,17 @@ export class AssistantsWorkflow {
 
         await this.emitMetrics(code);
 
+        // calculate total cost
+        const totalCost = specs.cost + plan.cost + code.cost;
+        await this.updatesChannel.publish("overall", `Total Cost: $${totalCost.toFixed(6)}`);
+
+        // report time taken
+        const endTime = new Date().getTime();
+        await this.updatesChannel.publish(
+            "overall",
+            `Time taken: ${displayTime(startTime, endTime)}`
+        );
+
         return { specs, plan, code };
     }
 
@@ -97,55 +112,5 @@ export class AssistantsWorkflow {
             `*Actual Output tokens: ${result.outputTokens}`
         );
         await this.updatesChannel.publish("overall", `*Cost: $${result.cost.toFixed(6)}`);
-    }
-
-    private formatSpecifications(specifications: Specifications): string {
-        return specifications.specifications
-            .map(
-                (spec, index) =>
-                    `#### Specification #${index + 1}: ${spec.title}\n\n#### Consideration:\n${
-                        spec.thoughts
-                    }\n\n#### Details:\n${spec.specification}`
-            )
-            .join("\n");
-    }
-
-    private formatImplementationPlan(implementationPlan: ImplementationPlan): string {
-        return implementationPlan.implementationPlan
-            .map(
-                (step, index) =>
-                    `#### Step #${index + 1}: ${step.step}\n\n#### Thoughts:\n${
-                        step.thoughts
-                    }\n\n#### Files:\n${step.files.map(
-                        (file) =>
-                            `File: ${file.path}\nStatus: ${file.status}\nTodos:\n${this.formatTodos(
-                                file.todos
-                            )}`
-                    )}`
-            )
-            .join("\n\n");
-    }
-
-    private formatTodos(todos: string[]): string {
-        return todos.map((todo, index) => `- ${todo}`).join("\n");
-    }
-
-    private formatCodeChanges(codeChanges: CodeChanges): string {
-        return `#### PR Title: ${codeChanges.prTitle}\n\n#### New Files:\n${codeChanges.newFiles
-            .map((file) => `File: ${file.path}\n${file.content}`)
-            .join("\n---\n")}\n\n#### Modified Files:\n${codeChanges.modifiedFiles
-            .map((file) => `File: ${file.path}\n${file.content}`)
-            .join("\n---\n")}\n\n#### Deleted Files:\n${codeChanges.deletedFiles.join("\n")}`;
-    }
-
-    private formatContinuationPrompt(prevResponse: string | undefined): string {
-        return prevResponse
-            ? `
-**Continue from where you left off. Here is the implementation you've generated so far**:
-
-### Previously generated code:
-
-${prevResponse}`
-            : "";
     }
 }

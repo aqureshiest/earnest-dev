@@ -21,6 +21,7 @@ const PullRequest: React.FC = () => {
         "Fill in the task description and click 'Create Pull Request' to start the process.",
         "You can monitor the progress of the pull request creation below.",
     ]);
+    const [currentFile, setCurrentFile] = useState<string>("");
 
     const [isCreating, setIsCreating] = useState(false);
     const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
@@ -56,6 +57,7 @@ const PullRequest: React.FC = () => {
         setIsCreating(true);
         setGeneratedPRLink(null);
         setProgress([]);
+        setCurrentFile("");
         setSpecifications(null);
         setImplementationPlan(null);
 
@@ -76,10 +78,18 @@ const PullRequest: React.FC = () => {
                 }),
             });
 
+            // handle 500 response
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error);
+            }
+
+            // handle successful response
             setGeneratedPRLink((await response.json()).prLink);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating pull request:", error);
             setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
+            setProgress((prev) => [...prev, error.message]);
         } finally {
             setIsCreating(false);
             closeAblyConnection();
@@ -97,7 +107,22 @@ const PullRequest: React.FC = () => {
             const { name, data } = message;
             switch (name) {
                 case "overall":
-                    setProgress((prev) => [...prev, data]);
+                    // files progress
+                    if (data.startsWith("file:")) {
+                        setCurrentFile(data.slice(5));
+                    }
+                    // system commands
+                    else if (data.startsWith(">")) {
+                        switch (data.slice(1)) {
+                            case "Indexing completed.":
+                                setCurrentFile("");
+                                break;
+                        }
+                    }
+                    // overall progress
+                    else {
+                        setProgress((prev) => [...prev, data]);
+                    }
                     break;
                 case "specifications":
                     setSpecifications(data);
@@ -246,6 +271,13 @@ const PullRequest: React.FC = () => {
                                     </p>
                                 ))}
                             </div>
+                            {/* Display current file processing */}
+                            {currentFile && (
+                                <div className="text-sm text-gray-700 flex items-center">
+                                    <span className="animate-blink mr-2">|</span>
+                                    {currentFile}
+                                </div>
+                            )}
                         </div>
 
                         {/* Specifications Assistant Progress */}

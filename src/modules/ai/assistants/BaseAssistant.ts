@@ -1,9 +1,10 @@
-import { parseYaml } from "@/modules/utilities/parseYaml";
 import { saveRunInfo } from "@/modules/utilities/saveRunInfo";
 import { LLM_MODELS } from "../../utilities/llmInfo";
 import { ClaudeAIService } from "../clients/ClaudeAIService";
 import { OpenAIService } from "../clients/OpenAIService";
 import { TokenLimiter } from "../support/TokenLimiter";
+import { parseYaml } from "@/modules/utilities/yamlParser";
+import { CODEFILES_PLACEHOLDER } from "@/constants";
 
 abstract class BaseAssistant<T> implements AIAssistant<T> {
     abstract getSystemPrompt(): string;
@@ -17,12 +18,30 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         const systemPrompt = this.getSystemPrompt();
         saveRunInfo(model, task, this.constructor.name, "system_prompt", systemPrompt);
 
+        // start with base prompt and unresolved placeholders
         const basePrompt = this.getPrompt();
 
-        // enforce model token limit
+        // add required keys to the params
+        const userParams = {
+            ...params,
+            taskDescription: task,
+        };
+
+        // interpolate all params in the base prompt except existing code files
+        const keys = Object.keys(userParams || []).filter(
+            (key) => key.toUpperCase() !== CODEFILES_PLACEHOLDER
+        );
+        console.log("keys", keys);
+
+        const userPrompt = keys.reduce((acc, key) => {
+            console.log("replace key", key);
+            return acc.replace(`[[${key.toUpperCase()}]]`, userParams[key]);
+        }, basePrompt);
+
+        // enforce model token limit to get allowed files
         const { totalTokens, allowedFiles } = TokenLimiter.applyTokenLimit(
             model,
-            systemPrompt + basePrompt,
+            systemPrompt + userPrompt,
             files
         );
 
@@ -31,36 +50,19 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
             .map((file) => `File: ${file.path}\n${file.content}`)
             .join("\n---\n");
 
-        // create final params
-        const extendedParams = {
-            ...params,
-            taskDescription: task,
-            existingCodeFiles: allowedFilesContent,
-        };
-
-        // interpolate all keys in the params
-        const finalPrompt = Object.keys(extendedParams).reduce((acc, key) => {
-            return acc.replace(`[[${key.toUpperCase()}]]`, extendedParams[key]);
-        }, basePrompt);
-
-        saveRunInfo(model, task, this.constructor.name, "user_prompt", finalPrompt);
+        // now interpolate the existing code files in the prompt
+        const finalPromptWithFiles = userPrompt.replace(CODEFILES_PLACEHOLDER, allowedFilesContent);
+        saveRunInfo(model, task, this.constructor.name, "user_prompt", finalPromptWithFiles);
 
         // generate response
-        const aiResponse = await this.generateResponse(model, systemPrompt, finalPrompt);
+        const aiResponse = await this.generateResponse(model, systemPrompt, finalPromptWithFiles);
         if (!aiResponse) {
             return null;
         }
-        saveRunInfo(
-            model,
-            task,
-            this.constructor.name,
-
-            "ai_response",
-            aiResponse.response
-        );
+        saveRunInfo(model, task, this.constructor.name, "ai_response", aiResponse.response);
 
         let parsed = null;
-        // parse the response to specifications
+        // parse the response
         try {
             parsed = parseYaml(aiResponse.response) as T;
             saveRunInfo(model, task, this.constructor.name, "ai_response", parsed, "yaml");

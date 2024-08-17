@@ -1,3 +1,4 @@
+import { CODEFILES_PLACEHOLDER, PLAN_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { BaseAssistant } from "./BaseAssistant";
 
 export class CodingAssistant extends BaseAssistant<CodeChanges> {
@@ -42,17 +43,17 @@ Your specifications should **NOT**:
 ### Existing Codebase:
 Here are the existing code files you will be working with:
 
-[[EXISTINGCODEFILES]]
+${CODEFILES_PLACEHOLDER}
         
 ### Task Description:
 Here is the task description:
 
-[[TASKDESCRIPTION]]
+${TASK_PLACEHOLDER}
 
 ### Implementation Plan:
 Here is the implementation plan to follow for the task:
 
-[[IMPLEMENTATIONPLAN]]
+${PLAN_PLACEHOLDER}
 
 ### Response Format:
 Respond in the following YAML format:

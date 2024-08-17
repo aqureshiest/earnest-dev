@@ -52,7 +52,7 @@ const SpecificationsCard = ({
                     {specifications?.response?.specifications.map((spec, index) => (
                         <div
                             key={index}
-                            className="border border-gray-300 rounded-md shadow-sm transition-all duration-300 ease-in-out"
+                            className="border border-gray-300 rounded-md shadow-sm transition-all duration-300 ease-in-out overflow-hidden"
                         >
                             <div
                                 className="bg-gray-100 px-4 py-2 cursor-pointer flex justify-between items-center"

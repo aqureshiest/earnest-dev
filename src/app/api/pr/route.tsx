@@ -23,27 +23,38 @@ export async function POST(req: Request) {
 
     try {
         const channel = ably.channels.get(updatesChannel);
-        await sendMessage(channel, "Starting to create pull request...");
 
         await sendMessage(channel, "Indexing repository...");
         const files: FileDetails[] = await repositoryService.getRepositoryFiles(
             owner,
             repo,
-            branch
+            branch,
+            "",
+            channel
         );
+        await sendMessage(channel, ">Indexing completed."); // this is a system command to stop showing files progress
         await sendMessage(channel, `Fetched ${files.length} files.`);
 
         await sendMessage(channel, "Tokenizing files...");
         const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(files);
         const tokenizedFiles: FileDetails[] = TokenLimiter.tokenizeFiles(filesWithContent);
 
+        // check if token limits removed any files
+        if (tokenizedFiles.length < filesWithContent.length) {
+            await sendMessage(
+                channel,
+                `Removed ${
+                    filesWithContent.length - tokenizedFiles.length
+                } files from context due to token limits.`
+            );
+        }
+
         await sendMessage(channel, "Embedding files...");
         const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFilesInChunks(
             tokenizedFiles
         );
 
-        // throw new Error("Not implemented");
-
+        await sendMessage(channel, "Syncing files...");
         filesWithEmbeddings.forEach(async (file) => {
             await dbService.saveFileDetails(file);
         });
@@ -52,10 +63,9 @@ export async function POST(req: Request) {
 
         if (!useAllFiles) {
             try {
-                console.log("Using relevant files...");
                 filesToUse = await dbService.findSimilar(description, owner, repo, branch);
             } catch (e) {
-                console.log("Error in finding similar files", e);
+                console.error("Error in finding similar files", e);
                 filesToUse = filesWithEmbeddings;
             }
         } else {
@@ -65,7 +75,7 @@ export async function POST(req: Request) {
         const assistantsWorkflow = new AssistantsWorkflow(channel);
 
         // call the assistants workflow
-        await sendMessage(channel, "Starting assistants workflow...");
+        await sendMessage(channel, "Starting AI Assistants...");
         const response = await assistantsWorkflow.runWorkflow(
             selectedModel,
             description,
