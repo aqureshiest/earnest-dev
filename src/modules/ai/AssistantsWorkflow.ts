@@ -2,17 +2,20 @@ import { displayTime } from "../utilities/displayTime";
 import { CodingAssistant } from "./assistants/CodingAssistant";
 import { PlannerAssistant } from "./assistants/PlannerAssistant";
 import { SpecificationsAssistant } from "./assistants/SpecificationsAssistant";
+import { WriterAssistant } from "./assistants/WriterAssistant";
 
 interface WorkflowResponse {
     specs: AIAssistantResponse<Specifications>;
     plan: AIAssistantResponse<ImplementationPlan>;
     code: AIAssistantResponse<CodeChanges>;
+    prDescription?: AIAssistantResponse<string>;
 }
 
 export class AssistantsWorkflow {
     private specificationsAssistant: SpecificationsAssistant;
     private plannerAssistant: PlannerAssistant;
     private codingAssistant: CodingAssistant;
+    private writerAssistant: WriterAssistant;
 
     private updatesChannel: any;
 
@@ -20,6 +23,7 @@ export class AssistantsWorkflow {
         this.specificationsAssistant = new SpecificationsAssistant();
         this.plannerAssistant = new PlannerAssistant();
         this.codingAssistant = new CodingAssistant();
+        this.writerAssistant = new WriterAssistant();
 
         this.updatesChannel = updatesChannel;
     }
@@ -87,6 +91,24 @@ export class AssistantsWorkflow {
 
         await this.emitMetrics(code);
 
+        await this.updatesChannel.publish("overall", "Writing PR details...");
+
+        // write PR description
+        const prDescription = await this.writerAssistant.process({
+            model,
+            task,
+            files,
+            params: {
+                ...params,
+                implementationPlan: plan.responseStr,
+                generatedCode: code.responseStr,
+            },
+        });
+
+        if (prDescription) {
+            await this.emitMetrics(prDescription);
+        }
+
         // calculate total cost
         const totalCost = specs.cost + plan.cost + code.cost;
         await this.updatesChannel.publish("overall", `Total Cost: $${totalCost.toFixed(6)}`);
@@ -98,13 +120,13 @@ export class AssistantsWorkflow {
             `Time taken: ${displayTime(startTime, endTime)}`
         );
 
-        return { specs, plan, code };
+        return { specs, plan, code, prDescription: prDescription || undefined };
     }
 
     private async emitMetrics(result: AIAssistantResponse<any>) {
         await this.updatesChannel.publish(
             "overall",
-            `*Approximated tokens: ${result.calculatedTokens}`
+            `*Approximated tokens: ${result.calculatedTokens.toFixed(0)}`
         );
         await this.updatesChannel.publish("overall", `*Actual Input tokens: ${result.inputTokens}`);
         await this.updatesChannel.publish(

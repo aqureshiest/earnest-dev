@@ -1,5 +1,5 @@
 import { GitHubService } from "@/modules/github/GitHubService";
-import { parseYaml } from "@/modules/utilities/yamlParser";
+import { parseYaml } from "@/modules/utilities/parseYaml";
 import { loadEnvConfig } from "@next/env";
 import { encode } from "gpt-tokenizer";
 

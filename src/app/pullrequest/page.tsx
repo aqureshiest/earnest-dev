@@ -227,7 +227,7 @@ const PullRequest: React.FC = () => {
                             <div className="flex justify-end">
                                 <button
                                     onClick={handleCreatePullRequest}
-                                    className="bg-teal-700 text-white px-4 py-2 rounded hover:bg-teal-600 transition"
+                                    className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
                                     disabled={isCreating}
                                 >
                                     {isCreating ? "Creating..." : "Create Pull Request"}
@@ -241,7 +241,7 @@ const PullRequest: React.FC = () => {
                                         href={generatedPRLink}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="inline-block bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-500 transition"
+                                        className="inline-block bg-gray-100 text-gray-600 px-4 py-2 rounded-md hover:bg-gray-200 transition"
                                     >
                                         View Pull Request
                                     </a>

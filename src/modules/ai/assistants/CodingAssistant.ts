@@ -34,7 +34,6 @@ Each file should include:
 Your specifications should **NOT**:
 - Include work that is already done.
 - Use ellipsis (...) or shorthand notations for imports or any other code.
-- Separate modifications or additions to the same file into multiple entries.
 
 `;
     }
@@ -83,22 +82,13 @@ newFiles:
   - path: "src/newFeature.js"
     thoughts: "This new file will contain the implementation of feature X."
     content: |
-      import React from 'react';
-      // Full content of the new file
+      Full content of the new file
 
 modifiedFiles:
   - path: "src/existingFeature.js"
     thoughts: "This existing file needs to be modified to support
     content: |
-      import React from 'react';
-      // Existing content
-      
-      // New or modified content:
-      const newFunction = () => {
-        // Implementation
-      };
-      
-      // Remaining existing content
+      Full contents of the modified file
 
 deletedFiles:
   - "src/oldFeature.js"

@@ -1,5 +1,6 @@
 import { encode } from "gpt-tokenizer";
 import { LLMS } from "../../utilities/llmInfo";
+import { formatFiles } from "@/modules/utilities/formatFiles";
 
 export class TokenLimiter {
     static tokenizeFiles(files: FileDetails[]) {
@@ -31,7 +32,7 @@ export class TokenLimiter {
         let index = 0;
         // add files to the prompt
         for (const file of files) {
-            const contents = `File: ${file.path}\n${file.content}`;
+            const contents = formatFiles([file]);
             let fileTokens = file.tokenCount || encode(contents).length * 1.4;
 
             // keep adding to token length

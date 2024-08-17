@@ -3,8 +3,10 @@ import { LLM_MODELS } from "../../utilities/llmInfo";
 import { ClaudeAIService } from "../clients/ClaudeAIService";
 import { OpenAIService } from "../clients/OpenAIService";
 import { TokenLimiter } from "../support/TokenLimiter";
-import { parseYaml } from "@/modules/utilities/yamlParser";
+import { parseYaml } from "@/modules/utilities/parseYaml";
 import { CODEFILES_PLACEHOLDER } from "@/constants";
+import { formatFiles } from "@/modules/utilities/formatFiles";
+import { parseMarkdown } from "@/modules/utilities/parseMarkdown";
 
 abstract class BaseAssistant<T> implements AIAssistant<T> {
     abstract getSystemPrompt(): string;
@@ -44,9 +46,7 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         );
 
         // construct final prompt with allowed files
-        const allowedFilesContent = allowedFiles
-            .map((file) => `File: ${file.path}\n${file.content}`)
-            .join("\n---\n");
+        const allowedFilesContent = formatFiles(allowedFiles);
 
         // now interpolate the existing code files in the prompt
         const finalPromptWithFiles = userPrompt.replace(CODEFILES_PLACEHOLDER, allowedFilesContent);
@@ -59,13 +59,25 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         }
         saveRunInfo(model, task, this.constructor.name, "ai_response", aiResponse.response);
 
-        let parsed = null;
         // parse the response
+        let parsed = null;
         try {
-            parsed = parseYaml(aiResponse.response) as T;
-            saveRunInfo(model, task, this.constructor.name, "ai_response", parsed, "yaml");
+            // parse yaml response
+            if (aiResponse.response.startsWith("```yaml")) {
+                parsed = parseYaml(aiResponse.response) as T;
+                saveRunInfo(model, task, this.constructor.name, "ai_response", parsed, "yaml");
+            }
+            // parse markdown response
+            else if (aiResponse.response.startsWith("```markdown")) {
+                parsed = parseMarkdown(aiResponse.response) as T;
+                saveRunInfo(model, task, this.constructor.name, "ai_response", parsed, "md");
+            } else {
+                // if not yaml or markdown, return the response as string
+                parsed = aiResponse.response as T;
+            }
         } catch (error) {
             console.error("Error parsing AI response:", error);
+            throw error;
         }
 
         return {

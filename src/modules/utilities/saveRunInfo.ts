@@ -5,6 +5,7 @@ import yaml from "js-yaml";
 export enum SUPPORTED_FILE_EXTENSIONS {
     TXT = "txt",
     YAML = "yaml",
+    MD = "md",
 }
 
 export function saveRunInfo<T>(
@@ -43,6 +44,8 @@ export function saveRunInfo<T>(
 
     if (infoExtension === SUPPORTED_FILE_EXTENSIONS.YAML) {
         infoString = yaml.dump(info);
+    } else if (infoExtension === SUPPORTED_FILE_EXTENSIONS.MD) {
+        infoString = info as string;
     } else if (infoExtension === SUPPORTED_FILE_EXTENSIONS.TXT) {
         infoString = info as string;
     }

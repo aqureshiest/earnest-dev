@@ -19,6 +19,8 @@ const PRModal: React.FC<PRModalProps> = ({
 }) => {
     const [description, setDescription] = useState("");
     const [progress, setProgress] = useState<string[]>([]);
+    const [currentFile, setCurrentFile] = useState<string>("");
+
     const [isCreating, setIsCreating] = useState(false);
     const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
     const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
@@ -46,7 +48,22 @@ const PRModal: React.FC<PRModalProps> = ({
             const { name, data } = message;
             switch (name) {
                 case "overall":
-                    setProgress((prev) => [...prev, data]);
+                    // files progress
+                    if (data.startsWith("file:")) {
+                        setCurrentFile(data.slice(5));
+                    }
+                    // system commands
+                    else if (data.startsWith(">")) {
+                        switch (data.slice(1)) {
+                            case "Indexing completed.":
+                                setCurrentFile("");
+                                break;
+                        }
+                    }
+                    // overall progress
+                    else {
+                        setProgress((prev) => [...prev, data]);
+                    }
                     break;
             }
         });
@@ -70,6 +87,7 @@ const PRModal: React.FC<PRModalProps> = ({
         setIsCreating(true);
         setGeneratedPRLink(null);
         setProgress([]);
+        setCurrentFile("");
 
         try {
             openAblyConnection();
@@ -88,15 +106,24 @@ const PRModal: React.FC<PRModalProps> = ({
                 }),
             });
 
+            // handle 500 response
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error);
+            }
+
             setGeneratedPRLink((await response.json()).prLink);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating pull request:", error);
             setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
+            setProgress((prev) => [...prev, error.message]);
         } finally {
             setIsCreating(false);
             closeAblyConnection();
         }
     };
+
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
 
     // handle modal close and call onRequestClose
     const handleModalClose = () => {
@@ -107,8 +134,8 @@ const PRModal: React.FC<PRModalProps> = ({
 
     // Scroll to the bottom of the messages div whenever progress updates
     const scrollToBottom = () => {
-        if (messagesEndRef && messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        if (messagesContainerRef && messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
     };
 
@@ -126,7 +153,7 @@ const PRModal: React.FC<PRModalProps> = ({
                 </h2>
                 <textarea
                     className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mb-4"
-                    rows={6}
+                    rows={4}
                     placeholder="Enter pull request description..."
                     value={description}
                     onChange={handleDescriptionChange}
@@ -156,22 +183,6 @@ const PRModal: React.FC<PRModalProps> = ({
                             ))}
                         </select>
                     </div>
-                    {/* <div className="text-center">
-                        <label
-                            htmlFor="useAllFiles"
-                            className="block mb-2 text-sm font-medium text-gray-700"
-                        >
-                            Use All Files
-                        </label>
-                        <input
-                            type="checkbox"
-                            id="useAllFiles"
-                            checked={useAllFiles}
-                            onChange={() => setUseAllFiles((prev) => !prev)}
-                            disabled={isCreating}
-                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                        />
-                    </div> */}
                 </div>
                 <div className="flex justify-end gap-2">
                     <button
@@ -190,7 +201,10 @@ const PRModal: React.FC<PRModalProps> = ({
                     </button>
                 </div>
                 {progress.length > 0 && (
-                    <div className="mt-4 bg-gray-50 border border-gray-200 rounded-md p-3 space-y-1 overflow-y-auto max-h-48">
+                    <div
+                        ref={messagesContainerRef}
+                        className="mt-4 bg-gray-50 border border-gray-200 rounded-md p-3 space-y-1 overflow-y-auto max-h-48"
+                    >
                         {progress.map((message, index) => {
                             // Check if message starts with '*' for bullet list item
                             if (message.trim().startsWith("*")) {
@@ -209,6 +223,13 @@ const PRModal: React.FC<PRModalProps> = ({
                                 );
                             }
                         })}
+                        {/* Display current file processing */}
+                        {currentFile && (
+                            <div className="text-sm text-gray-700 flex items-center">
+                                <span className="animate-blink mr-2">|</span>
+                                {currentFile}
+                            </div>
+                        )}
                         <div ref={messagesEndRef} />
                     </div>
                 )}

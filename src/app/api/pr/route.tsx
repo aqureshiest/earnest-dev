@@ -96,7 +96,7 @@ export async function POST(req: Request) {
             const prLink = await prService.createPullRequest(
                 codeChanges,
                 codeChanges.prTitle,
-                `${description}\n\n${response.plan.responseStr}`
+                response.prDescription?.response || description
             );
 
             await sendMessage(channel, "Pull request created.");
