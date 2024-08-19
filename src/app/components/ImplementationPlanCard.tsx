@@ -49,12 +49,15 @@ const ImplementationPlanCard = ({
             </div>
             <div className="space-y-4">
                 {implementationPlan?.response?.implementationPlan.map((item, index) => (
-                    <div key={index} className="border border-gray-300 rounded-md shadow-sm">
+                    <div
+                        key={index}
+                        className="border border-gray-300 rounded-md shadow-sm overflow-hidden"
+                    >
                         <div
                             className="bg-gray-100 px-4 py-2 cursor-pointer flex justify-between items-center"
                             onClick={() => toggleAccordion(index)}
                         >
-                            <h3 className="font-medium text-gray-700">{item.step}</h3>
+                            <h3 className="font-normal text-gray-700">{item.step}</h3>
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();

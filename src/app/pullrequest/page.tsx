@@ -254,7 +254,7 @@ const PullRequest: React.FC = () => {
                     <div className="md:col-span-2 space-y-6">
                         {/* Progress Monitor */}
                         <div className="bg-white rounded-lg shadow p-4">
-                            <h2 className="font-semibold text-gray-800 text-center mb-4">
+                            <h2 className="font-semibold text-gray-800 text-center border-b border-gray-200 mb-2 pb-1">
                                 Overall Progress
                             </h2>
                             <div

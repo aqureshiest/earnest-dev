@@ -1,4 +1,5 @@
 import { Octokit } from "@octokit/rest";
+import { execSync } from "child_process";
 
 class PullRequestService {
     private octokit: Octokit;
@@ -13,6 +14,58 @@ class PullRequestService {
         this.owner = owner;
         this.repo = repo;
         this.branch = branch;
+    }
+
+    async applyDiffAndCreatePR(
+        prTitle: string,
+        prBody: string,
+        diffContent: string,
+        commitMessage: string = "Apply changes from diff"
+    ) {
+        const newBranch = `pr-${Date.now()}`;
+
+        try {
+            // Get the default branch reference
+            const { data: refData } = await this.octokit.git.getRef({
+                owner: this.owner,
+                repo: this.repo,
+                ref: `heads/${this.branch}`,
+            });
+
+            const baseSha = refData.object.sha;
+
+            // Create a new branch
+            await this.octokit.git.createRef({
+                owner: this.owner,
+                repo: this.repo,
+                ref: `refs/heads/${newBranch}`,
+                sha: baseSha,
+            });
+
+            // 2. Apply the diff changes programmatically
+            execSync(`echo "${diffContent}" | git apply -`);
+            execSync(`git add .`);
+            execSync(`git commit -m "${commitMessage}"`);
+
+            // 3. Push changes to the new branch
+            execSync(`git push origin ${newBranch}`);
+
+            // 4. Create a pull request
+            const { data: prData } = await this.octokit.pulls.create({
+                owner: this.owner,
+                repo: this.repo,
+                title: prTitle,
+                head: newBranch,
+                base: this.branch,
+                body: prBody,
+            });
+
+            console.log(`PR created: ${prData.html_url}`);
+            return prData.html_url;
+        } catch (error) {
+            console.error("Error creating pull request:", error);
+            return null;
+        }
     }
 
     async createPullRequest(codeChanges: CodeChanges, prTitle: string, prBody: string) {

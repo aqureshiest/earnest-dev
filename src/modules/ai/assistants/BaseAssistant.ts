@@ -71,6 +71,14 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
             else if (aiResponse.response.startsWith("```markdown")) {
                 parsed = parseMarkdown(aiResponse.response) as T;
                 saveRunInfo(model, task, this.constructor.name, "ai_response", parsed, "md");
+            }
+            // parse diff file
+            else if (aiResponse.response.startsWith("```diff")) {
+                const parsedText = aiResponse.response.match(/```diff([\s\S]*?)```/);
+                if (parsedText && parsedText[1]) {
+                    parsed = parsedText[1] as T;
+                    saveRunInfo(model, task, this.constructor.name, "ai_response_diff", parsed);
+                }
             } else {
                 // if not yaml or markdown, return the response as string
                 parsed = aiResponse.response as T;
