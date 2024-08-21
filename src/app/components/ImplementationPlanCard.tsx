@@ -32,7 +32,9 @@ const ImplementationPlanCard = ({
     return (
         <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-gray-800">Implementation Plan</h2>
+                <div className="flex items-center gap-2">
+                    <h2 className="font-semibold text-gray-800">Implementation Plan</h2>
+                </div>
                 {implementationPlan && (
                     <div className="text-xs text-right">
                         <div className="text-gray-500">

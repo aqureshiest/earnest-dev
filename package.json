@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "run": "tsx src/scripts/run.ts",
-    "eval": "tsx src/scripts/eval.ts"
+    "eval": "tsx src/scripts/eval.ts",
+    "pr": "tsx src/scripts/pr.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.25.0",

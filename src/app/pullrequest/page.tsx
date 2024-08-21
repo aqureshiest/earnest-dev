@@ -233,20 +233,6 @@ const PullRequest: React.FC = () => {
                                     {isCreating ? "Creating..." : "Create Pull Request"}
                                 </button>
                             </div>
-
-                            {/* View Pull Request Link */}
-                            {generatedPRLink && (
-                                <div className="text-end mt-6">
-                                    <a
-                                        href={generatedPRLink}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="inline-block bg-gray-100 text-gray-600 px-4 py-2 rounded-md hover:bg-gray-200 transition"
-                                    >
-                                        View Pull Request
-                                    </a>
-                                </div>
-                            )}
                         </div>
                     </div>
 
@@ -254,7 +240,7 @@ const PullRequest: React.FC = () => {
                     <div className="md:col-span-2 space-y-6">
                         {/* Progress Monitor */}
                         <div className="bg-white rounded-lg shadow p-4">
-                            <h2 className="font-semibold text-gray-800 text-center border-b border-gray-200 mb-2 pb-1">
+                            <h2 className="font-semibold text-gray-800 text-center border-b border-gray-200 mb-2 pb-2">
                                 Overall Progress
                             </h2>
                             <div
@@ -279,6 +265,20 @@ const PullRequest: React.FC = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* large button to view pull request */}
+                        {generatedPRLink && (
+                            <div className="text-center">
+                                <a
+                                    href={generatedPRLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
+                                >
+                                    View Pull Request
+                                </a>
+                            </div>
+                        )}
 
                         {/* Specifications Assistant Progress */}
                         <SpecificationsCard specifications={specifications} />
