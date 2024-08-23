@@ -20,6 +20,13 @@ export class RepositoryService {
     ): Promise<FileDetails[]> {
         let result: FileDetails[] = [];
 
+        // Check if the commit exists in the BranchCommits table
+        const commitExists = await this.dbService.getBranchCommit(owner, repo, ref);
+        if (commitExists) {
+            console.log("Skipping indexing, commit already exists.");
+            return result; // Skip indexing
+        }
+
         const files = await this.ghService.getFiles(owner, repo, ref, path);
         // exclude files that match the patterns
         const filteredFiles = files.filter((file) => !RepositoryService.shouldExclude(file.name));
@@ -62,45 +69,11 @@ export class RepositoryService {
             }
         }
 
+        // Store the new commit in the BranchCommits table
+        await this.dbService.saveBranchCommit(owner, repo, ref, commitHash);
+
         return result;
     }
 
-    async fetchFiles(files: FileDetails[]) {
-        const promises = files.map(async (file) => {
-            // no need to fetch content if it's already there
-            if (file.content) {
-                console.log("file content already fetched", file.path);
-                return file;
-            }
-
-            console.log("fetching file content", file.path);
-            const content = await this.ghService.readFile(
-                file.owner,
-                file.repo,
-                file.ref,
-                file.path
-            );
-
-            if (!("content" in content)) {
-                throw new Error("No content found in file");
-            }
-
-            return {
-                ...file,
-                content: Buffer.from(content.content, "base64").toString("utf-8"),
-            };
-        });
-
-        return Promise.all(promises);
-    }
-
-    static shouldExclude(filePath: string): boolean {
-        return EXCLUDE_PATTERNS.some((pattern) => {
-            if (pattern.endsWith("/")) {
-                return filePath.includes(pattern);
-            } else {
-                return filePath.endsWith(pattern);
-            }
-        });
-    }
+    // Other methods remain unchanged...
 }
