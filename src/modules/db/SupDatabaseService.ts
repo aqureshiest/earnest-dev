@@ -36,6 +36,41 @@ export class DatabaseService {
         }
     }
 
+    async getBranchCommit(owner: string, repo: string, branch: string): Promise<string | null> {
+        const { data, error } = await this.supabase
+            .from("BranchCommits")
+            .select("commitHash")
+            .eq("owner", owner)
+            .eq("repo", repo)
+            .eq("branch", branch)
+            .single();
+
+        if (error) {
+            console.error(`Error fetching branch commit: ${error.message}`);
+            return null;
+        }
+
+        return data?.commitHash || null;
+    }
+
+    async insertOrUpdateBranchCommit(owner: string, repo: string, branch: string, commitHash: string): Promise<void> {
+        const { data, error } = await this.supabase.from("BranchCommits").upsert(
+            {
+                owner,
+                repo,
+                branch,
+                commitHash,
+            },
+            {
+                onConflict: "owner,repo,branch",
+            }
+        );
+
+        if (error) {
+            throw new Error(`Error inserting/updating branch commit: ${error.message}`);
+        }
+    }
+
     async getFileDetails(
         owner: string,
         repo: string,
