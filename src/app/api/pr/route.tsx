@@ -59,6 +59,9 @@ export async function POST(req: Request) {
             await dbService.saveFileDetails(file);
         });
 
+        // Save the branch commit after indexing
+        await dbService.saveBranchCommit(owner, repo, branch, filesWithEmbeddings[0].commitHash);
+
         let filesToUse = [];
 
         if (!useAllFiles) {
