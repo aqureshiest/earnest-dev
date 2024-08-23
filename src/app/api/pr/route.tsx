@@ -44,82 +44,95 @@ export async function POST(req: Request) {
             skipFiles,
             channel
         );
-        await sendMessage(channel, ">IC"); // this is a system command: Indexing completed
-        await sendMessage(channel, `Fetched ${files.length} files.`);
 
-        await sendMessage(channel, "Tokenizing files...");
-        const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(files);
-        const tokenizedFiles: FileDetails[] = new TokenLimiter().tokenizeFiles(filesWithContent);
+        // Check if the current branch commit exists in the BranchCommits table
+        const existingCommit = await dbService.getBranchCommit(owner, repo, branch);
+        if (existingCommit) {
+            await sendMessage(channel, "Skipping indexing as the commit already exists.");
+            // Use similar search query instead of indexing
+            const filesToUse = await dbService.findSimilar(description, owner, repo, branch);
+            // Proceed with the rest of the workflow using filesToUse
+        } else {
+            await sendMessage(channel, ">IC"); // this is a system command: Indexing completed
+            await sendMessage(channel, `Fetched ${files.length} files.`);
 
-        // check if token limits removed any files
-        if (tokenizedFiles.length < filesWithContent.length) {
-            await sendMessage(
-                channel,
-                `Removed ${
-                    filesWithContent.length - tokenizedFiles.length
-                } files from context due to token limits.`
+            await sendMessage(channel, "Tokenizing files...");
+            const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(files);
+            const tokenizedFiles: FileDetails[] = new TokenLimiter().tokenizeFiles(filesWithContent);
+
+            // check if token limits removed any files
+            if (tokenizedFiles.length < filesWithContent.length) {
+                await sendMessage(
+                    channel,
+                    `Removed ${
+                        filesWithContent.length - tokenizedFiles.length
+                    } files from context due to token limits.`
+                );
+            }
+
+            await sendMessage(channel, "Embedding files...");
+            const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFilesInChunks(
+                tokenizedFiles
             );
-        }
 
-        await sendMessage(channel, "Embedding files...");
-        const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFilesInChunks(
-            tokenizedFiles
-        );
+            await sendMessage(channel, "Syncing files...");
+            filesWithEmbeddings.forEach(async (file) => {
+                await dbService.saveFileDetails(file);
+            });
 
-        await sendMessage(channel, "Syncing files...");
-        filesWithEmbeddings.forEach(async (file) => {
-            await dbService.saveFileDetails(file);
-        });
+            // Insert or update the branch commit in the new table
+            await dbService.insertOrUpdateBranchCommit(owner, repo, branch, filesWithEmbeddings[0].commitHash);
 
-        let filesToUse = [];
+            let filesToUse = [];
 
-        if (!useAllFiles) {
-            try {
-                filesToUse = await dbService.findSimilar(description, owner, repo, branch);
-            } catch (e) {
-                console.error("Error in finding similar files", e);
+            if (!useAllFiles) {
+                try {
+                    filesToUse = await dbService.findSimilar(description, owner, repo, branch);
+                } catch (e) {
+                    console.error("Error in finding similar files", e);
+                    filesToUse = filesWithEmbeddings;
+                }
+            } else {
                 filesToUse = filesWithEmbeddings;
             }
-        } else {
-            filesToUse = filesWithEmbeddings;
-        }
 
-        const assistantsWorkflow = new AssistantsWorkflow(channel);
+            const assistantsWorkflow = new AssistantsWorkflow(channel);
 
-        // call the assistants workflow
-        await sendMessage(channel, "Starting AI Assistants...");
-        const response = await assistantsWorkflow.runWorkflow(
-            selectedModel,
-            description,
-            filesToUse
-        );
-
-        const codeChanges = response?.code.response;
-
-        if (
-            codeChanges &&
-            (codeChanges?.newFiles.length > 0 ||
-                codeChanges?.modifiedFiles.length > 0 ||
-                codeChanges?.deletedFiles.length > 0)
-        ) {
-            await sendMessage(channel, "Creating pull request...");
-
-            const prService = new PullRequestService(owner, repo, branch);
-            const prLink = await prService.createPullRequest(
-                codeChanges,
-                codeChanges.prTitle,
-                response.prDescription?.response || description
+            // call the assistants workflow
+            await sendMessage(channel, "Starting AI Assistants...");
+            const response = await assistantsWorkflow.runWorkflow(
+                selectedModel,
+                description,
+                filesToUse
             );
 
-            await sendMessage(channel, "Pull request created.");
-            return new Response(JSON.stringify({ prLink }), {
+            const codeChanges = response?.code.response;
+
+            if (
+                codeChanges &&
+                (codeChanges?.newFiles.length > 0 ||
+                    codeChanges?.modifiedFiles.length > 0 ||
+                    codeChanges?.deletedFiles.length > 0)
+            ) {
+                await sendMessage(channel, "Creating pull request...");
+
+                const prService = new PullRequestService(owner, repo, branch);
+                const prLink = await prService.createPullRequest(
+                    codeChanges,
+                    codeChanges.prTitle,
+                    response.prDescription?.response || description
+                );
+
+                await sendMessage(channel, "Pull request created.");
+                return new Response(JSON.stringify({ prLink }), {
+                    headers: { "Content-Type": "application/json" },
+                });
+            }
+
+            return new Response(JSON.stringify({ prLink: null, message: "No code changes needed" }), {
                 headers: { "Content-Type": "application/json" },
             });
         }
-
-        return new Response(JSON.stringify({ prLink: null, message: "No code changes needed" }), {
-            headers: { "Content-Type": "application/json" },
-        });
     } catch (e) {
         console.log(e);
         return new Response(JSON.stringify({ error: (e as any).message }), {
