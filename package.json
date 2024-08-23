@@ -19,6 +19,7 @@
     "@types/sqlite3": "^3.1.11",
     "ably": "^2.3.1",
     "better-sqlite3": "^11.1.2",
+    "fast-xml-parser": "^4.4.1",
     "gpt-tokenizer": "^2.2.1",
     "highlight.js": "^11.10.0",
     "js-yaml": "^4.1.0",

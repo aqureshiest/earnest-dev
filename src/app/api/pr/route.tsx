@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
         await sendMessage(channel, "Tokenizing files...");
         const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(files);
-        const tokenizedFiles: FileDetails[] = TokenLimiter.tokenizeFiles(filesWithContent);
+        const tokenizedFiles: FileDetails[] = new TokenLimiter().tokenizeFiles(filesWithContent);
 
         // check if token limits removed any files
         if (tokenizedFiles.length < filesWithContent.length) {
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
             const prService = new PullRequestService(owner, repo, branch);
             const prLink = await prService.createPullRequest(
                 codeChanges,
-                codeChanges.prTitle,
+                codeChanges.title,
                 response.prDescription?.response || description
             );
 

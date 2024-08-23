@@ -6,12 +6,10 @@ const ImplementationPlanCard = ({
 }: {
     implementationPlan: AIAssistantResponse<ImplementationPlan> | null;
 }) => {
-    const [isOpen, setIsOpen] = useState(
-        Array(implementationPlan?.response?.implementationPlan.length).fill(false)
-    );
-    const [isEditing, setIsEditing] = useState(
-        Array(implementationPlan?.response?.implementationPlan.length).fill(false)
-    );
+    const steps = (implementationPlan?.response?.steps || []) as Step[];
+
+    const [isOpen, setIsOpen] = useState(Array(steps.length).fill(false));
+    const [isEditing, setIsEditing] = useState(Array(steps.length).fill(false));
 
     const toggleAccordion = (index: number) => {
         setIsOpen((prevIsOpen) => {
@@ -50,7 +48,7 @@ const ImplementationPlanCard = ({
                 )}
             </div>
             <div className="space-y-4">
-                {implementationPlan?.response?.implementationPlan.map((item, index) => (
+                {steps.map((step, index) => (
                     <div
                         key={index}
                         className="border border-gray-300 rounded-md shadow-sm overflow-hidden"
@@ -59,7 +57,7 @@ const ImplementationPlanCard = ({
                             className="bg-gray-100 px-4 py-2 cursor-pointer flex justify-between items-center"
                             onClick={() => toggleAccordion(index)}
                         >
-                            <h3 className="font-normal text-gray-700">{item.step}</h3>
+                            <h3 className="font-normal text-gray-700">{step.title}</h3>
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -80,18 +78,17 @@ const ImplementationPlanCard = ({
                                     <textarea
                                         className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
                                         rows={2}
-                                        value={item.thoughts}
+                                        value={step.thoughts}
                                         disabled={!isEditing[index]}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    {/* <h4 className="text-sm font-semibold text-gray-600">Files</h4> */}
-                                    {item.files.map((file, fileIndex) => (
+                                    {step.files.map((file, fileIndex) => (
                                         <div key={fileIndex} className="space-y-2">
                                             <div className="font-medium text-gray-700">
                                                 {file.path}{" "}
                                                 <span className="font-normal text-sm">
-                                                    ({file.status})
+                                                    ({file.operation})
                                                 </span>
                                             </div>
                                             <textarea

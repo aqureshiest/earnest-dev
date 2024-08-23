@@ -125,9 +125,11 @@ const PullRequest: React.FC = () => {
                     }
                     break;
                 case "specifications":
+                    console.log("Received specifications:", data);
                     setSpecifications(data);
                     break;
                 case "implementationplan":
+                    console.log("Received implementation plan:", data);
                     setImplementationPlan(data);
                     break;
             }

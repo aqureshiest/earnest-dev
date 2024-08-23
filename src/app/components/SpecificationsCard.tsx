@@ -6,12 +6,10 @@ const SpecificationsCard = ({
 }: {
     specifications: AIAssistantResponse<Specifications> | null;
 }) => {
-    const [isOpen, setIsOpen] = useState(
-        Array(specifications?.response?.specifications.length).fill(false)
-    );
-    const [isEditable, setIsEditable] = useState(
-        Array(specifications?.response?.specifications.length).fill(false)
-    );
+    const specs = (specifications?.response || []) as Specification[];
+
+    const [isOpen, setIsOpen] = useState(Array(specs.length).fill(false));
+    const [isEditable, setIsEditable] = useState(Array(specs.length).fill(false));
 
     const toggleAccordion = (index: number) => {
         setIsOpen((prevIsOpen) => {
@@ -49,7 +47,7 @@ const SpecificationsCard = ({
                     )}
                 </div>
                 <div className="space-y-4">
-                    {specifications?.response?.specifications.map((spec, index) => (
+                    {specs.map((spec, index) => (
                         <div
                             key={index}
                             className="border border-gray-300 rounded-md shadow-sm transition-all duration-300 ease-in-out overflow-hidden"
@@ -78,8 +76,8 @@ const SpecificationsCard = ({
                                         </h4>
                                         <textarea
                                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                            rows={2}
-                                            value={spec.thoughts}
+                                            rows={3}
+                                            value={spec.summary}
                                             disabled={!isEditable[index]}
                                         />
                                     </div>
@@ -89,8 +87,8 @@ const SpecificationsCard = ({
                                         </h4>
                                         <textarea
                                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                            rows={8}
-                                            value={spec.specification}
+                                            rows={6}
+                                            value={spec.key_steps?.join("\n")}
                                             disabled={!isEditable[index]}
                                         />
                                     </div>

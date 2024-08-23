@@ -10,11 +10,7 @@ interface FileDetails {
     embeddings: number[];
 }
 
-interface FileChange {
-    path: string;
-    thoughts: string;
-    content: string;
-}
+// specifications types
 
 interface Specifications {
     specifications: Specification[];
@@ -22,32 +18,55 @@ interface Specifications {
 
 interface Specification {
     title: string;
-    thoughts: string;
-    specification: string;
+    summary: string;
+    key_steps: string[];
+    considerations: string[];
 }
 
+// implementation plan types
+
 interface ImplementationPlan {
-    implementationPlan: Step[];
+    steps: Step[];
 }
 
 interface Step {
-    step: string;
+    title: string;
     thoughts: string;
     files: FileChanges[];
 }
 
 interface FileChanges {
     path: string;
-    status: "new" | "modified" | "deleted";
+    operation: "new" | "modify" | "delete";
     todos: string[];
 }
 
+// generated code types
+
 interface CodeChanges {
-    prTitle: string;
-    newFiles: FileChange[];
-    modifiedFiles: FileChange[];
-    deletedFiles: string[];
+    title: string;
+    newFiles: NewFile[];
+    modifiedFiles: ModifiedFile[];
+    deletedFiles: DeletedFile[];
 }
+
+interface NewFile {
+    path: string;
+    thoughts: string;
+    content: string;
+}
+
+interface ModifiedFile {
+    path: string;
+    thoughts: string;
+    content: string;
+}
+
+interface DeletedFile {
+    path: string;
+}
+
+// ai response
 
 interface AIResponse {
     response: string;

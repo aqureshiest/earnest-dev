@@ -3,7 +3,7 @@ import { LLMS } from "../../utilities/llmInfo";
 import { formatFiles } from "@/modules/utilities/formatFiles";
 
 export class TokenLimiter {
-    static tokenizeFiles(files: FileDetails[]) {
+    tokenizeFiles(files: FileDetails[]) {
         return files
             .map((file) => {
                 // no need to tokenize if tokene count is already there
@@ -21,7 +21,7 @@ export class TokenLimiter {
             .filter((file) => file.tokenCount! > 0 && file.tokenCount! < 8000);
     }
 
-    static applyTokenLimit(model: string, prompt: string, files: FileDetails[]) {
+    applyTokenLimit(model: string, prompt: string, files: FileDetails[]) {
         // get LLM info
         const LLM: any = LLMS.find((m) => m.model === model);
 
