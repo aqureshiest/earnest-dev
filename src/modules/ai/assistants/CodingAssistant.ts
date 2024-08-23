@@ -30,7 +30,7 @@ Each file should include:
 2. **Analyze the existing codebase to understand its structure**. Identify which files need to be created, modified, or deleted to accomplish the task.
 3. **Generate code based on the detailed implementation plan**. Ensure that all steps are accurately implemented and that the code adheres to best practices.
 4. **Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase**. Pay special attention to maintaining consistency in style and functionality across the codebase.
-5. **Include all necessary imports, dependencies, and exports in full**. Do not use ellipsis (...) or shorthand notations for imports. Every import statement should be complete.
+5. **Include all existing and new code in full**. Do not use place holders for existing code or new code. Write all the code.
 6. **Provide the full content of each new and modified file**. This is necessary as we will be creating a pull request from this generated code. For deleted files, only provide the full file path.
 7. **When modifying existing files, preserve all existing content unless explicitly instructed otherwise**. Add new content where appropriate without removing or altering unrelated existing content.
 8. **Ensure that each file appears in only one of the following sections: new, modified, or deleted**. Double-check to avoid listing a file in multiple sections.

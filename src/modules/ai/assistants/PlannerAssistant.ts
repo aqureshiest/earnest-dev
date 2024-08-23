@@ -71,6 +71,7 @@ implementationPlan:
         todos: 
           - "Todo 1"
           - "Todo 2"
+\`\`\`
 
 Now, using the task description, existing code files, and specifications generate a detailed implementation plan for the task in the specified YAML format.
 `;

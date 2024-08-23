@@ -5,6 +5,7 @@ import Ably from "ably";
 import { DatabaseService } from "@/modules/db/SupDatabaseService";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { AssistantsWorkflow } from "@/modules/ai/AssistantsWorkflow";
+import { skip } from "node:test";
 
 // private function to send message to ably
 async function sendMessage(channel: any, message: string, messagePrefix = "overall") {
@@ -16,8 +17,17 @@ export async function POST(req: Request) {
     const dbService = new DatabaseService();
     const embeddingService = new EmbeddingService();
 
-    const { owner, repo, branch, description, selectedModel, useAllFiles, updatesChannel } =
-        await req.json();
+    const {
+        owner,
+        repo,
+        branch,
+        description,
+        selectedModel,
+        useAllFiles,
+        skipFolders,
+        skipFiles,
+        updatesChannel,
+    } = await req.json();
 
     const ably = new Ably.Rest(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
 
@@ -30,6 +40,8 @@ export async function POST(req: Request) {
             repo,
             branch,
             "",
+            skipFolders,
+            skipFiles,
             channel
         );
         await sendMessage(channel, ">IC"); // this is a system command: Indexing completed

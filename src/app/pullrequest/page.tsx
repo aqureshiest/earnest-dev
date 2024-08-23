@@ -22,6 +22,8 @@ const PullRequest: React.FC = () => {
 
     const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
     const [useAllFiles, setUseAllFiles] = useState(false);
+    const [skipFolders, setSkipFolders] = useState<string[]>([]);
+    const [skipFiles, setSkipFiles] = useState<string[]>([]);
 
     const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
 
@@ -85,6 +87,8 @@ const PullRequest: React.FC = () => {
                     description: description.trim(),
                     selectedModel,
                     useAllFiles,
+                    skipFolders,
+                    skipFiles,
                     updatesChannel: channelName,
                 }),
             });
@@ -251,6 +255,32 @@ const PullRequest: React.FC = () => {
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+
+                            {/* skip folders */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-600">
+                                    Skip Folders
+                                </label>
+                                <input
+                                    value={skipFolders.join(", ")}
+                                    onChange={(e) => setSkipFolders(e.target.value.split(","))}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
+                                    disabled={isCreating}
+                                />
+                            </div>
+
+                            {/* skip files */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-600">
+                                    Skip Files
+                                </label>
+                                <input
+                                    value={skipFiles.join(", ")}
+                                    onChange={(e) => setSkipFiles(e.target.value.split(","))}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
+                                    disabled={isCreating}
+                                />
                             </div>
 
                             {/* Create Pull Request Button */}
