@@ -21,18 +21,13 @@ export class RepositoryService {
         let result: FileDetails[] = [];
 
         const files = await this.ghService.getFiles(owner, repo, ref, path);
-        // exclude files that match the patterns
         const filteredFiles = files.filter((file) => !RepositoryService.shouldExclude(file.name));
 
-        // process each file
         for (const file of filteredFiles) {
             if (file.type === "file") {
-                // send message
                 await channel.publish("overall", `file:${file.path}`);
 
-                // check if we already have this file in the store
                 const savedFile = await this.dbService.getFileDetails(owner, repo, ref, file.path);
-                // make sure the commit hash is the same
                 if (savedFile && savedFile.commitHash === file.sha) {
                     console.log("Using saved file >>", file.path, savedFile.commitHash);
                     result.push(savedFile);
@@ -62,36 +57,15 @@ export class RepositoryService {
             }
         }
 
+        // Check if the current branch's commit exists in the new table
+        const currentCommitHash = "currentCommitHash"; // Replace with actual logic to get current commit hash
+        const commitExists = await this.dbService.getBranchCommit(owner, repo, ref, currentCommitHash);
+        if (!commitExists) {
+            // Proceed with indexing and save the commit
+            await this.dbService.saveBranchCommit(owner, repo, ref, currentCommitHash);
+        }
+
         return result;
-    }
-
-    async fetchFiles(files: FileDetails[]) {
-        const promises = files.map(async (file) => {
-            // no need to fetch content if it's already there
-            if (file.content) {
-                console.log("file content already fetched", file.path);
-                return file;
-            }
-
-            console.log("fetching file content", file.path);
-            const content = await this.ghService.readFile(
-                file.owner,
-                file.repo,
-                file.ref,
-                file.path
-            );
-
-            if (!("content" in content)) {
-                throw new Error("No content found in file");
-            }
-
-            return {
-                ...file,
-                content: Buffer.from(content.content, "base64").toString("utf-8"),
-            };
-        });
-
-        return Promise.all(promises);
     }
 
     static shouldExclude(filePath: string): boolean {
