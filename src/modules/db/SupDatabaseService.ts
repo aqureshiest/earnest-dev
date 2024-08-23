@@ -13,100 +13,34 @@ export class DatabaseService {
         this.embeddingService = new EmbeddingService();
     }
 
-    async saveFileDetails(file: FileDetails): Promise<void> {
-        const { data, error } = await this.supabase.from("filedetails").upsert(
-            {
-                name: file.name,
-                path: file.path,
-                content: file.content,
-                owner: file.owner,
-                repo: file.repo,
-                ref: file.ref,
-                commithash: file.commitHash,
-                tokencount: file.tokenCount,
-                embeddings: file.embeddings,
-            },
-            {
-                onConflict: "owner,repo,ref,path",
-            }
-        );
-
-        if (error) {
-            throw new Error(`Error saving file details: ${error.message}`);
-        }
-    }
-
-    async getFileDetails(
-        owner: string,
-        repo: string,
-        ref: string = "main",
-        path: string
-    ): Promise<FileDetails | null> {
-        const { data, error } = await this.supabase
-            .from("filedetails")
-            .select("*")
-            .eq("owner", owner)
-            .eq("repo", repo)
-            .eq("ref", ref)
-            .eq("path", path)
-            .single();
-
-        if (error) {
-            // console.error(`Error fetching file ${repo}:${ref}:${path} details: ${error.message}`);
-            return null;
-        }
-
-        return {
-            name: data.name,
-            path: data.path,
-            content: data.content,
-            owner: data.owner,
-            repo: data.repo,
-            ref: data.ref,
-            commitHash: data.commithash,
-            tokenCount: data.tokencount,
-            embeddings: data.embeddings,
-        } as FileDetails;
-    }
-
-    async getAllFileDetails(
-        owner: string,
-        repo: string,
-        ref: string = "main"
-    ): Promise<FileDetails[]> {
-        const { data, error } = await this.supabase
-            .from("filedetails")
-            .select("*")
-            .eq("owner", owner)
-            .eq("repo", repo)
-            .eq("ref", ref);
-
-        if (error) {
-            throw new Error(`Error fetching all file details: ${error.message}`);
-        }
-
-        return data as FileDetails[];
-    }
-
-    async findSimilar(
-        text: string,
-        owner: string,
-        repo: string,
-        ref: string
-    ): Promise<FileDetails[]> {
-        const embeddings = await this.embeddingService.generateEmbeddings(text);
-
-        const { data, error } = await this.supabase.rpc("find_similar_files", {
-            query_embeddings: embeddings,
-            given_owner: owner,
-            given_repo: repo,
-            given_ref: ref,
+    async saveBranchCommit(owner: string, repo: string, branch: string, commitHash: string): Promise<void> {
+        const { data, error } = await this.supabase.from("BranchCommits").upsert({
+            owner,
+            repo,
+            branch,
+            commitHash,
         });
 
         if (error) {
-            throw new Error(`Error finding similar files: ${error.message}`);
+            throw new Error(`Error saving branch commit: ${error.message}`);
+        }
+    }
+
+    async checkBranchCommitExists(owner: string, repo: string, branch: string): Promise<boolean> {
+        const { data, error } = await this.supabase
+            .from("BranchCommits")
+            .select("*")
+            .eq("owner", owner)
+            .eq("repo", repo)
+            .eq("branch", branch)
+            .single();
+
+        if (error && error.code !== 'PGRST116') { // No rows found
+            throw new Error(`Error checking branch commit: ${error.message}`);
         }
 
-        return data as FileDetails[];
+        return data !== null;
     }
+
+    // ... existing methods ...
 }
