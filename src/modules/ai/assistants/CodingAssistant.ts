@@ -1,7 +1,14 @@
 import { CODEFILES_PLACEHOLDER, PLAN_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { BaseAssistant } from "./BaseAssistant";
+import { PromptBuilder } from "../support/PromptBuilder";
+import { TokenLimiter } from "../support/TokenLimiter";
+import { ResponseParser } from "../support/ResponseParser";
 
 export class CodingAssistant extends BaseAssistant<CodeChanges> {
+    constructor() {
+        super(new PromptBuilder(), new TokenLimiter(), new ResponseParser<CodeChanges>());
+    }
+
     getSystemPrompt(): string {
         return `
 You are a senior software engineer working on a project. You are an expert in writing accurate and executable
@@ -96,34 +103,4 @@ deletedFiles:
 Now, using the task description, existing code files, and implementation plan generate the code for the task in the specified YAML format.
 `;
     }
-
-    constructor() {
-        super();
-    }
 }
-
-// **Reminders**:
-// - Implement all the steps outlined in the implementation plan.
-// - Include the full content of each modified file in the 'content' section, clearly indicating where changes or additions have been made.
-// - Do not exclude unrelated existing content unless explicitly instructed to do so.
-// - A file should only be listed in one section: new, modified, or deleted.
-// - Focus on the task at hand while considering the broader context of the codebase.
-
-// [[CONTINUATIONPROMPT]]
-
-// ### Considerations:
-// 1. **Review the provided coding task description and the implementation plan thoroughly**. Ensure you fully understand the task and how it fits into the broader context of the codebase.
-// 2. **Analyze the existing codebase to understand its structure**. Identify which files need to be created, modified, or deleted to accomplish the task.
-// 3. **Generate code based on the detailed implementation plan**. Ensure that all steps are accurately implemented and that the code adheres to best practices.
-// 4. **Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase**. Pay special attention to maintaining consistency in style and functionality across the codebase.
-// 5. **Include all necessary imports, dependencies, and exports in full**. Do not use ellipsis (...) or shorthand notations for imports. Every import statement should be complete.
-// 6. **Provide the full content of each new and modified file**. This is necessary as we will be creating a pull request from this generated code. For deleted files, only provide the full file path.
-// 7. **When modifying existing files, preserve all existing content unless explicitly instructed otherwise**. Add new content where appropriate without removing or altering unrelated existing content.
-// 8. **Ensure that each file appears in only one of the following sections: new, modified, or deleted**. Double-check to avoid listing a file in multiple sections.
-// 9. **Be concise and focused** when providing outputs. Prioritize clarity and brevity while ensuring all necessary details are included.
-// 10. **Consolidate all changes to a single file into one entry**, even if they come from different implementation steps. Do not separate modifications or additions to the same file into multiple entries.
-
-// ### Constraints:
-// Your specifications should **NOT**:
-// - Include work that is already done.
-// - Use ellipsis (...) or shorthand notations for imports or any other code.

@@ -85,7 +85,6 @@ const ImplementationPlanCard = ({
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    {/* <h4 className="text-sm font-semibold text-gray-600">Files</h4> */}
                                     {item.files.map((file, fileIndex) => (
                                         <div key={fileIndex} className="space-y-2">
                                             <div className="font-medium text-gray-700">
@@ -96,7 +95,7 @@ const ImplementationPlanCard = ({
                                             </div>
                                             <textarea
                                                 className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                                rows={3}
+                                                rows={file.todos.length}
                                                 value={file.todos.join("\n")}
                                                 disabled={!isEditing[index]}
                                             />

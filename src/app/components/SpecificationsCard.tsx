@@ -89,8 +89,8 @@ const SpecificationsCard = ({
                                         </h4>
                                         <textarea
                                             className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                            rows={8}
-                                            value={spec.specification}
+                                            rows={spec.keySteps.length}
+                                            value={spec.keySteps.join("\n")}
                                             disabled={!isEditable[index]}
                                         />
                                     </div>

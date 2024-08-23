@@ -1,9 +1,12 @@
 import { CODEFILES_PLACEHOLDER, SPECS_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { BaseAssistant } from "./BaseAssistant";
+import { PromptBuilder } from "../support/PromptBuilder";
+import { ResponseParser } from "../support/ResponseParser";
+import { TokenLimiter } from "../support/TokenLimiter";
 
 export class PlannerAssistant extends BaseAssistant<ImplementationPlan> {
     constructor() {
-        super();
+        super(new PromptBuilder(), new TokenLimiter(), new ResponseParser<ImplementationPlan>());
     }
 
     getSystemPrompt(): string {

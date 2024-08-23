@@ -10,12 +10,6 @@ interface FileDetails {
     embeddings: number[];
 }
 
-interface FileChange {
-    path: string;
-    thoughts: string;
-    content: string;
-}
-
 interface Specifications {
     specifications: Specification[];
 }
@@ -23,7 +17,7 @@ interface Specifications {
 interface Specification {
     title: string;
     thoughts: string;
-    specification: string;
+    keySteps: string[];
 }
 
 interface ImplementationPlan {
@@ -47,6 +41,12 @@ interface CodeChanges {
     newFiles: FileChange[];
     modifiedFiles: FileChange[];
     deletedFiles: string[];
+}
+
+interface FileChange {
+    path: string;
+    thoughts: string;
+    content: string;
 }
 
 interface AIResponse {

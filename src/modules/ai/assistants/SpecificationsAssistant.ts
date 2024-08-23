@@ -1,9 +1,12 @@
 import { CODEFILES_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { BaseAssistant } from "./BaseAssistant";
+import { PromptBuilder } from "../support/PromptBuilder";
+import { ResponseParser } from "../support/ResponseParser";
+import { TokenLimiter } from "../support/TokenLimiter";
 
 export class SpecificationsAssistant extends BaseAssistant<Specifications> {
     constructor() {
-        super();
+        super(new PromptBuilder(), new TokenLimiter(), new ResponseParser<Specifications>());
     }
 
     getSystemPrompt(): string {
@@ -20,7 +23,7 @@ creation of a detailed implementation plan.
 Each specification should include:
 - a title.
 - a thoughts section for you to use as scratchpath for your thoughts.
-- a detailed specification.
+- list of key steps to follow.
 
 ### Considerations:
 - Factor in the broader context of the codebase, such as design patterns, conventions, and dependencies, without deviating from the specific task.
@@ -55,7 +58,9 @@ Respond in the following YAML format:
 specifications:
   - title: "Title of the specification"
     thoughts: "Placeholder for your thoughts on this specification"
-    specification: "A detailed specification."
+    keySteps:
+        - "Step 1"
+        - "Step 2"
   - title: "Title of the specification"
     thoughts: "Placeholder for your thoughts on this specification
     specification: "A detailed specification."
