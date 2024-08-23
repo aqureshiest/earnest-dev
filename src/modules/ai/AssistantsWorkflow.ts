@@ -38,6 +38,8 @@ export class AssistantsWorkflow {
         const startTime = new Date().getTime();
 
         await this.updatesChannel.publish("overall", "Generating specifications...");
+        await this.updatesChannel.publish("overall", ">SAS"); // this is a system command: Specifications Assistant Started
+
         // generate specifications
         const specs = await this.specificationsAssistant.process({
             model,
@@ -54,6 +56,8 @@ export class AssistantsWorkflow {
         await this.updatesChannel.publish("specifications", specs);
 
         await this.updatesChannel.publish("overall", "Generating implementation plan...");
+        await this.updatesChannel.publish("overall", ">IPAS"); // this is a system command: Implementation Plan Assistant Started
+
         // generate plan
         const plan = await this.plannerAssistant.process({
             model,
@@ -73,6 +77,7 @@ export class AssistantsWorkflow {
         await this.updatesChannel.publish("implementationplan", plan);
 
         await this.updatesChannel.publish("overall", "Generating code...");
+        await this.updatesChannel.publish("overall", ">GC"); // this is a system command: Generating Code
 
         // generate code
         const code = await this.codingAssistant.process({
@@ -90,8 +95,10 @@ export class AssistantsWorkflow {
         }
 
         await this.emitMetrics(code);
+        await this.updatesChannel.publish("generatedcode", code);
 
         await this.updatesChannel.publish("overall", "Writing PR details...");
+        await this.updatesChannel.publish("overall", ">WPR"); // this is a system command: Writing PR
 
         // write PR description
         const prDescription = await this.writerAssistant.process({
@@ -108,6 +115,7 @@ export class AssistantsWorkflow {
         if (prDescription) {
             await this.emitMetrics(prDescription);
         }
+        await this.updatesChannel.publish("prdescription", prDescription);
 
         // calculate total cost
         const totalCost = specs.cost + plan.cost + code.cost;

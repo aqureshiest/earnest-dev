@@ -32,7 +32,7 @@ export async function POST(req: Request) {
             "",
             channel
         );
-        await sendMessage(channel, ">Indexing completed."); // this is a system command to stop showing files progress
+        await sendMessage(channel, ">IC"); // this is a system command: Indexing completed
         await sendMessage(channel, `Fetched ${files.length} files.`);
 
         await sendMessage(channel, "Tokenizing files...");

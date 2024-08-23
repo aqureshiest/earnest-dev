@@ -6,42 +6,52 @@ import React, { useEffect, useRef, useState } from "react";
 import Ably from "ably";
 import SpecificationsCard from "../components/SpecificationsCard";
 import ImplementationPlanCard from "../components/ImplementationPlanCard";
+import AssistantWorkspace from "../components/AssistantWorkspace";
+import ProgressFeed from "../components/ProgressFeed";
 
 const PullRequest: React.FC = () => {
     const params = useSearchParams();
 
     const [repo, setRepo] = useState<string | null>(null);
     const [branch, setBranch] = useState<string | null>(null);
-
     const [description, setDescription] = useState("");
 
-    const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-    const [progress, setProgress] = useState<string[]>([
-        "Fill in the task description and click 'Create Pull Request' to start the process.",
-        "You can monitor the progress of the pull request creation below.",
-    ]);
-    const [currentFile, setCurrentFile] = useState<string>("");
-
+    const [progress, setProgress] = useState<string[]>([]);
+    const [currentFile, setCurrentFile] = useState<string>();
     const [isCreating, setIsCreating] = useState(false);
-    const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
+
     const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
     const [useAllFiles, setUseAllFiles] = useState(false);
 
-    const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
+    const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
 
-    const [specifications, setSpecifications] =
-        useState<AIAssistantResponse<Specifications> | null>(null);
+    const [specifications, setSpecifications] = useState<AIAssistantResponse<Specifications>>();
     const [implementationPlan, setImplementationPlan] =
         useState<AIAssistantResponse<ImplementationPlan> | null>(null);
 
+    const [assistantStates, setAssistantStates] = useState({
+        specifications: "idle",
+        planning: "idle",
+        code: "idle",
+        PR: "idle",
+    });
+
+    const resetAssistantStates = () => {
+        setAssistantStates({
+            specifications: "idle",
+            planning: "idle",
+            code: "idle",
+            PR: "idle",
+        });
+    };
+
+    const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
     const availableModels = [
         LLM_MODELS.OPENAI_GPT_4O,
         LLM_MODELS.OPENAI_GPT_4O_MINI,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
     ];
-
     const channelName = `earnest-dev-ch-${Date.now()}`;
 
     useEffect(() => {
@@ -49,8 +59,8 @@ const PullRequest: React.FC = () => {
         setBranch(params.get("branch"));
     }, [params]);
 
-    const handleDescriptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setDescription(event.target.value);
+    const updateAssistantState = (assistant: string, state: string) => {
+        setAssistantStates((prev) => ({ ...prev, [assistant]: state }));
     };
 
     const handleCreatePullRequest = async () => {
@@ -60,6 +70,7 @@ const PullRequest: React.FC = () => {
         setCurrentFile("");
         setSpecifications(null);
         setImplementationPlan(null);
+        resetAssistantStates();
 
         openAblyConnection();
 
@@ -78,18 +89,24 @@ const PullRequest: React.FC = () => {
                 }),
             });
 
-            // handle 500 response
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error);
             }
 
-            // handle successful response
             setGeneratedPRLink((await response.json()).prLink);
+
+            // update assistants states
+            updateAssistantState("specifications", "completed");
+            updateAssistantState("planning", "completed");
         } catch (error: any) {
             console.error("Error creating pull request:", error);
             setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
             setProgress((prev) => [...prev, error.message]);
+
+            // update assistants states
+            updateAssistantState("specifications", "idle");
+            updateAssistantState("planning", "idle");
         } finally {
             setIsCreating(false);
             closeAblyConnection();
@@ -114,8 +131,20 @@ const PullRequest: React.FC = () => {
                     // system commands
                     else if (data.startsWith(">")) {
                         switch (data.slice(1)) {
-                            case "Indexing completed.":
+                            case "IC":
                                 setCurrentFile("");
+                                break;
+                            case "SAS":
+                                updateAssistantState("specifications", "working");
+                                break;
+                            case "IPAS":
+                                updateAssistantState("planning", "working");
+                                break;
+                            case "GC":
+                                updateAssistantState("code", "working");
+                                break;
+                            case "WPR":
+                                updateAssistantState("PR", "working");
                                 break;
                         }
                     }
@@ -125,10 +154,19 @@ const PullRequest: React.FC = () => {
                     }
                     break;
                 case "specifications":
+                    updateAssistantState("specifications", "completed");
                     setSpecifications(data);
                     break;
                 case "implementationplan":
+                    updateAssistantState("planning", "completed");
                     setImplementationPlan(data);
+                    break;
+                case "generatedcode":
+                    updateAssistantState("code", "completed");
+                    console.log("Generated code:", data);
+                    break;
+                case "prdescription":
+                    updateAssistantState("PR", "completed");
                     break;
             }
         });
@@ -144,27 +182,19 @@ const PullRequest: React.FC = () => {
         }
     };
 
-    // Scroll to the bottom of the messages div whenever progress updates
-    const scrollToBottom = () => {
-        if (messagesContainerRef && messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
+    const handleDescriptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setDescription(event.target.value);
     };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [progress, generatedPRLink]);
 
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-6">
             <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left column: Form */}
                     <div className="bg-white rounded-lg shadow p-6">
                         <h2 className="text-xl font-semibold text-gray-800 mb-6">
                             Create New Pull Request
                         </h2>
-
                         <div className="space-y-4">
                             {/* Selected Repository and Branch */}
                             <div>
@@ -224,66 +254,41 @@ const PullRequest: React.FC = () => {
                             </div>
 
                             {/* Create Pull Request Button */}
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={handleCreatePullRequest}
-                                    className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
-                                    disabled={isCreating}
-                                >
-                                    {isCreating ? "Creating..." : "Create Pull Request"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right column: Progress Monitor */}
-                    <div className="md:col-span-2 space-y-6">
-                        {/* Progress Monitor */}
-                        <div className="bg-white rounded-lg shadow p-4">
-                            <h2 className="font-semibold text-gray-800 text-center border-b border-gray-200 mb-2 pb-2">
-                                Overall Progress
-                            </h2>
-                            <div
-                                ref={messagesContainerRef}
-                                className="space-y-1 overflow-y-auto max-h-60"
+                            <button
+                                onClick={handleCreatePullRequest}
+                                className="w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
+                                disabled={isCreating}
                             >
-                                {progress.map((message, index) => (
-                                    <p key={index} className="text-sm text-gray-700">
-                                        {message.startsWith("*") ? (
-                                            <span className="ml-4">&#8226; {message.slice(1)}</span>
-                                        ) : (
-                                            message
-                                        )}
+                                {isCreating ? "Creating..." : "Create Pull Request"}
+                            </button>
+
+                            {generatedPRLink && (
+                                <div className="text-center">
+                                    <hr className="my-4" />
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Pull request has been created successfully.
                                     </p>
-                                ))}
-                            </div>
-                            {/* Display current file processing */}
-                            {currentFile && (
-                                <div className="text-sm text-gray-700 flex items-center">
-                                    <span className="animate-blink mr-2">|</span>
-                                    {currentFile}
+                                    <a
+                                        href={generatedPRLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
+                                    >
+                                        View Pull Request
+                                    </a>
                                 </div>
                             )}
                         </div>
+                    </div>
 
-                        {/* large button to view pull request */}
-                        {generatedPRLink && (
-                            <div className="text-center">
-                                <a
-                                    href={generatedPRLink}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
-                                >
-                                    View Pull Request
-                                </a>
-                            </div>
-                        )}
+                    {/* Right column: Assistant Progress and Output */}
+                    <div className="space-y-6">
+                        <AssistantWorkspace assistantStates={assistantStates} />
 
-                        {/* Specifications Assistant Progress */}
+                        <ProgressFeed progress={progress} currentFile={currentFile} />
+
                         <SpecificationsCard specifications={specifications} />
 
-                        {/* Implementation Plan Assistant Progress */}
                         <ImplementationPlanCard implementationPlan={implementationPlan} />
                     </div>
                 </div>
