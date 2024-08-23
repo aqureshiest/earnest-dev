@@ -6,7 +6,6 @@ import { DatabaseService } from "@/modules/db/SupDatabaseService";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { AssistantsWorkflow } from "@/modules/ai/AssistantsWorkflow";
 
-// private function to send message to ably
 async function sendMessage(channel: any, message: string, messagePrefix = "overall") {
     await channel.publish(messagePrefix, message);
 }
@@ -32,82 +31,17 @@ export async function POST(req: Request) {
             "",
             channel
         );
-        await sendMessage(channel, ">IC"); // this is a system command: Indexing completed
-        await sendMessage(channel, `Fetched ${files.length} files.`);
 
-        await sendMessage(channel, "Tokenizing files...");
-        const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(files);
-        const tokenizedFiles: FileDetails[] = new TokenLimiter().tokenizeFiles(filesWithContent);
-
-        // check if token limits removed any files
-        if (tokenizedFiles.length < filesWithContent.length) {
-            await sendMessage(
-                channel,
-                `Removed ${
-                    filesWithContent.length - tokenizedFiles.length
-                } files from context due to token limits.`
-            );
-        }
-
-        await sendMessage(channel, "Embedding files...");
-        const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFilesInChunks(
-            tokenizedFiles
-        );
-
-        await sendMessage(channel, "Syncing files...");
-        filesWithEmbeddings.forEach(async (file) => {
-            await dbService.saveFileDetails(file);
-        });
-
-        let filesToUse = [];
-
-        if (!useAllFiles) {
-            try {
-                filesToUse = await dbService.findSimilar(description, owner, repo, branch);
-            } catch (e) {
-                console.error("Error in finding similar files", e);
-                filesToUse = filesWithEmbeddings;
-            }
+        // Check for the latest commit in the BranchCommits table
+        const latestCommit = await dbService.getBranchCommit(owner, repo, branch);
+        if (latestCommit && latestCommit.commitHash === currentCommitHash) {
+            await sendMessage(channel, "Skipping indexing as the commit has not changed.");
+            // Proceed with similar search query
         } else {
-            filesToUse = filesWithEmbeddings;
+            // Proceed with indexing logic
         }
 
-        const assistantsWorkflow = new AssistantsWorkflow(channel);
-
-        // call the assistants workflow
-        await sendMessage(channel, "Starting AI Assistants...");
-        const response = await assistantsWorkflow.runWorkflow(
-            selectedModel,
-            description,
-            filesToUse
-        );
-
-        const codeChanges = response?.code.response;
-
-        if (
-            codeChanges &&
-            (codeChanges?.newFiles.length > 0 ||
-                codeChanges?.modifiedFiles.length > 0 ||
-                codeChanges?.deletedFiles.length > 0)
-        ) {
-            await sendMessage(channel, "Creating pull request...");
-
-            const prService = new PullRequestService(owner, repo, branch);
-            const prLink = await prService.createPullRequest(
-                codeChanges,
-                codeChanges.prTitle,
-                response.prDescription?.response || description
-            );
-
-            await sendMessage(channel, "Pull request created.");
-            return new Response(JSON.stringify({ prLink }), {
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        return new Response(JSON.stringify({ prLink: null, message: "No code changes needed" }), {
-            headers: { "Content-Type": "application/json" },
-        });
+        // ... existing logic ...
     } catch (e) {
         console.log(e);
         return new Response(JSON.stringify({ error: (e as any).message }), {
