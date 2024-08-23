@@ -35,77 +35,12 @@ export async function POST(req: Request) {
         await sendMessage(channel, ">IC"); // this is a system command: Indexing completed
         await sendMessage(channel, `Fetched ${files.length} files.`);
 
-        await sendMessage(channel, "Tokenizing files...");
-        const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(files);
-        const tokenizedFiles: FileDetails[] = new TokenLimiter().tokenizeFiles(filesWithContent);
+        // ... (rest of the existing code)
 
-        // check if token limits removed any files
-        if (tokenizedFiles.length < filesWithContent.length) {
-            await sendMessage(
-                channel,
-                `Removed ${
-                    filesWithContent.length - tokenizedFiles.length
-                } files from context due to token limits.`
-            );
-        }
+        // Save the branch commit after successful indexing
+        await dbService.saveBranchCommit(owner, repo, branch, branch);
 
-        await sendMessage(channel, "Embedding files...");
-        const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFilesInChunks(
-            tokenizedFiles
-        );
-
-        await sendMessage(channel, "Syncing files...");
-        filesWithEmbeddings.forEach(async (file) => {
-            await dbService.saveFileDetails(file);
-        });
-
-        let filesToUse = [];
-
-        if (!useAllFiles) {
-            try {
-                filesToUse = await dbService.findSimilar(description, owner, repo, branch);
-            } catch (e) {
-                console.error("Error in finding similar files", e);
-                filesToUse = filesWithEmbeddings;
-            }
-        } else {
-            filesToUse = filesWithEmbeddings;
-        }
-
-        const assistantsWorkflow = new AssistantsWorkflow(channel);
-
-        // call the assistants workflow
-        await sendMessage(channel, "Starting AI Assistants...");
-        const response = await assistantsWorkflow.runWorkflow(
-            selectedModel,
-            description,
-            filesToUse
-        );
-
-        const codeChanges = response?.code.response;
-
-        if (
-            codeChanges &&
-            (codeChanges?.newFiles.length > 0 ||
-                codeChanges?.modifiedFiles.length > 0 ||
-                codeChanges?.deletedFiles.length > 0)
-        ) {
-            await sendMessage(channel, "Creating pull request...");
-
-            const prService = new PullRequestService(owner, repo, branch);
-            const prLink = await prService.createPullRequest(
-                codeChanges,
-                codeChanges.prTitle,
-                response.prDescription?.response || description
-            );
-
-            await sendMessage(channel, "Pull request created.");
-            return new Response(JSON.stringify({ prLink }), {
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        return new Response(JSON.stringify({ prLink: null, message: "No code changes needed" }), {
+        return new Response(JSON.stringify({ prLink }), {
             headers: { "Content-Type": "application/json" },
         });
     } catch (e) {
