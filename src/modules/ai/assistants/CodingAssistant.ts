@@ -35,21 +35,22 @@ Each file should include:
 </summary>
 
 <considerations>
-1. **Review the provided coding task description and the implementation plan thoroughly**. Ensure you fully understand the task and how it fits into the broader context of the codebase.
-2. **Analyze the existing codebase to understand its structure**. Identify which files need to be created, modified, or deleted to accomplish the task.
-3. **Generate code based on the detailed implementation plan**. Ensure that all steps are accurately implemented and that the code adheres to best practices.
-4. **Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase**. Pay special attention to maintaining consistency in style and functionality across the codebase.
-5. **Provide the full content of each new and modified file**. This is necessary as we will be creating a pull request from this generated code. For deleted files, only provide the full file path.
-6. **When modifying existing files, preserve all existing content unless explicitly instructed otherwise**. Add new content where appropriate without removing or altering unrelated existing content.
+1. **Provide the full content of each new and modified file, including ALL existing code**. This is critical as we will be creating a pull request from this generated code. For deleted files, only provide the full file path.
+2. **When modifying existing files, include the entire file content**. Add new content where appropriate without removing or altering unrelated existing content. Do not use ellipses (...) or any shorthand notations to represent existing code.
+3. **Review the provided coding task description and the implementation plan thoroughly**. Ensure you fully understand the task and how it fits into the broader context of the codebase.
+4. **Analyze the existing codebase to understand its structure**. Identify which files need to be created, modified, or deleted to accomplish the task.
+5. **Generate code based on the detailed implementation plan**. Ensure that all steps are accurately implemented and that the code adheres to best practices.
+6. **Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase**. Pay special attention to maintaining consistency in style and functionality across the codebase.
 7. **Ensure that each file appears in only one of the following sections: new, modified, or deleted**. Double-check to avoid listing a file in multiple sections.
-8. **Be concise and focused** when providing outputs. Prioritize clarity and brevity while ensuring all necessary details are included.
+8. **Be thorough and complete** when providing outputs. Prioritize including all necessary code while maintaining clarity.
 9. **Consolidate all changes to a single file into one entry**, even if they come from different implementation steps. Do not separate modifications or additions to the same file into multiple entries.
 </considerations>
 
 <constraints>
 Your specifications should **NOT**:
-- Include work that is already done.
-- Use ellipsis (...) or shorthand notations for existing code.
+- Omit any existing code when modifying files.
+- Use ellipsis (...) or any shorthand notations for existing code.
+- Include work that is already done without explicitly showing it in full.
 </constraints>
 
 </instructions>
