@@ -84,7 +84,8 @@ Respond in the following format:
   <content>
 <![CDATA[
 // Full content of the new file goes here 
-]]></content>
+]]>
+  </content>
   </file>
   <!-- Add more new files as needed -->        
  </new_files>
@@ -95,7 +96,8 @@ Respond in the following format:
   <content>
 <![CDATA[
 // Full content of the modified file goes here, including all changes 
-]]></content>
+]]>
+  </content>
   </file>
   <!-- Add more modified files as needed -->
  </modified_files>
