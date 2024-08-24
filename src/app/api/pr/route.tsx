@@ -35,6 +35,16 @@ export async function POST(req: Request) {
         const channel = ably.channels.get(updatesChannel);
 
         await sendMessage(channel, "Indexing repository...");
+
+        // Step 1: Retrieve the branch level commit hash
+        const branchData = await repositoryService.getBranch(owner, repo, branch);
+        const commitHash = branchData.commit.sha; // Assuming the commit hash is in this format
+
+        // Step 2: Store the commit hash in the database
+        await dbService.saveCommitHash(owner, repo, branch, commitHash);
+
+        await sendMessage(channel, "Commit hash stored successfully.");
+
         const files: FileDetails[] = await repositoryService.getRepositoryFiles(
             owner,
             repo,

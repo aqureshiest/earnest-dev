@@ -22,7 +22,17 @@ export class RepositoryService {
     ): Promise<FileDetails[]> {
         let result: FileDetails[] = [];
 
+        // Check the database for the commit hash
+        const commitHash = await this.dbService.getCommitHash(owner, repo, ref);
         const files = await this.ghService.getFiles(owner, repo, ref, path);
+        
+        // If the commit hash matches, retrieve files from the database
+        if (commitHash) {
+            console.log("Using cached files from database for", repo);
+            result = await this.dbService.getAllFileDetails(owner, repo, ref);
+            return result;
+        }
+
         // exclude files that match the patterns
         const filteredFiles = files.filter(
             (file) => !RepositoryService.shouldExclude(file.name, skipFolders, skipFiles)
