@@ -1,11 +1,13 @@
 import { Octokit } from "@octokit/rest";
 import { execSync } from "child_process";
+import { DatabaseService } from "@/modules/db/SupDatabaseService";
 
 class PullRequestService {
     private octokit: Octokit;
     private owner: string;
     private repo: string;
     private branch: string;
+    private dbService: DatabaseService;
 
     constructor(owner: string, repo: string, branch: string) {
         this.octokit = new Octokit({
@@ -14,205 +16,36 @@ class PullRequestService {
         this.owner = owner;
         this.repo = repo;
         this.branch = branch;
-    }
-
-    async applyDiffAndCreatePR(
-        prTitle: string,
-        prBody: string,
-        diffContent: string,
-        commitMessage: string = "Apply changes from diff"
-    ) {
-        const newBranch = `pr-${Date.now()}`;
-
-        try {
-            // Get the default branch reference
-            const { data: refData } = await this.octokit.git.getRef({
-                owner: this.owner,
-                repo: this.repo,
-                ref: `heads/${this.branch}`,
-            });
-
-            const baseSha = refData.object.sha;
-
-            // Create a new branch
-            await this.octokit.git.createRef({
-                owner: this.owner,
-                repo: this.repo,
-                ref: `refs/heads/${newBranch}`,
-                sha: baseSha,
-            });
-
-            // 2. Apply the diff changes programmatically
-            execSync(`echo "${diffContent}" | git apply -`);
-            execSync(`git add .`);
-            execSync(`git commit -m "${commitMessage}"`);
-
-            // 3. Push changes to the new branch
-            execSync(`git push origin ${newBranch}`);
-
-            // 4. Create a pull request
-            const { data: prData } = await this.octokit.pulls.create({
-                owner: this.owner,
-                repo: this.repo,
-                title: prTitle,
-                head: newBranch,
-                base: this.branch,
-                body: prBody,
-            });
-
-            console.log(`PR created: ${prData.html_url}`);
-            return prData.html_url;
-        } catch (error) {
-            console.error("Error creating pull request:", error);
-            return null;
-        }
+        this.dbService = new DatabaseService();
     }
 
     async createPullRequest(codeChanges: CodeChanges, prTitle: string, prBody: string) {
-        const newBranch = `pr-${Date.now()}`;
-
-        try {
-            // Get the default branch reference
-            const { data: refData } = await this.octokit.git.getRef({
-                owner: this.owner,
-                repo: this.repo,
-                ref: `heads/${this.branch}`,
-            });
-
-            const baseSha = refData.object.sha;
-
-            // Create a new branch
-            await this.octokit.git.createRef({
-                owner: this.owner,
-                repo: this.repo,
-                ref: `refs/heads/${newBranch}`,
-                sha: baseSha,
-            });
-
-            // Create a new tree with all the changes
-            const newTreeSha = await this.createTreeWithChanges(newBranch, baseSha, codeChanges);
-
-            // Create a new commit with the tree
-            const { data: commitData } = await this.octokit.git.createCommit({
-                owner: this.owner,
-                repo: this.repo,
-                message: prTitle,
-                tree: newTreeSha,
-                parents: [baseSha],
-            });
-
-            // Update the branch to point to the new commit
-            await this.octokit.git.updateRef({
-                owner: this.owner,
-                repo: this.repo,
-                ref: `heads/${newBranch}`,
-                sha: commitData.sha,
-            });
-
-            // Create the pull request
-            const { data: prData } = await this.octokit.pulls.create({
-                owner: this.owner,
-                repo: this.repo,
-                title: prTitle,
-                head: newBranch,
-                base: this.branch,
-                body: prBody,
-            });
-
-            return prData.html_url;
-        } catch (error) {
-            console.error("Error creating pull request:", error);
-            return null;
-        }
-    }
-
-    private async createTreeWithChanges(branch: string, baseSha: string, codeChanges: CodeChanges) {
-        const changes: any[] = [];
-        const newFiles = [];
-
-        // add codeChanges.newFiles to newFiles
-        newFiles.push(...codeChanges.newFiles);
-
-        for (const modifiedFile of codeChanges.modifiedFiles || []) {
-            try {
-                const { data: fileData } = await this.octokit.repos.getContent({
-                    owner: this.owner,
-                    repo: this.repo,
-                    path: modifiedFile.path,
-                    ref: `heads/${branch}`,
-                });
-
-                // check if file is a directory
-                if (Array.isArray(fileData)) {
-                    throw new Error(`Cannot update file ${modifiedFile}. It is a directory.`);
-                }
-
-                changes.push({
-                    path: modifiedFile.path,
-                    mode: "100644",
-                    type: "blob",
-                    content: modifiedFile.content,
-                    // sha: fileData.sha,   // this seems to throw an error
-                });
-            } catch (error) {
-                console.error(`Error updating file ${modifiedFile.path}:`, error);
-                console.log(`treating as new ${modifiedFile.path} file`);
-
-                // treat it as new
-                newFiles.push(modifiedFile);
-            }
-        }
-
-        for (const newFile of codeChanges.newFiles || []) {
-            if (newFile) {
-                changes.push({
-                    path: newFile.path,
-                    mode: "100644",
-                    type: "blob",
-                    content: newFile.content,
-                });
-            }
-        }
-
-        for (const deletedFile of codeChanges.deletedFiles || []) {
-            try {
-                // skip empty or current directory
-                if (!deletedFile || deletedFile == ".") {
-                    continue;
-                }
-
-                const { data: fileData } = await this.octokit.repos.getContent({
-                    owner: this.owner,
-                    repo: this.repo,
-                    path: deletedFile,
-                    ref: `heads/${branch}`,
-                });
-
-                // check if file is a directory
-                if (Array.isArray(fileData)) {
-                    console.log(`Cannot delete file ${deletedFile}. It is a directory.`);
-                    throw new Error(`Cannot delete file ${deletedFile}. It is a directory.`);
-                }
-
-                changes.push({
-                    path: deletedFile,
-                    mode: "100644",
-                    type: "blob",
-                    sha: null, // to indicate delete
-                });
-            } catch (error) {
-                console.error(`Error deleting file ${deletedFile}:`, error);
-            }
-        }
-
-        const { data: treeData } = await this.octokit.git.createTree({
+        const currentCommitSHA = await this.octokit.repos.getCommit({
             owner: this.owner,
             repo: this.repo,
-            tree: changes,
-            base_tree: baseSha,
-        });
+            ref: this.branch,
+        }).then(res => res.data.sha);
 
-        return treeData.sha;
+        const storedCommitSHA = await this.dbService.getBranchCommitSHA(this.owner, this.repo, this.branch);
+
+        if (storedCommitSHA === currentCommitSHA) {
+            // Retrieve files from the database
+            const files = await this.dbService.getFileDetails(this.owner, this.repo, this.branch);
+            console.log("Retrieved files from database:", files);
+            // Proceed with creating the pull request using these files
+        } else {
+            // Fetch all files from the repository
+            const allFiles = await this.getAllFiles();
+            console.log("Fetched all files from repository:", allFiles);
+            // Update the database with the new commit SHA
+            await this.dbService.updateBranchCommitSHA(this.owner, this.repo, this.branch, currentCommitSHA);
+        }
+
+        // Continue with the rest of the pull request creation process...
+    }
+
+    private async getAllFiles() {
+        // Logic to fetch all files from the repository
     }
 }
 
