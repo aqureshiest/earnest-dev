@@ -1,11 +1,13 @@
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
+import { XMLBuilder } from "fast-xml-parser";
 
 export enum SUPPORTED_FILE_EXTENSIONS {
     TXT = "txt",
     YAML = "yaml",
     MD = "md",
+    XML = "xml",
 }
 
 export function saveRunInfo<T>(
@@ -46,7 +48,14 @@ export function saveRunInfo<T>(
         infoString = yaml.dump(info);
     } else if (infoExtension === SUPPORTED_FILE_EXTENSIONS.MD) {
         infoString = info as string;
-    } else if (infoExtension === SUPPORTED_FILE_EXTENSIONS.TXT) {
+    } else if (infoExtension === SUPPORTED_FILE_EXTENSIONS.XML) {
+        const builder = new XMLBuilder({
+            ignoreAttributes: false,
+            format: true,
+            indentBy: "  ",
+        });
+        infoString = builder.build(info) as string;
+    } else {
         infoString = info as string;
     }
 

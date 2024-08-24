@@ -16,17 +16,13 @@ export class RepositoryService {
         repo: string,
         ref: string = "main",
         path: string = "",
-        skipFolders: string[] = [],
-        skipFiles: string[] = [],
         channel: any
     ): Promise<FileDetails[]> {
         let result: FileDetails[] = [];
 
         const files = await this.ghService.getFiles(owner, repo, ref, path);
         // exclude files that match the patterns
-        const filteredFiles = files.filter(
-            (file) => !RepositoryService.shouldExclude(file.name, skipFolders, skipFiles)
-        );
+        const filteredFiles = files.filter((file) => !RepositoryService.shouldExclude(file.name));
 
         // process each file
         for (const file of filteredFiles) {
@@ -60,8 +56,6 @@ export class RepositoryService {
                     repo,
                     ref,
                     file.path,
-                    skipFolders,
-                    skipFiles,
                     channel
                 );
                 result.push(...nestedFiles);
@@ -100,19 +94,7 @@ export class RepositoryService {
         return Promise.all(promises);
     }
 
-    static shouldExclude(
-        filePath: string,
-        skipFolders: string[] = [],
-        skipFiles: string[] = []
-    ): boolean {
-        if (skipFolders.includes(filePath)) {
-            return true;
-        }
-
-        if (skipFiles.includes(filePath)) {
-            return true;
-        }
-
+    static shouldExclude(filePath: string): boolean {
         return EXCLUDE_PATTERNS.some((pattern) => {
             if (pattern.endsWith("/")) {
                 return filePath.includes(pattern);

@@ -4,14 +4,12 @@ import { motion } from "framer-motion";
 const SpecificationsCard = ({
     specifications,
 }: {
-    specifications: AIAssistantResponse<Specifications>;
+    specifications: AIAssistantResponse<Specifications> | null;
 }) => {
-    const [isOpen, setIsOpen] = useState(
-        Array(specifications?.response?.specifications.length).fill(false)
-    );
-    const [isEditable, setIsEditable] = useState(
-        Array(specifications?.response?.specifications.length).fill(false)
-    );
+    const specs = (specifications?.response || []) as Specification[];
+
+    const [isOpen, setIsOpen] = useState(Array(specs.length).fill(false));
+    const [isEditable, setIsEditable] = useState(Array(specs.length).fill(false));
 
     const toggleAccordion = (index: number) => {
         setIsOpen((prevIsOpen) => {
@@ -53,7 +51,7 @@ const SpecificationsCard = ({
                 )}
             </div>
             <div className="space-y-4">
-                {specifications?.response?.specifications.map((spec, index) => (
+                {specs.map((spec, index) => (
                     <motion.div
                         key={index}
                         initial={false}
@@ -86,7 +84,7 @@ const SpecificationsCard = ({
                                     <textarea
                                         className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
                                         rows={2}
-                                        value={spec.thoughts}
+                                        value={spec.summary}
                                         disabled={!isEditable[index]}
                                     />
                                 </div>
@@ -96,8 +94,8 @@ const SpecificationsCard = ({
                                     </h4>
                                     <textarea
                                         className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                        rows={spec.keySteps.length}
-                                        value={spec.keySteps.join("\n")}
+                                        rows={spec.key_steps.length}
+                                        value={spec.key_steps.join("\n")}
                                         disabled={!isEditable[index]}
                                     />
                                 </div>

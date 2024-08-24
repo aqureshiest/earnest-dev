@@ -1,106 +1,156 @@
 import { CODEFILES_PLACEHOLDER, PLAN_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { BaseAssistant } from "./BaseAssistant";
+import { ResponseParser } from "../support/ResponseParser";
 import { PromptBuilder } from "../support/PromptBuilder";
 import { TokenLimiter } from "../support/TokenLimiter";
-import { ResponseParser } from "../support/ResponseParser";
 
 export class CodingAssistant extends BaseAssistant<CodeChanges> {
+    private responseParser: ResponseParser<CodeChanges>;
+
     constructor() {
-        super(new PromptBuilder(), new TokenLimiter(), new ResponseParser<CodeChanges>());
+        super(new PromptBuilder(), new TokenLimiter());
+
+        this.responseParser = new ResponseParser<CodeChanges>();
     }
 
     getSystemPrompt(): string {
         return `
 You are a senior software engineer working on a project. You are an expert in writing accurate and executable
-code. You will be given a coding task description, the existing codebase, and 
-a detailed implementation plan. Your goal is to write the necessary code to complete the task 
-as outlined in the implementation plan, while ensuring seamless integration with the existing codebase.
+code. You will be given a coding task_description, the existing_codebase, and 
+a detailed implementation_plan. Your goal is to write the necessary code to complete the task 
+as outlined in the implementation_plan, while ensuring seamless integration with the existing_codebase.
 
-### Objective:
-Use all the information provided to generate code based on the detailed implementation plan. 
+<objective>
+Use all the information provided to generate code based on the detailed implementation_plan. 
 Ensure that all steps are accurately implemented and apply best practices for writing clean and efficient code.
+</objective>
 
+<instructions>
+
+<summary>
 Each file should include:
 - thoughts section for you to use as scratchpad for your thoughts on this file.
 - full file paths with status indicating whether the file is new, modified, or deleted.
 - full contents of each new and modified file.
+</summary>
 
-### Considerations:
-1. **Review the provided coding task description and the implementation plan thoroughly**. Ensure you fully understand the task and how it fits into the broader context of the codebase.
-2. **Analyze the existing codebase to understand its structure**. Identify which files need to be created, modified, or deleted to accomplish the task.
-3. **Generate code based on the detailed implementation plan**. Ensure that all steps are accurately implemented and that the code adheres to best practices.
-4. **Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase**. Pay special attention to maintaining consistency in style and functionality across the codebase.
-5. **Include all existing and new code in full**. Do not use place holders for existing code or new code. Write all the code.
-6. **Provide the full content of each new and modified file**. This is necessary as we will be creating a pull request from this generated code. For deleted files, only provide the full file path.
-7. **When modifying existing files, preserve all existing content unless explicitly instructed otherwise**. Add new content where appropriate without removing or altering unrelated existing content.
-8. **Ensure that each file appears in only one of the following sections: new, modified, or deleted**. Double-check to avoid listing a file in multiple sections.
-9. **Be concise and focused** when providing outputs. Prioritize clarity and brevity while ensuring all necessary details are included.
-10. **Consolidate all changes to a single file into one entry**, even if they come from different implementation steps. Do not separate modifications or additions to the same file into multiple entries.
+<considerations>
+1. **Provide the full content of each new and modified file, including ALL existing code**. This is critical as we will be creating a pull request from this generated code. For deleted files, only provide the full file path.
+2. **When modifying existing files, include the entire file content**. Add new content where appropriate without removing or altering unrelated existing content. Do not use ellipses (...) or any shorthand notations to represent existing code.
+3. **Review the provided coding task description and the implementation plan thoroughly**. Ensure you fully understand the task and how it fits into the broader context of the codebase.
+4. **Analyze the existing codebase to understand its structure**. Identify which files need to be created, modified, or deleted to accomplish the task.
+5. **Generate code based on the detailed implementation plan**. Ensure that all steps are accurately implemented and that the code adheres to best practices.
+6. **Ensure your code is accurate, executable, and integrates seamlessly with the existing codebase**. Pay special attention to maintaining consistency in style and functionality across the codebase.
+7. **Ensure that each file appears in only one of the following sections: new, modified, or deleted**. Double-check to avoid listing a file in multiple sections.
+8. **Be thorough and complete** when providing outputs. Prioritize including all necessary code while maintaining clarity.
+9. **Consolidate all changes to a single file into one entry**, even if they come from different implementation steps. Do not separate modifications or additions to the same file into multiple entries.
+</considerations>
 
-### Constraints:
+<constraints>
 Your specifications should **NOT**:
-- Include work that is already done.
-- Use ellipsis (...) or shorthand notations for imports or any other code.
+- Omit any existing code when modifying files.
+- Use ellipsis (...) or any shorthand notations for existing code.
+- Include work that is already done without explicitly showing it in full.
+</constraints>
+
+</instructions>
 
 `;
     }
     getPrompt(params?: any): string {
         return `
-### Existing Codebase:
 Here are the existing code files you will be working with:
-
+<existing_codebase>
 ${CODEFILES_PLACEHOLDER}
+</existing_codebase>
         
-### Task Description:
 Here is the task description:
-
+<task_description>
 ${TASK_PLACEHOLDER}
+</task_description>
 
-### Implementation Plan:
 Here is the implementation plan to follow for the task:
-
 ${PLAN_PLACEHOLDER}
 
-### Response Format:
-Respond in the following YAML format:
+Respond in the following format:
+<response_format>
 
-prTitle: "Title of the PR"
-newFiles:
-  - path: "[NEW_FILE_PATH_1]"
-    thoughts: "Your thoughts on the changes for this new file"
-    content: |
-      [NEW_FILE_CONTENT_1]
+<code_changes>
+ <title>Title of the PR</title>
+ <new_files>
+  <file>
+  <path>path/to/new/file1</path>
+  <thoughts>Thoughts on the creation of this new file</thoughts>
+  <content>
+<![CDATA[
+// Full content of the new file goes here 
+]]>
+  </content>
+  </file>
+  <!-- Add more new files as needed -->        
+ </new_files>
+ <modified_files>
+  <file>
+  <path>path/to/modified/file1</path>
+  <thoughts>Thoughts on the modifications made to this file</thoughts>
+  <content>
+<![CDATA[
+// Full content of the modified file goes here, including all changes 
+]]>
+  </content>
+  </file>
+  <!-- Add more modified files as needed -->
+ </modified_files>
+ <deleted_files>
+  <file>
+   <path>path/to/deleted/file1</path>
+  </file>
+  <!-- Add more deleted files as needed -->
+ </deleted_files>
+</code_changes>
 
-modifiedFiles:
-  - path: "[MODIFIED_FILE_PATH_1]"
-    thoughts: "Your thoughts on all changes for this modified file"
-    content: |
-      [FULL_FILE_CONTENT_WITH_ALL_MODIFICATIONS]
+</response_format>
 
-deletedFiles:
-  - "[DELETED_FILE_PATH_1]"
-
-# Example Response:
-
-Here is an example of how your response should be formatted:
-
-prTitle: "Implement feature X"
-newFiles:
-  - path: "src/newFeature.js"
-    thoughts: "This new file will contain the implementation of feature X."
-    content: |
-      Full content of the new file
-
-modifiedFiles:
-  - path: "src/existingFeature.js"
-    thoughts: "This existing file needs to be modified to support
-    content: |
-      Full contents of the modified file
-
-deletedFiles:
-  - "src/oldFeature.js"
-
-Now, using the task description, existing code files, and implementation plan generate the code for the task in the specified YAML format.
+Now, using the task description, existing code files, and implementation plan generate the code for the task in the specified XML format.
 `;
+    }
+
+    handleResponse(model: string, task: string, response: string): CodeChanges {
+        const options = {
+            ignoreAttributes: false,
+            isArray: (name: any, jpath: any) => name === "file",
+        };
+
+        // Parse the response into an intermediate format
+        const parsedData = this.responseParser.parse(
+            model,
+            task,
+            this.constructor.name,
+            response,
+            options
+        ) as any;
+
+        // Normalize the parsed data
+        const codeChanges: CodeChanges = {
+            title: parsedData.code_changes.title,
+            newFiles:
+                parsedData.code_changes.new_files?.file?.map((file: any) => ({
+                    path: file.path,
+                    thoughts: file.thoughts,
+                    content: file.content.trim(),
+                })) || [],
+            modifiedFiles:
+                parsedData.code_changes.modified_files?.file?.map((file: any) => ({
+                    path: file.path,
+                    thoughts: file.thoughts,
+                    content: file.content.trim(),
+                })) || [],
+            deletedFiles:
+                parsedData.code_changes.deleted_files?.file?.map((file: any) => ({
+                    path: file.path,
+                })) || [],
+        };
+
+        return codeChanges;
     }
 }

@@ -4,14 +4,9 @@ import { ClaudeAIService } from "../clients/ClaudeAIService";
 import { OpenAIService } from "../clients/OpenAIService";
 import { TokenLimiter } from "../support/TokenLimiter";
 import { PromptBuilder } from "../support/PromptBuilder";
-import { ResponseParser } from "../support/ResponseParser";
 
 abstract class BaseAssistant<T> implements AIAssistant<T> {
-    constructor(
-        private promptBuilder: PromptBuilder,
-        private tokenLimiter: TokenLimiter,
-        private responseParser: ResponseParser<T>
-    ) {}
+    constructor(private promptBuilder: PromptBuilder, private tokenLimiter: TokenLimiter) {}
 
     abstract getSystemPrompt(): string;
     abstract getPrompt(params?: any): string;
@@ -51,12 +46,7 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         if (!aiResponse) return null;
 
         // parse the response
-        const parsed = this.responseParser.parse(
-            model,
-            task,
-            this.constructor.name,
-            aiResponse.response
-        );
+        const parsed = this.handleResponse(model, task, aiResponse.response);
 
         return {
             ...aiResponse,
@@ -65,6 +55,8 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
             calculatedTokens: totalTokens,
         };
     }
+
+    protected abstract handleResponse(model: string, task: string, response: string): T;
 
     protected async generateResponse(
         model: string,

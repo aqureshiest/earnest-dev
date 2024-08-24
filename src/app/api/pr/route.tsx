@@ -17,17 +17,8 @@ export async function POST(req: Request) {
     const dbService = new DatabaseService();
     const embeddingService = new EmbeddingService();
 
-    const {
-        owner,
-        repo,
-        branch,
-        description,
-        selectedModel,
-        useAllFiles,
-        skipFolders,
-        skipFiles,
-        updatesChannel,
-    } = await req.json();
+    const { owner, repo, branch, description, selectedModel, useAllFiles, updatesChannel } =
+        await req.json();
 
     const ably = new Ably.Rest(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
 
@@ -40,8 +31,6 @@ export async function POST(req: Request) {
             repo,
             branch,
             "",
-            skipFolders,
-            skipFiles,
             channel
         );
         await sendMessage(channel, ">IC"); // this is a system command: Indexing completed
@@ -107,7 +96,7 @@ export async function POST(req: Request) {
             const prService = new PullRequestService(owner, repo, branch);
             const prLink = await prService.createPullRequest(
                 codeChanges,
-                codeChanges.prTitle,
+                codeChanges.title,
                 response.prDescription?.response || description
             );
 

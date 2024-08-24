@@ -4,14 +4,12 @@ import { motion } from "framer-motion";
 const ImplementationPlanCard = ({
     implementationPlan,
 }: {
-    implementationPlan: AIAssistantResponse<ImplementationPlan>;
+    implementationPlan: AIAssistantResponse<ImplementationPlan> | null;
 }) => {
-    const [isOpen, setIsOpen] = useState(
-        Array(implementationPlan?.response?.implementationPlan.length).fill(false)
-    );
-    const [isEditing, setIsEditing] = useState(
-        Array(implementationPlan?.response?.implementationPlan.length).fill(false)
-    );
+    const steps = (implementationPlan?.response?.steps || []) as Step[];
+
+    const [isOpen, setIsOpen] = useState(Array(steps.length).fill(false));
+    const [isEditing, setIsEditing] = useState(Array(steps.length).fill(false));
 
     const toggleAccordion = (index: number) => {
         setIsOpen((prevIsOpen) => {
@@ -53,7 +51,7 @@ const ImplementationPlanCard = ({
                 )}
             </div>
             <div className="space-y-4">
-                {implementationPlan?.response?.implementationPlan.map((item, index) => (
+                {steps.map((item, index) => (
                     <motion.div
                         key={index}
                         initial={false}
@@ -65,7 +63,7 @@ const ImplementationPlanCard = ({
                             className="bg-gray-100 px-4 py-2 cursor-pointer flex justify-between items-center"
                             onClick={() => toggleAccordion(index)}
                         >
-                            <h3 className="font-normal text-gray-700">{item.step}</h3>
+                            <h3 className="font-normal text-gray-700">{item.title}</h3>
                             {/* <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -103,7 +101,7 @@ const ImplementationPlanCard = ({
                                                 <span className="mr-2">📄</span>
                                                 {file.path}{" "}
                                                 <span className="font-normal text-sm ml-2">
-                                                    ({file.status})
+                                                    ({file.operation})
                                                 </span>
                                             </div>
                                             <textarea
