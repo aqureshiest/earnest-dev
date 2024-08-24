@@ -1,11 +1,6 @@
-import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
 import PullRequestService from "@/modules/github/PullRequestService";
-import { RepositoryService } from "@/modules/github/RepositoryService";
 import Ably from "ably";
-import { DatabaseService } from "@/modules/db/SupDatabaseService";
-import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { AssistantsWorkflow } from "@/modules/ai/AssistantsWorkflow";
-import { skip } from "node:test";
+import { GeneratePR } from "@/modules/ai/GeneratePR";
 
 // private function to send message to ably
 async function sendMessage(channel: any, message: string, messagePrefix = "overall") {
@@ -13,11 +8,7 @@ async function sendMessage(channel: any, message: string, messagePrefix = "overa
 }
 
 export async function POST(req: Request) {
-    const repositoryService = new RepositoryService();
-    const dbService = new DatabaseService();
-    const embeddingService = new EmbeddingService();
-
-    const { owner, repo, branch, description, selectedModel, useAllFiles, updatesChannel } =
+    const { owner, repo, branch, description, selectedModel, params, prTitle, updatesChannel } =
         await req.json();
 
     const ably = new Ably.Rest(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
@@ -25,88 +16,28 @@ export async function POST(req: Request) {
     try {
         const channel = ably.channels.get(updatesChannel);
 
-        await sendMessage(channel, "Indexing repository...");
-        const files: FileDetails[] = await repositoryService.getRepositoryFiles(
-            owner,
-            repo,
-            branch,
-            "",
-            channel
-        );
-        await sendMessage(channel, ">IC"); // this is a system command: Indexing completed
-        await sendMessage(channel, `Fetched ${files.length} files.`);
+        const { implementationPlan, generatedCode } = params;
 
-        await sendMessage(channel, "Tokenizing files...");
-        const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(files);
-        const tokenizedFiles: FileDetails[] = new TokenLimiter().tokenizeFiles(filesWithContent);
+        const prGenerator = new GeneratePR(channel);
 
-        // check if token limits removed any files
-        if (tokenizedFiles.length < filesWithContent.length) {
-            await sendMessage(
-                channel,
-                `Removed ${
-                    filesWithContent.length - tokenizedFiles.length
-                } files from context due to token limits.`
-            );
-        }
-
-        await sendMessage(channel, "Embedding files...");
-        const filesWithEmbeddings = await embeddingService.generateEmbeddingsForFilesInChunks(
-            tokenizedFiles
-        );
-
-        await sendMessage(channel, "Syncing files...");
-        filesWithEmbeddings.forEach(async (file) => {
-            await dbService.saveFileDetails(file);
+        // call the assistant to generate PR
+        const response = await prGenerator.runWorkflow(selectedModel, description, {
+            implementationPlan: implementationPlan.responseStr,
+            generatedCode: generatedCode.responseStr,
         });
 
-        let filesToUse = [];
+        await sendMessage(channel, "Creating pull request...");
 
-        if (!useAllFiles) {
-            try {
-                filesToUse = await dbService.findSimilar(description, owner, repo, branch);
-            } catch (e) {
-                console.error("Error in finding similar files", e);
-                filesToUse = filesWithEmbeddings;
-            }
-        } else {
-            filesToUse = filesWithEmbeddings;
-        }
-
-        const assistantsWorkflow = new AssistantsWorkflow(channel);
-
-        // call the assistants workflow
-        await sendMessage(channel, "Starting AI Assistants...");
-        const response = await assistantsWorkflow.runWorkflow(
-            selectedModel,
-            description,
-            filesToUse
+        // generate PR
+        const prService = new PullRequestService(owner, repo, branch);
+        const prLink = await prService.createPullRequest(
+            generatedCode.response,
+            prTitle,
+            response.response || description
         );
 
-        const codeChanges = response?.code.response;
-
-        if (
-            codeChanges &&
-            (codeChanges?.newFiles.length > 0 ||
-                codeChanges?.modifiedFiles.length > 0 ||
-                codeChanges?.deletedFiles.length > 0)
-        ) {
-            await sendMessage(channel, "Creating pull request...");
-
-            const prService = new PullRequestService(owner, repo, branch);
-            const prLink = await prService.createPullRequest(
-                codeChanges,
-                codeChanges.title,
-                response.prDescription?.response || description
-            );
-
-            await sendMessage(channel, "Pull request created.");
-            return new Response(JSON.stringify({ prLink }), {
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        return new Response(JSON.stringify({ prLink: null, message: "No code changes needed" }), {
+        await sendMessage(channel, "Pull request created.");
+        return new Response(JSON.stringify({ prLink }), {
             headers: { "Content-Type": "application/json" },
         });
     } catch (e) {

@@ -8,6 +8,8 @@ import SpecificationsCard from "../components/SpecificationsCard";
 import ImplementationPlanCard from "../components/ImplementationPlanCard";
 import AssistantWorkspace from "../components/AssistantWorkspace";
 import ProgressFeed from "../components/ProgressFeed";
+import { AnimatePresence, motion } from "framer-motion";
+import CodeViewer from "../components/CodeViewer";
 
 const PullRequest: React.FC = () => {
     const params = useSearchParams();
@@ -25,10 +27,16 @@ const PullRequest: React.FC = () => {
 
     const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
 
+    const [isCodeViewerOpen, setIsCodeViewerOpen] = useState(false);
+    const [isFullPageCode, setIsFullPageCode] = useState(false);
+
     const [specifications, setSpecifications] =
         useState<AIAssistantResponse<Specifications> | null>(null);
     const [implementationPlan, setImplementationPlan] =
         useState<AIAssistantResponse<ImplementationPlan> | null>(null);
+    const [generatedCodeResponse, setGeneratedCodeResponse] =
+        useState<AIAssistantResponse<CodeChanges> | null>(null);
+    const [generatedCode, setGeneratedCode] = useState<CodeChanges | null>(null);
 
     const [assistantStates, setAssistantStates] = useState({
         specifications: "idle",
@@ -64,6 +72,52 @@ const PullRequest: React.FC = () => {
         setAssistantStates((prev) => ({ ...prev, [assistant]: state }));
     };
 
+    const handleAcceptChanges = async () => {
+        toggleCodeViewer();
+        setIsCreating(true);
+        openAblyConnection();
+        updateAssistantState("PR", "working");
+
+        try {
+            console.log("sending implementationPlan", implementationPlan);
+
+            const response = await fetch(`/api/pr`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    owner,
+                    repo,
+                    branch,
+                    description: description.trim(),
+                    selectedModel,
+                    prTitle: generatedCode?.title,
+                    params: {
+                        implementationPlan: implementationPlan,
+                        generatedCode: generatedCodeResponse,
+                    },
+                    updatesChannel: channelName,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error);
+            }
+
+            setGeneratedPRLink((await response.json()).prLink);
+            updateAssistantState("PR", "completed");
+        } catch (error: any) {
+            console.error("Error creating pull request:", error);
+            setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
+            setProgress((prev) => [...prev, error.message]);
+
+            resetAssistantStates();
+        } finally {
+            setIsCreating(false);
+            closeAblyConnection();
+        }
+    };
+
     const handleCreatePullRequest = async () => {
         setIsCreating(true);
         setGeneratedPRLink(null);
@@ -71,12 +125,14 @@ const PullRequest: React.FC = () => {
         setCurrentFile("");
         setSpecifications(null);
         setImplementationPlan(null);
+        setGeneratedCodeResponse(null);
+        setGeneratedCode(null);
         resetAssistantStates();
 
         openAblyConnection();
 
         try {
-            const response = await fetch(`/api/pr`, {
+            const response = await fetch(`/api/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -95,19 +151,19 @@ const PullRequest: React.FC = () => {
                 throw new Error(error.error);
             }
 
-            setGeneratedPRLink((await response.json()).prLink);
+            // setGeneratedPRLink((await response.json()).prLink);
+            const responseJson = await response.json();
+            console.log("responseJson", responseJson);
 
-            // update assistants states
-            updateAssistantState("specifications", "completed");
-            updateAssistantState("planning", "completed");
+            setGeneratedCodeResponse(responseJson);
+            setGeneratedCode(responseJson.response);
+            updateAssistantState("code", "completed");
         } catch (error: any) {
             console.error("Error creating pull request:", error);
             setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
             setProgress((prev) => [...prev, error.message]);
 
-            // update assistants states
-            updateAssistantState("specifications", "idle");
-            updateAssistantState("planning", "idle");
+            resetAssistantStates();
         } finally {
             setIsCreating(false);
             closeAblyConnection();
@@ -144,9 +200,6 @@ const PullRequest: React.FC = () => {
                             case "GC":
                                 updateAssistantState("code", "working");
                                 break;
-                            case "WPR":
-                                updateAssistantState("PR", "working");
-                                break;
                         }
                     }
                     // overall progress
@@ -161,13 +214,6 @@ const PullRequest: React.FC = () => {
                 case "implementationplan":
                     updateAssistantState("planning", "completed");
                     setImplementationPlan(data);
-                    break;
-                case "generatedcode":
-                    updateAssistantState("code", "completed");
-                    console.log("Generated code:", data);
-                    break;
-                case "prdescription":
-                    updateAssistantState("PR", "completed");
                     break;
             }
         });
@@ -187,10 +233,81 @@ const PullRequest: React.FC = () => {
         setDescription(event.target.value);
     };
 
+    const toggleCodeViewer = () => {
+        setIsCodeViewerOpen(!isCodeViewerOpen);
+        setIsFullPageCode(false);
+    };
+
+    const toggleFullPageCode = () => {
+        setIsFullPageCode(!isFullPageCode);
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-6">
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Code Viewer Modal */}
+                    <AnimatePresence>
+                        {isCodeViewerOpen && generatedCode && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 ${
+                                    isFullPageCode ? "z-50" : "z-40"
+                                }`}
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.9 }}
+                                    animate={{ scale: 1 }}
+                                    exit={{ scale: 0.9 }}
+                                    className={`bg-white rounded-lg shadow-xl ${
+                                        isFullPageCode
+                                            ? "fixed inset-0 m-0"
+                                            : "max-w-6xl w-full max-h-[90vh]"
+                                    }`}
+                                >
+                                    <div className="p-4 border-b flex justify-between items-center">
+                                        <h2 className="text-xl font-semibold">Code Changes</h2>
+                                        <div>
+                                            {/* primary button to accept changes */}
+                                            {!generatedPRLink && (
+                                                <button
+                                                    onClick={handleAcceptChanges}
+                                                    disabled={generatedPRLink != null}
+                                                    className="mr-6 bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
+                                                >
+                                                    Accept Changes
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={toggleFullPageCode}
+                                                className="mr-2 text-gray-900 hover:bg-gray-200 bg-gray-100 p-2 rounded-lg"
+                                            >
+                                                {isFullPageCode
+                                                    ? "Exit Full Screen"
+                                                    : "Full Screen"}
+                                            </button>
+                                            <button
+                                                onClick={toggleCodeViewer}
+                                                className="text-gray-900 hover:bg-gray-200 p-2 rounded-lg bg-gray-100"
+                                            >
+                                                Close
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div
+                                        className={`${
+                                            isFullPageCode ? "h-[calc(100vh-60px)]" : "h-[70vh]"
+                                        }`}
+                                    >
+                                        <CodeViewer codeChanges={generatedCode} />
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     {/* Left column: Form */}
                     <div className="bg-white rounded-lg shadow p-6">
                         <h2 className="text-xl font-semibold text-gray-800 mb-6">
@@ -255,13 +372,31 @@ const PullRequest: React.FC = () => {
                             </div>
 
                             {/* Create Pull Request Button */}
-                            <button
-                                onClick={handleCreatePullRequest}
-                                className="w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
-                                disabled={isCreating}
-                            >
-                                {isCreating ? "Creating..." : "Create Pull Request"}
-                            </button>
+                            <div className="text-center">
+                                <button
+                                    onClick={handleCreatePullRequest}
+                                    className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
+                                    disabled={isCreating}
+                                >
+                                    {isCreating ? "Creating..." : "Create Pull Request"}
+                                </button>
+                            </div>
+
+                            {generatedCode && (
+                                <div className="text-center">
+                                    <hr className="my-4" />
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Code has been generated successfully.
+                                    </p>
+                                    <button
+                                        onClick={toggleCodeViewer}
+                                        disabled={isCreating}
+                                        className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
+                                    >
+                                        View Generated Code
+                                    </button>
+                                </div>
+                            )}
 
                             {generatedPRLink && (
                                 <div className="text-center">
