@@ -23,6 +23,7 @@ export class DatabaseService {
                 repo: file.repo,
                 ref: file.ref,
                 commithash: file.commitHash,
+                branchCommitHash: file.branchCommitHash, // New field for branch commit hash
                 tokencount: file.tokenCount,
                 embeddings: file.embeddings,
             },
@@ -33,6 +34,19 @@ export class DatabaseService {
 
         if (error) {
             throw new Error(`Error saving file details: ${error.message}`);
+        }
+    }
+
+    async updateBranchCommitHash(owner: string, repo: string, ref: string, commitHash: string): Promise<void> {
+        const { data, error } = await this.supabase
+            .from("filedetails")
+            .update({ branchCommitHash: commitHash })
+            .eq("owner", owner)
+            .eq("repo", repo)
+            .eq("ref", ref);
+
+        if (error) {
+            throw new Error(`Error updating branch commit hash: ${error.message}`);
         }
     }
 
@@ -64,6 +78,7 @@ export class DatabaseService {
             repo: data.repo,
             ref: data.ref,
             commitHash: data.commithash,
+            branchCommitHash: data.branchCommitHash, // New field for branch commit hash
             tokenCount: data.tokencount,
             embeddings: data.embeddings,
         } as FileDetails;

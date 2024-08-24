@@ -68,6 +68,10 @@ export class RepositoryService {
             }
         }
 
+        // Retrieve and store the branch commit hash
+        const branchCommitHash = await this.ghService.getBranchCommitHash(owner, repo, ref);
+        await this.dbService.updateBranchCommitHash(owner, repo, ref, branchCommitHash);
+
         return result;
     }
 
