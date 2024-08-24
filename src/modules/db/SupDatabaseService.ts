@@ -36,6 +36,24 @@ export class DatabaseService {
         }
     }
 
+    async saveCommitHash(owner: string, repo: string, branch: string, commitHash: string): Promise<void> {
+        const { data, error } = await this.supabase.from("commit_hashes").upsert(
+            {
+                owner,
+                repo,
+                branch,
+                commitHash,
+            },
+            {
+                onConflict: "owner,repo,branch",
+            }
+        );
+
+        if (error) {
+            throw new Error(`Error saving commit hash: ${error.message}`);
+        }
+    }
+
     async getFileDetails(
         owner: string,
         repo: string,
@@ -52,7 +70,6 @@ export class DatabaseService {
             .single();
 
         if (error) {
-            // console.error(`Error fetching file ${repo}:${ref}:${path} details: ${error.message}`);
             return null;
         }
 
