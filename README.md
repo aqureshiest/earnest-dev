@@ -1,36 +1,17 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Project Documentation
 
-## Getting Started
+## Indexing Process Optimization
 
-First, run the development server:
+### Overview
+The indexing process has been optimized to store the branch commit hash in the database. This allows for skipping the indexing process if the commit hash has not changed.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Changes Made
+- Added a new column `branchCommitHash` to the `FileDetails` table in the database schema.
+- Updated the `getRepositoryFiles` method in `RepositoryService` to retrieve the current commit hash after indexing.
+- Implemented a check at the start of the indexing process to compare the current commit hash with the stored commit hash.
+- If the commit hashes match, the indexing process is skipped, and similar files are looked up based on the parameters.
+- After indexing, the stored commit hash is updated if it has changed.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+### Testing
+Ensure that all changes are well-tested to maintain the integrity of the existing workflow.
+Add test cases to verify the new functionality and ensure existing functionality is not broken.
