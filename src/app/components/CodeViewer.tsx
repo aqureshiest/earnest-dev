@@ -1,14 +1,38 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
+import ReactDiffViewer from "react-diff-viewer";
+
+interface BaseFile {
+    path: string;
+    thoughts?: string;
+    content?: string;
+    oldContents?: string; // For modified files
+}
+
+type NewFile = BaseFile & {
+    content: string;
+};
+
+type ModifiedFile = BaseFile & {
+    oldContents: string;
+    content: string;
+};
+
+type DeletedFile = BaseFile; // No content needed
+
+interface CodeChanges {
+    title: string;
+    newFiles?: NewFile[];
+    modifiedFiles?: ModifiedFile[];
+    deletedFiles?: DeletedFile[];
+}
 
 const CodeViewer = ({ codeChanges }: { codeChanges: CodeChanges }) => {
-    const [selectedFile, setSelectedFile] = useState<NewFile | ModifiedFile | DeletedFile>();
+    const [selectedFile, setSelectedFile] = useState<BaseFile | null>(null);
+    const [loading, setLoading] = useState(false);
 
-    const renderFileList = (
-        files: NewFile[] | ModifiedFile[] | DeletedFile[],
-        category: string
-    ) => (
+    const renderFileList = (files: (NewFile | ModifiedFile | DeletedFile)[], category: string) => (
         <div className="mb-4">
             <h3 className="font-semibold mb-2">{category}</h3>
             {files.map((file) => (
@@ -25,6 +49,96 @@ const CodeViewer = ({ codeChanges }: { codeChanges: CodeChanges }) => {
         </div>
     );
 
+    useEffect(() => {
+        const fetchOriginalContents = async () => {
+            if (!codeChanges.modifiedFiles) return;
+
+            setLoading(true);
+            try {
+                const updatedModifiedFiles = await Promise.all(
+                    codeChanges.modifiedFiles.map(async (file) => {
+                        const response = await fetch("/api/file", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                owner: "aqureshiest",
+                                repo: "bookstore",
+                                branch: "main",
+                                filePath: file.path,
+                            }),
+                        });
+
+                        const { contents } = await response.json();
+                        return { ...file, oldContents: contents };
+                    })
+                );
+
+                codeChanges.modifiedFiles = updatedModifiedFiles;
+            } catch (error) {
+                console.error("Error fetching original contents:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOriginalContents();
+    }, [codeChanges]);
+
+    const renderFileContent = () => {
+        if (!selectedFile) {
+            return (
+                <div className="p-4 text-center text-gray-500">
+                    Select a file to view its content
+                </div>
+            );
+        }
+
+        return (
+            <div className="p-4">
+                <h3 className="font-semibold mb-2">{selectedFile.path}</h3>
+
+                {selectedFile.thoughts && (
+                    <div className="mb-4 p-2 bg-yellow-50 border border-yellow-100 rounded">
+                        <h4 className="font-medium mb-1">Thoughts:</h4>
+                        <p>{selectedFile.thoughts}</p>
+                    </div>
+                )}
+
+                {renderFileTypeContent()}
+            </div>
+        );
+    };
+
+    const renderContent = (code: string) => {
+        const highlighted = hljs.highlightAuto(code).value;
+        return <pre dangerouslySetInnerHTML={{ __html: highlighted }} />;
+    };
+
+    const renderFileTypeContent = () => {
+        if (selectedFile && "oldContents" in selectedFile) {
+            return (
+                <ReactDiffViewer
+                    oldValue={selectedFile.oldContents!} // Using non-null assertion
+                    newValue={selectedFile.content!} // Using non-null assertion
+                    splitView={false}
+                    hideLineNumbers={true}
+                    showDiffOnly={false}
+                    renderContent={renderContent}
+                />
+            );
+        } else if (selectedFile && "content" in selectedFile) {
+            return renderContent(selectedFile.content!);
+        } else if (
+            selectedFile &&
+            codeChanges.deletedFiles?.includes(selectedFile as DeletedFile)
+        ) {
+            return <p className="text-red-500">This file has been deleted.</p>;
+        }
+        return null;
+    };
+
     return (
         <div className="flex h-full">
             <div className="w-1/3 overflow-y-auto border-r p-4">
@@ -40,32 +154,10 @@ const CodeViewer = ({ codeChanges }: { codeChanges: CodeChanges }) => {
                     renderFileList(codeChanges.deletedFiles, "Deleted Files")}
             </div>
             <div className="w-2/3 overflow-y-auto">
-                {selectedFile ? (
-                    <div className="p-4">
-                        <h3 className="font-semibold mb-2">{selectedFile.path}</h3>
-                        {selectedFile.thoughts && (
-                            <div className="mb-4 p-2 bg-yellow-50 border border-yellow-100 rounded">
-                                <h4 className="font-medium mb-1">Thoughts:</h4>
-                                <p>{selectedFile.thoughts}</p>
-                            </div>
-                        )}
-                        {selectedFile.content ? (
-                            <pre>
-                                <code
-                                    dangerouslySetInnerHTML={{
-                                        __html: hljs.highlight("javascript", selectedFile.content)
-                                            .value,
-                                    }}
-                                />
-                            </pre>
-                        ) : (
-                            <p className="text-red-500">This file has been deleted.</p>
-                        )}
-                    </div>
+                {loading ? (
+                    <div className="p-4 text-center text-gray-500">Loading...</div>
                 ) : (
-                    <div className="p-4 text-center text-gray-500">
-                        Select a file to view its content
-                    </div>
+                    renderFileContent()
                 )}
             </div>
         </div>

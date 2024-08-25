@@ -21,6 +21,7 @@ const PullRequest: React.FC = () => {
     const [progress, setProgress] = useState<string[]>([]);
     const [currentFile, setCurrentFile] = useState<string>();
     const [isCreating, setIsCreating] = useState(false);
+    const [acceptedChanges, setAcceptedChanges] = useState(false);
 
     const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
     const [useAllFiles, setUseAllFiles] = useState(false);
@@ -75,12 +76,11 @@ const PullRequest: React.FC = () => {
     const handleAcceptChanges = async () => {
         toggleCodeViewer();
         setIsCreating(true);
+        setAcceptedChanges(true);
         openAblyConnection();
         updateAssistantState("PR", "working");
 
         try {
-            console.log("sending implementationPlan", implementationPlan);
-
             const response = await fetch(`/api/pr`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -120,9 +120,10 @@ const PullRequest: React.FC = () => {
 
     const handleCreatePullRequest = async () => {
         setIsCreating(true);
-        setGeneratedPRLink(null);
         setProgress([]);
         setCurrentFile("");
+        setGeneratedPRLink(null);
+        setAcceptedChanges(false);
         setSpecifications(null);
         setImplementationPlan(null);
         setGeneratedCodeResponse(null);
@@ -151,9 +152,7 @@ const PullRequest: React.FC = () => {
                 throw new Error(error.error);
             }
 
-            // setGeneratedPRLink((await response.json()).prLink);
             const responseJson = await response.json();
-            console.log("responseJson", responseJson);
 
             setGeneratedCodeResponse(responseJson);
             setGeneratedCode(responseJson.response);
@@ -270,8 +269,7 @@ const PullRequest: React.FC = () => {
                                     <div className="p-4 border-b flex justify-between items-center">
                                         <h2 className="text-xl font-semibold">Code Changes</h2>
                                         <div>
-                                            {/* primary button to accept changes */}
-                                            {!generatedPRLink && (
+                                            {!acceptedChanges && (
                                                 <button
                                                     onClick={handleAcceptChanges}
                                                     disabled={generatedPRLink != null}
@@ -301,6 +299,7 @@ const PullRequest: React.FC = () => {
                                             isFullPageCode ? "h-[calc(100vh-60px)]" : "h-[70vh]"
                                         }`}
                                     >
+                                        {/* @ts-ignore */}
                                         <CodeViewer codeChanges={generatedCode} />
                                     </div>
                                 </motion.div>
@@ -371,49 +370,48 @@ const PullRequest: React.FC = () => {
                                 </select>
                             </div>
 
-                            {/* Create Pull Request Button */}
-                            <div className="text-center">
+                            {/* Action Buttons */}
+                            <div className="mt-6 border-t pt-4">
                                 <button
                                     onClick={handleCreatePullRequest}
-                                    className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
+                                    className="w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
                                     disabled={isCreating}
                                 >
-                                    {isCreating ? "Creating..." : "Create Pull Request"}
+                                    {isCreating ? "Processing..." : "Create Pull Request"}
                                 </button>
+
+                                {generatedCode && !acceptedChanges && (
+                                    <div className="mt-6 border-t pt-4">
+                                        {/* add a spacer */}
+                                        <span className="text-gray-600 text-sm">
+                                            The code has been generated successfully
+                                        </span>
+                                        <button
+                                            onClick={toggleCodeViewer}
+                                            className="mt-2 w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
+                                        >
+                                            Review Generated Code
+                                        </button>
+                                    </div>
+                                )}
+
+                                {generatedPRLink && (
+                                    <div className="mt-6 border-t pt-4">
+                                        {/* add a spacer */}
+                                        <span className="text-gray-600 text-sm">
+                                            The PR has been created successfully
+                                        </span>
+                                        <a
+                                            href={generatedPRLink}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-2 w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition text-center block"
+                                        >
+                                            View Pull Request
+                                        </a>
+                                    </div>
+                                )}
                             </div>
-
-                            {generatedCode && (
-                                <div className="text-center">
-                                    <hr className="my-4" />
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Code has been generated successfully.
-                                    </p>
-                                    <button
-                                        onClick={toggleCodeViewer}
-                                        disabled={isCreating}
-                                        className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
-                                    >
-                                        View Generated Code
-                                    </button>
-                                </div>
-                            )}
-
-                            {generatedPRLink && (
-                                <div className="text-center">
-                                    <hr className="my-4" />
-                                    <p className="text-sm text-gray-600 mb-4">
-                                        Pull request has been created successfully.
-                                    </p>
-                                    <a
-                                        href={generatedPRLink}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
-                                    >
-                                        View Pull Request
-                                    </a>
-                                </div>
-                            )}
                         </div>
                     </div>
 

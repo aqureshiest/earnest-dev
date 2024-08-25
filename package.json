@@ -19,6 +19,7 @@
     "@types/sqlite3": "^3.1.11",
     "ably": "^2.3.1",
     "better-sqlite3": "^11.1.2",
+    "diff": "^6.0.0-beta",
     "fast-xml-parser": "^4.4.1",
     "framer-motion": "^11.3.30",
     "gpt-tokenizer": "^2.2.1",
@@ -29,6 +30,7 @@
     "openai": "^4.53.2",
     "pg": "^8.12.0",
     "react": "^18",
+    "react-diff-viewer": "^3.1.1",
     "react-dom": "^18",
     "react-modal": "^3.16.1",
     "react-syntax-highlighter": "^15.4.4",
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
+    "@types/diff": "^5.2.1",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20",
     "@types/pg": "^8.11.6",
