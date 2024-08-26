@@ -60,7 +60,7 @@ Your specifications should **NOT**:
     getPrompt(params?: any): string {
         return `
 Here are the existing code files you will be working with:
-<existing_codebase>
+<existing_codebase language="typescript">
 ${CODEFILES_PLACEHOLDER}
 </existing_codebase>
         
@@ -72,8 +72,8 @@ ${TASK_PLACEHOLDER}
 Here is the implementation plan to follow for the task:
 ${PLAN_PLACEHOLDER}
 
+<response_format_instructions>
 Respond in the following format:
-<response_format>
 
 <code_changes>
  <title>Title of the PR</title>
@@ -109,7 +109,7 @@ Respond in the following format:
  </deleted_files>
 </code_changes>
 
-</response_format>
+</response_format_instructions>
 
 Now, using the task description, existing code files, and implementation plan generate the code for the task in the specified XML format.
 `;
@@ -121,12 +121,16 @@ Now, using the task description, existing code files, and implementation plan ge
             isArray: (name: any, jpath: any) => name === "file",
         };
 
+        // extract the code_changes block
+        const match = response.match(/<code_changes>[\s\S]*<\/code_changes>/);
+        const codeChangesBlock = match ? match[0] : "";
+
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(
             model,
             task,
             this.constructor.name,
-            response,
+            codeChangesBlock,
             options
         ) as any;
 

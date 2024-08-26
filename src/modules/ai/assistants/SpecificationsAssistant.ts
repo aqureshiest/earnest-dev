@@ -65,8 +65,8 @@ Here is the task description:
 ${TASK_PLACEHOLDER}
 </task_description>
 
+<response_format_instructions>
 Respond in the following format:
-<response_format>
 
 <specifications>
  <specification>
@@ -80,7 +80,7 @@ Respond in the following format:
  <!-- Add more <specification> elements if needed -->
 </specifications>
 
-</response_format>
+</response_format_instructions>
 
 Now, using the task description and the existing code files, provide detailed specifications for the task in the specified XML format.
 `;

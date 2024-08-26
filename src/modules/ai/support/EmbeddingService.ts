@@ -19,7 +19,7 @@ export class EmbeddingService {
         let chunk: FileDetails[] = [];
         let chunkSize = 0;
 
-        console.log("Generating embeddings for", files.length, "files");
+        console.log("Embeddings request for", files.length, "files");
 
         for (const file of files) {
             const tokens = encode(`${file.path}\n${file.content}`).length;

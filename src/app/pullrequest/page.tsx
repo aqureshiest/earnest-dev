@@ -14,6 +14,8 @@ import CodeViewer from "../components/CodeViewer";
 const PullRequest: React.FC = () => {
     const params = useSearchParams();
 
+    const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
+
     const [repo, setRepo] = useState<string | null>(null);
     const [branch, setBranch] = useState<string | null>(null);
     const [description, setDescription] = useState("");
@@ -22,6 +24,7 @@ const PullRequest: React.FC = () => {
     const [currentFile, setCurrentFile] = useState<string>();
     const [isCreating, setIsCreating] = useState(false);
     const [acceptedChanges, setAcceptedChanges] = useState(false);
+    const [showDiff, setShowDiff] = useState(false);
 
     const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
     const [useAllFiles, setUseAllFiles] = useState(false);
@@ -55,7 +58,6 @@ const PullRequest: React.FC = () => {
         });
     };
 
-    const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
     const availableModels = [
         LLM_MODELS.OPENAI_GPT_4O,
         LLM_MODELS.OPENAI_GPT_4O_MINI,
@@ -268,6 +270,16 @@ const PullRequest: React.FC = () => {
                                 >
                                     <div className="p-4 border-b flex justify-between items-center">
                                         <h2 className="text-xl font-semibold">Code Changes</h2>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={showDiff}
+                                                onChange={() => setShowDiff((prev) => !prev)}
+                                                className="form-checkbox h-5 w-5 text-teal-600"
+                                            />
+                                            <span className="text-gray-800">Show Diff</span>
+                                        </label>
+
                                         <div>
                                             {!acceptedChanges && (
                                                 <button
@@ -300,7 +312,13 @@ const PullRequest: React.FC = () => {
                                         }`}
                                     >
                                         {/* @ts-ignore */}
-                                        <CodeViewer codeChanges={generatedCode} />
+                                        <CodeViewer
+                                            codeChanges={generatedCode}
+                                            owner={owner}
+                                            repo={repo}
+                                            branch={branch}
+                                            showDiff={showDiff}
+                                        />
                                     </div>
                                 </motion.div>
                             </motion.div>

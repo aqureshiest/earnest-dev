@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
-import ReactDiffViewer from "react-diff-viewer";
+import ReactDiffViewer, { DiffMethod } from "react-diff-viewer";
 
 interface BaseFile {
     path: string;
@@ -28,7 +28,19 @@ interface CodeChanges {
     deletedFiles?: DeletedFile[];
 }
 
-const CodeViewer = ({ codeChanges }: { codeChanges: CodeChanges }) => {
+const CodeViewer = ({
+    codeChanges,
+    owner,
+    repo,
+    branch,
+    showDiff,
+}: {
+    codeChanges: CodeChanges;
+    owner: string;
+    repo: string;
+    branch: string;
+    showDiff: boolean;
+}) => {
     const [selectedFile, setSelectedFile] = useState<BaseFile | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -63,14 +75,15 @@ const CodeViewer = ({ codeChanges }: { codeChanges: CodeChanges }) => {
                                 "Content-Type": "application/json",
                             },
                             body: JSON.stringify({
-                                owner: "aqureshiest",
-                                repo: "bookstore",
-                                branch: "main",
+                                owner,
+                                repo,
+                                branch,
                                 filePath: file.path,
                             }),
                         });
 
                         const { contents } = await response.json();
+
                         return { ...file, oldContents: contents };
                     })
                 );
@@ -117,7 +130,7 @@ const CodeViewer = ({ codeChanges }: { codeChanges: CodeChanges }) => {
     };
 
     const renderFileTypeContent = () => {
-        if (selectedFile && "oldContents" in selectedFile) {
+        if (selectedFile && "oldContents" in selectedFile && showDiff) {
             return (
                 <ReactDiffViewer
                     oldValue={selectedFile.oldContents!} // Using non-null assertion
@@ -125,6 +138,7 @@ const CodeViewer = ({ codeChanges }: { codeChanges: CodeChanges }) => {
                     splitView={false}
                     hideLineNumbers={true}
                     showDiffOnly={false}
+                    compareMethod={DiffMethod.LINES}
                     renderContent={renderContent}
                 />
             );

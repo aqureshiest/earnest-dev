@@ -67,4 +67,28 @@ export class GitHubService {
 
         return content;
     }
+
+    async getPrimaryLanguage(owner: string, repo: string) {
+        try {
+            const { data: languages } = await this.octokit.repos.listLanguages({
+                owner,
+                repo,
+            });
+            console.log(languages);
+
+            // Find the language with the highest percentage
+            const totalBytes = Object.values(languages).reduce((acc, bytes) => acc + bytes, 0);
+            const primaryLanguage = Object.entries(languages).reduce(
+                (max, [language, bytes]) => {
+                    const percentage = (bytes / totalBytes) * 100;
+                    return percentage > max.percentage ? { language, percentage } : max;
+                },
+                { language: "", percentage: 0 }
+            );
+
+            return primaryLanguage.language;
+        } catch (error) {
+            console.error("Error fetching repository languages:", error);
+        }
+    }
 }

@@ -69,8 +69,8 @@ ${TASK_PLACEHOLDER}
 Here are the detailed specifications for the task:
 ${SPECS_PLACEHOLDER}
 
+<response_format_instructions>
 Respond in the following format:
-<response_format>
 
 <implementation_plan>
  <step>
@@ -91,8 +91,7 @@ Respond in the following format:
  <!-- Add more <step> elements if needed -->
 </implementation_plan>
 
-
-</response_format>
+</response_format_instructions>
 
 Now, using the task description, existing code files, and specifications generate a detailed implementation plan for the task in the specified XML format.
 `;
