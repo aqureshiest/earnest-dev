@@ -94,6 +94,25 @@ export class RepositoryService {
         return Promise.all(promises);
     }
 
+    async isBranchSynced(owner: string, repo: string, ref: string = "main") {
+        const dbCommitHash = await this.dbService.getBranchCommit(owner, repo, ref);
+        const ghBranch = await this.ghService.getBranch(owner, repo, ref);
+
+        return dbCommitHash === ghBranch.commit.sha;
+    }
+
+    async syncBranch(owner: string, repo: string, ref: string = "main", files: FileDetails[]) {
+        const ghBranch = await this.ghService.getBranch(owner, repo, ref);
+
+        // save all files
+        files.forEach(async (file) => {
+            await this.dbService.saveFileDetails(file);
+        });
+
+        // save branch commit (for next iteration)
+        await this.dbService.saveBranchCommit(owner, repo, ref, ghBranch.commit.sha);
+    }
+
     static shouldExclude(filePath: string): boolean {
         return EXCLUDE_PATTERNS.some((pattern) => {
             if (pattern.endsWith("/")) {

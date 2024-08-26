@@ -27,7 +27,6 @@ const PullRequest: React.FC = () => {
     const [showDiff, setShowDiff] = useState(false);
 
     const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
-    const [useAllFiles, setUseAllFiles] = useState(false);
 
     const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
 
@@ -144,7 +143,6 @@ const PullRequest: React.FC = () => {
                     branch,
                     description: description.trim(),
                     selectedModel,
-                    useAllFiles,
                     updatesChannel: channelName,
                 }),
             });
@@ -311,7 +309,6 @@ const PullRequest: React.FC = () => {
                                             isFullPageCode ? "h-[calc(100vh-60px)]" : "h-[70vh]"
                                         }`}
                                     >
-                                        {/* @ts-ignore */}
                                         <CodeViewer
                                             codeChanges={generatedCode}
                                             owner={owner}

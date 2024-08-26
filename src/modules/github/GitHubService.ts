@@ -26,6 +26,16 @@ export class GitHubService {
         return branches;
     }
 
+    async getBranchCommit(owner: string, repo: string, branch: string) {
+        const { data: branchData } = await this.octokit.repos.getBranch({
+            owner,
+            repo,
+            branch,
+        });
+
+        return branchData.commit.sha;
+    }
+
     async getRepos(page: number = 1, per_page: number = 100) {
         const { data: repos } = await this.octokit.repos.listForAuthenticatedUser({
             visibility: "all",

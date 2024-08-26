@@ -13,6 +13,8 @@ export class OpenAIService {
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
         try {
+            console.log(this.constructor.name, "Generating response for model", this.model);
+
             const completion = await this.openai.chat.completions.create({
                 messages: [
                     {
@@ -33,7 +35,7 @@ export class OpenAIService {
                 throw new Error("No response generated.");
             }
 
-            console.log("Plan usage", completion.usage);
+            console.log("response usage", completion.usage);
             const { inputCost, outputCost } = calculateLLMCost(
                 this.model,
                 completion.usage?.prompt_tokens || 0,

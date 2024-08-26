@@ -13,6 +13,40 @@ export class DatabaseService {
         this.embeddingService = new EmbeddingService();
     }
 
+    async saveBranchCommit(owner: string, repo: string, ref: string, commitHash: string) {
+        const { data, error } = await this.supabase.from("branchcommits").upsert(
+            {
+                owner,
+                repo,
+                ref,
+                commithash: commitHash,
+            },
+            {
+                onConflict: "owner,repo,ref",
+            }
+        );
+
+        if (error) {
+            throw new Error(`Error saving branch commit: ${error.message}`);
+        }
+    }
+
+    async getBranchCommit(owner: string, repo: string, ref: string): Promise<string | null> {
+        const { data, error } = await this.supabase
+            .from("branchcommits")
+            .select("commithash")
+            .eq("owner", owner)
+            .eq("repo", repo)
+            .eq("ref", ref)
+            .single();
+
+        if (error || !data) {
+            return null;
+        }
+
+        return data.commithash ?? null;
+    }
+
     async saveFileDetails(file: FileDetails): Promise<void> {
         const { data, error } = await this.supabase.from("filedetails").upsert(
             {

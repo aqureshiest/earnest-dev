@@ -64,5 +64,5 @@ CREATE TABLE IF NOT EXISTS BranchCommits (
     repo TEXT NOT NULL,
     ref TEXT NOT NULL,
     commitHash TEXT NOT NULL,
-    UNIQUE (owner, repo, ref, commitHash)
+    UNIQUE (owner, repo, ref)
 );

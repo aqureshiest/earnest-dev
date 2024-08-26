@@ -65,7 +65,7 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
     ): Promise<AIResponse | null> {
         // pick the ai model
         const aiService =
-            model === LLM_MODELS.OPENAI_GPT_4O_MINI || LLM_MODELS.OPENAI_GPT_4O
+            model === LLM_MODELS.OPENAI_GPT_4O_MINI || model === LLM_MODELS.OPENAI_GPT_4O
                 ? new OpenAIService()
                 : new ClaudeAIService();
 

@@ -14,6 +14,8 @@ export class ClaudeAIService {
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
         try {
+            console.log(this.constructor.name, "Generating response for model", this.model);
+
             const LLM = LLMS.find((m) => m.model === this.model);
             if (!LLM) {
                 throw new Error(`LLM {this.model} not found`);
