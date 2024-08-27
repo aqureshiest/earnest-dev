@@ -138,7 +138,7 @@ const CodeViewer = ({
                     splitView={false}
                     hideLineNumbers={true}
                     showDiffOnly={false}
-                    compareMethod={DiffMethod.LINES}
+                    compareMethod={DiffMethod.WORDS}
                     renderContent={renderContent}
                 />
             );

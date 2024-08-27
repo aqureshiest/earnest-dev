@@ -66,8 +66,13 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         // pick the ai model
         const aiService =
             model === LLM_MODELS.OPENAI_GPT_4O_MINI || model === LLM_MODELS.OPENAI_GPT_4O
-                ? new OpenAIService()
-                : new ClaudeAIService();
+                ? new OpenAIService(model)
+                : new ClaudeAIService(model);
+
+        // const aiService =
+        //     this.constructor.name == "CodingAssistant"
+        //         ? new ClaudeAIService()
+        //         : new OpenAIService();
 
         // generate code
         const { response, inputTokens, outputTokens, cost } = await aiService.generateResponse(

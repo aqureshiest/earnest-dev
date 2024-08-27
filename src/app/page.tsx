@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Header from "./components/Header";
 import { Octokit } from "@octokit/rest";
 import PRModal from "./components/PRModal";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface PullRequest {
     id: number;
@@ -28,6 +27,8 @@ const Home: React.FC = () => {
     const [branches, setBranches] = useState<string[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const router = useRouter();
 
     const octokit = new Octokit({ auth: process.env.NEXT_PUBLIC_GITHUB_TOKEN });
 
@@ -115,6 +116,10 @@ const Home: React.FC = () => {
         setSelectedBranch(event.target.value);
     };
 
+    const handleCreatePR = () => {
+        router.push(`/pullrequest?repo=${selectedRepo}&branch=${selectedBranch}`);
+    };
+
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => {
         setIsModalOpen(false);
@@ -130,19 +135,20 @@ const Home: React.FC = () => {
                 <header className="flex justify-between items-center mb-6 text-gray-800">
                     <h1 className="text-3xl font-bold">Pull Requests</h1>
                     <div className="flex items-center gap-x-3">
-                        <button
+                        {/* <button
                             className="bg-teal-600 text-white px-4 py-2 rounded-lg shadow hover:bg-teal-500 transition duration-150"
                             onClick={openModal}
                             disabled={!selectedRepo || !selectedBranch}
                         >
                             Create Pull Request
-                        </button>
-                        <Link
-                            href={`/pullrequest?repo=${selectedRepo}&branch=${selectedBranch}`}
-                            className="bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-500 transition duration-150"
+                        </button> */}
+                        <button
+                            onClick={() => handleCreatePR()}
+                            className="bg-teal-600 text-white px-4 py-2 rounded-lg shadow hover:bg-teal-500 transition duration-150 disabled:opacity-50 disabled:hover:bg-teal-600"
+                            disabled={!selectedRepo || !selectedBranch}
                         >
-                            Advanced Mode
-                        </Link>
+                            Create Pull Request
+                        </button>
                     </div>
                 </header>
 

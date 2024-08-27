@@ -92,12 +92,16 @@ Now, using the task description and the existing code files, provide detailed sp
             isArray: (name: any, jpath: any) => name === "specification" || name === "step", // || name === "consideration"
         };
 
+        // extract the code_changes block
+        const match = response.match(/<specifications>[\s\S]*<\/specifications>/);
+        const matchedBlock = match ? match[0] : "";
+
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(
             model,
             task,
             this.constructor.name,
-            response,
+            matchedBlock,
             options
         ) as any;
 

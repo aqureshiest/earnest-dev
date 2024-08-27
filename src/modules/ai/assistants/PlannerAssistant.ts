@@ -104,12 +104,16 @@ Now, using the task description, existing code files, and specifications generat
                 name === "step" || name === "file" || name === "todo",
         };
 
+        // extract the code_changes block
+        const match = response.match(/<implementation_plan>[\s\S]*<\/implementation_plan>/);
+        const matchedBlock = match ? match[0] : "";
+
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(
             model,
             task,
             this.constructor.name,
-            response,
+            matchedBlock,
             options
         ) as any;
 

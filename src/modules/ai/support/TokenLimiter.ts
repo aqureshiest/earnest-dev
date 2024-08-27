@@ -6,7 +6,7 @@ export class TokenLimiter {
     tokenizeFiles(files: FileDetails[]) {
         return files
             .map((file) => {
-                // no need to tokenize if tokene count is already there
+                // no need to tokenize if token count is already there
                 if (file.tokenCount) {
                     return file;
                 }
@@ -18,7 +18,7 @@ export class TokenLimiter {
                     tokenCount: tokens.length,
                 };
             })
-            .filter((file) => file.tokenCount! > 0 && file.tokenCount! < 8000);
+            .filter((file) => file.tokenCount > 0 && file.tokenCount < 8000);
     }
 
     applyTokenLimit(model: string, prompt: string, files: FileDetails[]) {
