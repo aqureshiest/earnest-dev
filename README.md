@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Earnest AI Dev
 
-## Getting Started
+Earnest AI Dev is a project designed to empower developers at Earnest by leveraging AI assistants to generate code.
 
-First, run the development server:
+## Table of Contents
+
+- [Environment Variables](#environment-variables)
+  - [GitHub Token](#github-token)
+  - [OpenAI API Key](#openai-api-key)
+  - [Anthropic API Key](#anthropic-api-key)
+  - [Supabase](#supabase)
+  - [Ably API Key](#ably-api-key)
+- [Installation and Setup](#installation-and-setup)
+- [Running the Project](#running-the-project)
+- [Environment Example File](#environment-example-file)
+
+## Environment Variables
+
+To run this project, you need to set up several environment variables. Follow the steps below to obtain and configure each one.
+
+### GitHub Token
+
+1. Go to your GitHub account.
+2. Navigate to **Settings** > **Developer settings** > **Personal access tokens**.
+3. Generate a new token with `repo` scope to allow access to your repositories.
+4. Copy the token and set it as the value for `GITHUB_TOKEN` and `NEXT_PUBLIC_GITHUB_TOKEN` in your `.env.local` file.
+5. The `NEXT_PUBLIC_GITHUB_OWNER` should be set to the GitHub username or organization name owning the repositories.
+
+### OpenAI API Key
+
+1. Sign up or log in to [OpenAI](https://platform.openai.com/).
+2. Navigate to **API Keys** under your account settings.
+3. Generate a new API key.
+4. Copy the key and set it as the value for `OPENAI_API_KEY` in your `.env.local` file.
+
+### Anthropic API Key
+
+1. Sign up or log in to [Anthropic](https://www.anthropic.com/).
+2. Navigate to the API section under your account settings.
+3. Generate a new API key.
+4. Copy the key and set it as the value for `ANTHROPIC_API_KEY` in your `.env.local` file.
+
+### Supabase
+
+1. Sign up or log in to [Supabase](https://supabase.com/).
+2. Create a new project or select an existing one.
+3. Go to the **Project Settings** > **API** section.
+4. Copy the `URL` and `anon` key provided.
+5. Set the `NEXT_PUBLIC_SUPABASE_URL` to the copied `URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the `anon` key in your `.env.local` file.
+
+### Ably API Key
+
+1. Sign up or log in to [Ably](https://ably.com/).
+2. Create a new app or select an existing one.
+3. Go to the **API Keys** section of the app.
+4. Copy the `API key` provided.
+5. Set the value for `NEXT_PUBLIC_ABLY_API_KEY` in your `.env.local` file.
+
+## Installation and Setup
+
+To set up the project locally, follow these steps:
+
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/yourusername/earnest-ai-dev.git
+    ```
+2. Navigate to the project directory:
+    ```bash
+    cd earnest-ai-dev
+    ```
+3. Install dependencies:
+    ```bash
+    npm install
+    ```
+4. Set up your `.env.local` file with the necessary environment variables as described above.
+
+## Running the Project
+
+To run the Next.js project locally, use the following command:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+This will start the development server, and you can view the project at http://localhost:3000.
