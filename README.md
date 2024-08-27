@@ -83,3 +83,21 @@ npm run dev
 ```
 
 This will start the development server, and you can view the project at http://localhost:3000.
+
+## Environment Example File
+
+Below is an example .env file. You can use this as a template by saving it as .env.local and replacing the placeholder values with your actual keys.
+
+```
+GITHUB_TOKEN=your_github_token
+NEXT_PUBLIC_GITHUB_TOKEN=your_github_token
+NEXT_PUBLIC_GITHUB_OWNER=your_github_username_or_organization
+
+OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+NEXT_PUBLIC_ABLY_API_KEY=your_ably_api_key
+```
