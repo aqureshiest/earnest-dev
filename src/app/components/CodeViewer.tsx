@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
 import ReactDiffViewer, { DiffMethod } from "react-diff-viewer";
+import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/20/solid";
 
 interface BaseFile {
     path: string;
@@ -34,15 +35,31 @@ const CodeViewer = ({
     repo,
     branch,
     showDiff,
+    excludedFiles,
+    setExcludedFiles,
 }: {
     codeChanges: CodeChanges;
     owner: string;
     repo: string;
     branch: string;
     showDiff: boolean;
+    excludedFiles: Set<string>;
+    setExcludedFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
 }) => {
     const [selectedFile, setSelectedFile] = useState<BaseFile | null>(null);
     const [loading, setLoading] = useState(false);
+
+    const toggleExcludeFile = (filePath: string) => {
+        setExcludedFiles((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(filePath)) {
+                newSet.delete(filePath);
+            } else {
+                newSet.add(filePath);
+            }
+            return newSet;
+        });
+    };
 
     const renderFileList = (files: (NewFile | ModifiedFile | DeletedFile)[], category: string) => (
         <div className="mb-4">
@@ -50,12 +67,31 @@ const CodeViewer = ({
             {files.map((file) => (
                 <div
                     key={file.path}
-                    className={`p-2 cursor-pointer ${
+                    className={`p-2 cursor-pointer flex items-center justify-between ${
                         selectedFile === file ? "bg-gray-200" : "hover:bg-gray-100"
-                    }`}
-                    onClick={() => setSelectedFile(file)}
+                    } ${excludedFiles.has(file.path) ? "opacity-50" : ""} group`}
                 >
-                    {file.path}
+                    <span onClick={() => setSelectedFile(file)} className="flex-grow">
+                        {file.path}
+                    </span>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExcludeFile(file.path);
+                        }}
+                        className={`ml-2 focus:outline-none ${
+                            excludedFiles.has(file.path) ? "" : "hidden group-hover:block"
+                        }`}
+                        title={excludedFiles.has(file.path) ? "Include in PR" : "Exclude from PR"}
+                    >
+                        <XCircleIcon
+                            className={`h-5 w-5 ${
+                                excludedFiles.has(file.path)
+                                    ? "text-red-500"
+                                    : "text-gray-400 hover:text-red-500"
+                            }`}
+                        />
+                    </button>
                 </div>
             ))}
         </div>

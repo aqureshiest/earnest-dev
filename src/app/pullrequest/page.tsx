@@ -33,6 +33,8 @@ const PullRequest: React.FC = () => {
     const [isCodeViewerOpen, setIsCodeViewerOpen] = useState(false);
     const [isFullPageCode, setIsFullPageCode] = useState(false);
 
+    const [excludedFiles, setExcludedFiles] = useState<Set<string>>(new Set());
+
     const [specifications, setSpecifications] =
         useState<AIAssistantResponse<Specifications> | null>(null);
     const [implementationPlan, setImplementationPlan] =
@@ -82,6 +84,24 @@ const PullRequest: React.FC = () => {
         updateAssistantState("PR", "working");
 
         try {
+            // remove excluded files from code changes
+            const finalizedGeneratedCodeResponse = {
+                ...generatedCodeResponse,
+                response: {
+                    ...generatedCodeResponse?.response,
+                    newFiles: generatedCode?.newFiles?.filter(
+                        (file) => !excludedFiles.has(file.path)
+                    ),
+                    modifiedFiles: generatedCode?.modifiedFiles?.filter(
+                        (file) => !excludedFiles.has(file.path)
+                    ),
+                    deletedFiles: generatedCode?.deletedFiles?.filter(
+                        (file) => !excludedFiles.has(file.path)
+                    ),
+                },
+            };
+
+            // create PR
             const response = await fetch(`/api/pr`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -94,7 +114,7 @@ const PullRequest: React.FC = () => {
                     prTitle: generatedCode?.title,
                     params: {
                         implementationPlan: implementationPlan,
-                        generatedCode: generatedCodeResponse,
+                        generatedCode: finalizedGeneratedCodeResponse,
                     },
                     updatesChannel: channelName,
                 }),
@@ -129,11 +149,13 @@ const PullRequest: React.FC = () => {
         setImplementationPlan(null);
         setGeneratedCodeResponse(null);
         setGeneratedCode(null);
+        setExcludedFiles(new Set());
         resetAssistantStates();
 
         openAblyConnection();
 
         try {
+            // generate code
             const response = await fetch(`/api/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -315,6 +337,8 @@ const PullRequest: React.FC = () => {
                                             repo={repo}
                                             branch={branch}
                                             showDiff={showDiff}
+                                            excludedFiles={excludedFiles}
+                                            setExcludedFiles={setExcludedFiles}
                                         />
                                     </div>
                                 </motion.div>
