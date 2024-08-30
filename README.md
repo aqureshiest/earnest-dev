@@ -47,6 +47,7 @@ To run this project, you need to set up several environment variables. Follow th
 3. Go to the **Project Settings** > **API** section.
 4. Copy the `URL` and `anon` key provided.
 5. Set the `NEXT_PUBLIC_SUPABASE_URL` to the copied `URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the `anon` key in your `.env.local` file.
+6. Run the SQL from `src/modules/db/schema.sql` in Supabase SQL editor to create the tables and the function.
 
 ### Ably API Key
 
