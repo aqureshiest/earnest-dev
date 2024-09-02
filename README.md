@@ -9,7 +9,6 @@ Earnest AI Dev is a project designed to empower developers at Earnest by leverag
   - [OpenAI API Key](#openai-api-key)
   - [Anthropic API Key](#anthropic-api-key)
   - [Supabase](#supabase)
-  - [Ably API Key](#ably-api-key)
 - [Installation and Setup](#installation-and-setup)
 - [Running the Project](#running-the-project)
 - [Environment Example File](#environment-example-file)
@@ -48,14 +47,6 @@ To run this project, you need to set up several environment variables. Follow th
 4. Copy the `URL` and `anon` key provided.
 5. Set the `NEXT_PUBLIC_SUPABASE_URL` to the copied `URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the `anon` key in your `.env.local` file.
 6. Run the SQL from `src/modules/db/schema.sql` in Supabase SQL editor to create the tables and the function.
-
-### Ably API Key
-
-1. Sign up or log in to [Ably](https://ably.com/).
-2. Create a new app or select an existing one.
-3. Go to the **API Keys** section of the app.
-4. Copy the `API key` provided.
-5. Set the value for `NEXT_PUBLIC_ABLY_API_KEY` in your `.env.local` file.
 
 ## Installation and Setup
 
