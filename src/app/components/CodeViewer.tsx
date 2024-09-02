@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
-import ReactDiffViewer, { DiffMethod } from "react-diff-viewer";
-import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/20/solid";
+import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued";
+import { XCircleIcon } from "@heroicons/react/20/solid";
 
 interface BaseFile {
     path: string;

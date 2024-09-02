@@ -1,44 +1,65 @@
 import PullRequestService from "@/modules/github/PullRequestService";
-import Ably from "ably";
 import { GeneratePR } from "@/modules/ai/GeneratePR";
+import { NextResponse } from "next/server";
 
-// private function to send message to ably
-async function sendMessage(channel: any, message: string, messagePrefix = "overall") {
-    await channel.publish(messagePrefix, message);
-}
+const clients = new Map<string, ReadableStreamDefaultController<any>>();
 
 export async function POST(req: Request) {
-    const { owner, repo, branch, description, selectedModel, params, prTitle, updatesChannel } =
-        await req.json();
-
-    const ably = new Ably.Rest(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
-
     try {
-        const channel = ably.channels.get(updatesChannel);
+        const { taskId, owner, repo, branch, description, selectedModel, params, prTitle } =
+            await req.json();
+        if (!taskId) {
+            return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
+        }
 
-        const { implementationPlan, generatedCode } = params;
+        const stream = new ReadableStream({
+            async start(controller) {
+                try {
+                    clients.set(taskId, controller);
+                    req.signal.addEventListener("abort", () => clients.delete(taskId));
 
-        const prGenerator = new GeneratePR(channel);
+                    const { implementationPlan, generatedCode } = params;
 
-        // call the assistant to generate PR
-        const response = await prGenerator.runWorkflow(selectedModel, description, {
-            implementationPlan: implementationPlan.responseStr,
-            generatedCode: generatedCode.responseStr,
+                    // call the assistant to generate PR
+                    const prGenerator = new GeneratePR(taskId);
+                    const response = await prGenerator.runWorkflow(selectedModel, description, {
+                        implementationPlan: implementationPlan.responseStr,
+                        generatedCode: generatedCode.responseStr,
+                    });
+
+                    sendTaskUpdate(taskId, "progress", "Finalizing pull request...");
+
+                    // generate PR
+                    const prService = new PullRequestService(owner, repo, branch);
+                    const prLink = await prService.createPullRequest(
+                        generatedCode.response,
+                        prTitle,
+                        response.response || description
+                    );
+
+                    sendTaskUpdate(taskId, "progress", "Pull request created.");
+                    sendTaskUpdate(taskId, "final", { prLink });
+                } catch (error: any) {
+                    console.error("Error within generate pr stream:", error);
+                    // send final response
+                    sendTaskUpdate(taskId, "error", `PR generation failed. ${error.message}`);
+                } finally {
+                    // close the stream
+                    controller.close();
+                    clients.delete(taskId);
+                }
+            },
+            cancel() {
+                clients.delete(taskId);
+            },
         });
 
-        await sendMessage(channel, "Creating pull request...");
-
-        // generate PR
-        const prService = new PullRequestService(owner, repo, branch);
-        const prLink = await prService.createPullRequest(
-            generatedCode.response,
-            prTitle,
-            response.response || description
-        );
-
-        await sendMessage(channel, "Pull request created.");
-        return new Response(JSON.stringify({ prLink }), {
-            headers: { "Content-Type": "application/json" },
+        return new NextResponse(stream, {
+            headers: {
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                Connection: "keep-alive",
+            },
         });
     } catch (e) {
         console.log(e);
@@ -46,5 +67,18 @@ export async function POST(req: Request) {
             status: 500,
             headers: { "Content-Type": "application/json" },
         });
+    }
+}
+
+export function sendTaskUpdate(taskId: string, type: string, message: any) {
+    const controller = clients.get(taskId);
+    if (controller) {
+        try {
+            controller.enqueue(`data: ${JSON.stringify({ type, taskId, message })}\n\n`);
+        } catch (error) {
+            console.error("Error sending SSE update:", error);
+            controller.error(new Error("Failed to send update"));
+            clients.delete(taskId);
+        }
     }
 }

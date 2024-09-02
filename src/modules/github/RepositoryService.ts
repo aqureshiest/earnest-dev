@@ -1,6 +1,7 @@
 import { EXCLUDE_PATTERNS } from "@/constants";
 import { GitHubService } from "./GitHubService";
 import { DatabaseService } from "../db/SupDatabaseService";
+import { sendTaskUpdate } from "@/app/api/generate/route";
 
 export class RepositoryService {
     private ghService: GitHubService;
@@ -16,7 +17,7 @@ export class RepositoryService {
         repo: string,
         ref: string = "main",
         path: string = "",
-        channel: any
+        taskId: string
     ): Promise<FileDetails[]> {
         let result: FileDetails[] = [];
 
@@ -28,7 +29,7 @@ export class RepositoryService {
         for (const file of filteredFiles) {
             if (file.type === "file") {
                 // send message
-                await channel.publish("overall", `file:${file.path}`);
+                sendTaskUpdate(taskId, "progress", `file:${file.path}`);
 
                 // check if we already have this file in the store
                 const savedFile = await this.dbService.getFileDetails(owner, repo, ref, file.path);
@@ -56,7 +57,7 @@ export class RepositoryService {
                     repo,
                     ref,
                     file.path,
-                    channel
+                    taskId
                 );
                 result.push(...nestedFiles);
             }

@@ -3,7 +3,6 @@
 import { LLM_MODELS } from "@/modules/utilities/llmInfo";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import Ably from "ably";
 import SpecificationsCard from "../components/SpecificationsCard";
 import ImplementationPlanCard from "../components/ImplementationPlanCard";
 import AssistantWorkspace from "../components/AssistantWorkspace";
@@ -15,6 +14,8 @@ const PullRequest: React.FC = () => {
     const params = useSearchParams();
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
+
+    const [taskId, setTaskId] = useState("");
 
     const [repo, setRepo] = useState<string | null>(null);
     const [branch, setBranch] = useState<string | null>(null);
@@ -65,7 +66,6 @@ const PullRequest: React.FC = () => {
         LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
     ];
-    const channelName = `earnest-dev-ch-${Date.now()}`;
 
     useEffect(() => {
         setRepo(params.get("repo"));
@@ -77,11 +77,12 @@ const PullRequest: React.FC = () => {
     };
 
     const handleAcceptChanges = async () => {
+        // prevent multiple clicks
+        if (acceptedChanges) return;
+
         toggleCodeViewer();
         setIsCreating(true);
         setAcceptedChanges(true);
-        openAblyConnection();
-        updateAssistantState("PR", "working");
 
         try {
             // remove excluded files from code changes
@@ -101,11 +102,11 @@ const PullRequest: React.FC = () => {
                 },
             };
 
-            // create PR
             const response = await fetch(`/api/pr`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    taskId,
                     owner,
                     repo,
                     branch,
@@ -116,17 +117,49 @@ const PullRequest: React.FC = () => {
                         implementationPlan: implementationPlan,
                         generatedCode: finalizedGeneratedCodeResponse,
                     },
-                    updatesChannel: channelName,
                 }),
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error);
-            }
+            if (!response.ok) throw new Error("Failed to start task");
 
-            setGeneratedPRLink((await response.json()).prLink);
-            updateAssistantState("PR", "completed");
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error("Failed to get stream reader");
+            }
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split("\n\n");
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        const data = JSON.parse(line.slice(6));
+
+                        if (data.type === "progress" || data.type === "error") {
+                            setProgress((prev) => [...prev, data.message]);
+                        } else if (data.type == "start") {
+                            const { assistant } = data.message;
+                            if (assistant === "pr") {
+                                updateAssistantState("PR", "working");
+                            }
+                        } else if (data.type === "complete") {
+                            const { assistant, response } = data.message;
+                            if (assistant === "pr") {
+                                updateAssistantState("PR", "completed");
+                            }
+                        }
+
+                        if (data.type === "final") {
+                            setGeneratedPRLink(data.message.prLink);
+                            return; // close the connection
+                        }
+                    }
+                }
+            }
         } catch (error: any) {
             console.error("Error creating pull request:", error);
             setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
@@ -135,7 +168,6 @@ const PullRequest: React.FC = () => {
             resetAssistantStates();
         } finally {
             setIsCreating(false);
-            closeAblyConnection();
         }
     };
 
@@ -152,33 +184,80 @@ const PullRequest: React.FC = () => {
         setExcludedFiles(new Set());
         resetAssistantStates();
 
-        openAblyConnection();
-
         try {
-            // generate code
+            // taskId to track the progress
+            const newTaskId = Date.now().toString();
+            setTaskId(newTaskId);
+
             const response = await fetch(`/api/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    taskId: newTaskId,
                     owner,
                     repo,
                     branch,
                     description: description.trim(),
                     selectedModel,
-                    updatesChannel: channelName,
                 }),
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error);
+            if (!response.ok) throw new Error("Failed to start task");
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error("Failed to get stream reader");
             }
+            const decoder = new TextDecoder();
 
-            const responseJson = await response.json();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            setGeneratedCodeResponse(responseJson);
-            setGeneratedCode(responseJson.response);
-            updateAssistantState("code", "completed");
+                const chunk = decoder.decode(value);
+                const lines = chunk.split("\n\n");
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        const data = JSON.parse(line.slice(6));
+
+                        if (data.type === "progress" || data.type === "error") {
+                            if (data.message.startsWith("file:")) {
+                                setCurrentFile(data.message.slice(5));
+                            } else {
+                                setProgress((prev) => [...prev, data.message]);
+                            }
+                        } else if (data.type == "start") {
+                            const { assistant } = data.message;
+                            if (assistant === "specifications") {
+                                updateAssistantState("specifications", "working");
+                            } else if (assistant === "planning") {
+                                updateAssistantState("planning", "working");
+                            } else if (assistant === "code") {
+                                updateAssistantState("code", "working");
+                            }
+                        } else if (data.type === "complete") {
+                            const { assistant, response } = data.message;
+                            if (assistant === "specifications") {
+                                setSpecifications(response);
+                                updateAssistantState("specifications", "completed");
+                            } else if (assistant === "planning") {
+                                setImplementationPlan(response);
+                                updateAssistantState("planning", "completed");
+                            } else if (assistant === "code") {
+                                setGeneratedCodeResponse(response);
+                                setGeneratedCode(response.response);
+                                updateAssistantState("code", "completed");
+                            }
+                        }
+
+                        if (data.type === "final") {
+                            setProgress((prev) => [...prev, data.message]);
+                            return; // close the connection
+                        }
+                    }
+                }
+            }
         } catch (error: any) {
             console.error("Error creating pull request:", error);
             setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
@@ -187,66 +266,6 @@ const PullRequest: React.FC = () => {
             resetAssistantStates();
         } finally {
             setIsCreating(false);
-            closeAblyConnection();
-        }
-    };
-
-    let ably: any = null;
-    let channel: any = null;
-
-    const openAblyConnection = () => {
-        ably = new Ably.Realtime(process.env.NEXT_PUBLIC_ABLY_API_KEY!);
-        channel = ably.channels.get(channelName);
-
-        channel.subscribe((message: any) => {
-            const { name, data } = message;
-            switch (name) {
-                case "overall":
-                    // files progress
-                    if (data.startsWith("file:")) {
-                        setCurrentFile(data.slice(5));
-                    }
-                    // system commands
-                    else if (data.startsWith(">")) {
-                        switch (data.slice(1)) {
-                            case "IC":
-                                setCurrentFile("");
-                                break;
-                            case "SAS":
-                                updateAssistantState("specifications", "working");
-                                break;
-                            case "IPAS":
-                                updateAssistantState("planning", "working");
-                                break;
-                            case "GC":
-                                updateAssistantState("code", "working");
-                                break;
-                        }
-                    }
-                    // overall progress
-                    else {
-                        setProgress((prev) => [...prev, data]);
-                    }
-                    break;
-                case "specifications":
-                    updateAssistantState("specifications", "completed");
-                    setSpecifications(data);
-                    break;
-                case "implementationplan":
-                    updateAssistantState("planning", "completed");
-                    setImplementationPlan(data);
-                    break;
-            }
-        });
-    };
-
-    const closeAblyConnection = () => {
-        if (channel) {
-            channel.unsubscribe();
-        }
-
-        if (ably && ably.connection.state === "connected") {
-            ably.close();
         }
     };
 

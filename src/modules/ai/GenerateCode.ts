@@ -2,20 +2,21 @@ import { displayTime } from "../utilities/displayTime";
 import { CodingAssistant } from "./assistants/CodingAssistant";
 import { PlannerAssistant } from "./assistants/PlannerAssistant";
 import { SpecificationsAssistant } from "./assistants/SpecificationsAssistant";
+import { sendTaskUpdate } from "@/app/api/generate/route";
 
 export class GenerateCode {
     private specificationsAssistant: SpecificationsAssistant;
     private plannerAssistant: PlannerAssistant;
     private codingAssistant: CodingAssistant;
 
-    private updatesChannel: any;
+    private taskId: string;
 
-    constructor(updatesChannel: any) {
+    constructor(taskId: string) {
         this.specificationsAssistant = new SpecificationsAssistant();
         this.plannerAssistant = new PlannerAssistant();
         this.codingAssistant = new CodingAssistant();
 
-        this.updatesChannel = updatesChannel;
+        this.taskId = taskId;
     }
 
     async runWorkflow(
@@ -27,8 +28,8 @@ export class GenerateCode {
         // track start time
         const startTime = new Date().getTime();
 
-        await this.updatesChannel.publish("overall", "Generating specifications...");
-        await this.updatesChannel.publish("overall", ">SAS"); // this is a system command: Specifications Assistant Started
+        sendTaskUpdate(this.taskId, "start", { assistant: "specifications" });
+        sendTaskUpdate(this.taskId, "progress", "Generating specifications...");
 
         // generate specifications
         const specs = await this.specificationsAssistant.process({
@@ -43,10 +44,10 @@ export class GenerateCode {
         }
 
         await this.emitMetrics(specs);
-        await this.updatesChannel.publish("specifications", specs);
+        sendTaskUpdate(this.taskId, "complete", { assistant: "specifications", response: specs });
 
-        await this.updatesChannel.publish("overall", "Generating implementation plan...");
-        await this.updatesChannel.publish("overall", ">IPAS"); // this is a system command: Implementation Plan Assistant Started
+        sendTaskUpdate(this.taskId, "start", { assistant: "planning" });
+        sendTaskUpdate(this.taskId, "progress", "Generating implementation plan...");
 
         // generate plan
         const plan = await this.plannerAssistant.process({
@@ -64,10 +65,10 @@ export class GenerateCode {
         }
 
         await this.emitMetrics(plan);
-        await this.updatesChannel.publish("implementationplan", plan);
+        sendTaskUpdate(this.taskId, "complete", { assistant: "planning", response: plan });
 
-        await this.updatesChannel.publish("overall", "Generating code...");
-        await this.updatesChannel.publish("overall", ">GC"); // this is a system command: Generating Code
+        sendTaskUpdate(this.taskId, "start", { assistant: "code" });
+        sendTaskUpdate(this.taskId, "progress", "Generating code...");
 
         // generate code
         const code = await this.codingAssistant.process({
@@ -85,32 +86,27 @@ export class GenerateCode {
         }
 
         await this.emitMetrics(code);
-        // await this.updatesChannel.publish("generatedcode", code);
+        sendTaskUpdate(this.taskId, "complete", { assistant: "code", response: code });
 
         // calculate total cost
         const totalCost = specs.cost + plan.cost + code.cost;
-        await this.updatesChannel.publish("overall", `Total Cost: $${totalCost.toFixed(6)}`);
+        sendTaskUpdate(this.taskId, "progress", `Total Cost: $${totalCost.toFixed(6)}`);
 
         // report time taken
         const endTime = new Date().getTime();
-        await this.updatesChannel.publish(
-            "overall",
-            `Time taken: ${displayTime(startTime, endTime)}`
-        );
+        sendTaskUpdate(this.taskId, "progress", `Time taken: ${displayTime(startTime, endTime)}`);
 
         return code;
     }
 
     private async emitMetrics(result: AIAssistantResponse<any>) {
-        await this.updatesChannel.publish(
-            "overall",
+        sendTaskUpdate(
+            this.taskId,
+            "progress",
             `*Approximated tokens: ${result.calculatedTokens.toFixed(0)}`
         );
-        await this.updatesChannel.publish("overall", `*Actual Input tokens: ${result.inputTokens}`);
-        await this.updatesChannel.publish(
-            "overall",
-            `*Actual Output tokens: ${result.outputTokens}`
-        );
-        await this.updatesChannel.publish("overall", `*Cost: $${result.cost.toFixed(6)}`);
+        sendTaskUpdate(this.taskId, "progress", `*Actual Input tokens: ${result.inputTokens}`);
+        sendTaskUpdate(this.taskId, "progress", `*Actual Output tokens: ${result.outputTokens}`);
+        sendTaskUpdate(this.taskId, "progress", `*Cost: $${result.cost.toFixed(6)}`);
     }
 }
