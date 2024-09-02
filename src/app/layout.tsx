@@ -16,12 +16,12 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en" suppressHydrationWarning data-theme="light">
             <meta
                 name="viewport"
                 content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
             ></meta>
-            <body className={inter.className}>
+            <body className={`${inter.className} bg-[rgb(var(--background-rgb))] text-[rgb(var(--foreground-rgb))]`}>
                 <Header />
                 {children}
             </body>
