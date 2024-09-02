@@ -6,6 +6,11 @@
     --foreground-rgb: 0, 0, 0;
     --background-start-rgb: 214, 219, 220;
     --background-end-rgb: 255, 255, 255;
+    --card-background: 255, 255, 255;
+    --card-border: 229, 231, 235;
+    --text-primary: 31, 41, 55;
+    --text-secondary: 107, 114, 128;
+    --accent-color: 13, 148, 136;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -13,6 +18,11 @@
         --foreground-rgb: 255, 255, 255;
         --background-start-rgb: 0, 0, 0;
         --background-end-rgb: 0, 0, 0;
+        --card-background: 31, 41, 55;
+        --card-border: 75, 85, 99;
+        --text-primary: 229, 231, 235;
+        --text-secondary: 156, 163, 175;
+        --accent-color: 45, 212, 191;
     }
 }
 
@@ -26,9 +36,43 @@
     animation: blink 1s step-start infinite;
 }
 
-/* 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb)))
-      rgb(var(--background-start-rgb));
-} */
+  color: rgb(var(--text-primary));
+  background: rgb(var(--background-start-rgb));
+}
+
+.bg-white {
+  background-color: rgb(var(--card-background));
+}
+
+.text-gray-800 {
+  color: rgb(var(--text-primary));
+}
+
+.text-gray-700 {
+  color: rgb(var(--text-secondary));
+}
+
+.text-gray-600 {
+  color: rgb(var(--text-secondary));
+}
+
+.border-gray-300 {
+  border-color: rgb(var(--card-border));
+}
+
+.bg-gray-100 {
+  background-color: rgba(var(--card-background), 0.5);
+}
+
+.bg-gray-50 {
+  background-color: rgba(var(--card-background), 0.3);
+}
+
+.bg-teal-700 {
+  background-color: rgb(var(--accent-color));
+}
+
+.hover\:bg-teal-600:hover {
+  background-color: rgba(var(--accent-color), 0.9);
+}
