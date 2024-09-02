@@ -12,6 +12,7 @@ Earnest AI Dev is a project designed to empower developers at Earnest by leverag
 - [Installation and Setup](#installation-and-setup)
 - [Running the Project](#running-the-project)
 - [Environment Example File](#environment-example-file)
+- [Dark Mode Support](#dark-mode-support)
 
 ## Environment Variables
 
@@ -93,3 +94,47 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 NEXT_PUBLIC_ABLY_API_KEY=your_ably_api_key
 ```
+
+## Dark Mode Support
+
+This project now includes support for dark mode, which is automatically applied based on the user's system preferences.
+
+### CSS Variables
+
+The following CSS variables have been introduced to support dark mode:
+
+```css
+:root {
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 214, 219, 220;
+    --background-end-rgb: 255, 255, 255;
+    --card-background: 255, 255, 255;
+    --card-border: 229, 231, 235;
+    --text-primary: 31, 41, 55;
+    --text-secondary: 107, 114, 128;
+    --accent-color: 13, 148, 136;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --foreground-rgb: 255, 255, 255;
+        --background-start-rgb: 0, 0, 0;
+        --background-end-rgb: 0, 0, 0;
+        --card-background: 31, 41, 55;
+        --card-border: 75, 85, 99;
+        --text-primary: 229, 231, 235;
+        --text-secondary: 156, 163, 175;
+        --accent-color: 45, 212, 191;
+    }
+}
+```
+
+These variables are used throughout the application to ensure consistent theming in both light and dark modes.
+
+### Implementation
+
+The dark mode is implemented using the `prefers-color-scheme` media query in CSS and JavaScript. The layout component (`src/app/layout.tsx`) listens for changes in the system's color scheme preference and applies the appropriate class to the body element.
+
+Components have been updated to use these CSS variables instead of hardcoded color values, ensuring they adapt to the current color scheme.
+
+To test the dark mode, you can change your system's color scheme settings or use browser developer tools to emulate different color scheme preferences.

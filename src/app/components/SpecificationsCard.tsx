@@ -64,16 +64,6 @@ const SpecificationsCard = ({
                             onClick={() => toggleAccordion(index)}
                         >
                             <h3 className="font-regular text-gray-700">{spec.title}</h3>
-                            {/* <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleEditable(index);
-                                }}
-                                disabled={!isOpen[index]}
-                                className="bg-gray-600 text-white px-2 py-1 rounded text-xs hover:bg-gray-500 transition disabled:bg-gray-400"
-                            >
-                                {isEditable[index] ? "Save" : "Edit"}
-                            </button> */}
                         </div>
                         {isOpen[index] && (
                             <div className="p-4 space-y-4">
