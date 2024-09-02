@@ -9,11 +9,10 @@ import AssistantWorkspace from "../components/AssistantWorkspace";
 import ProgressFeed from "../components/ProgressFeed";
 import { AnimatePresence, motion } from "framer-motion";
 import CodeViewer from "../components/CodeViewer";
+import { AssistantState, AssistantStates, useAssistantStates } from "./useAssistantStates";
 
 const PullRequest: React.FC = () => {
     const params = useSearchParams();
-
-    const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
 
     const [taskId, setTaskId] = useState("");
 
@@ -44,22 +43,6 @@ const PullRequest: React.FC = () => {
         useState<AIAssistantResponse<CodeChanges> | null>(null);
     const [generatedCode, setGeneratedCode] = useState<CodeChanges | null>(null);
 
-    const [assistantStates, setAssistantStates] = useState({
-        specifications: "idle",
-        planning: "idle",
-        code: "idle",
-        PR: "idle",
-    });
-
-    const resetAssistantStates = () => {
-        setAssistantStates({
-            specifications: "idle",
-            planning: "idle",
-            code: "idle",
-            PR: "idle",
-        });
-    };
-
     const availableModels = [
         LLM_MODELS.OPENAI_GPT_4O,
         LLM_MODELS.OPENAI_GPT_4O_MINI,
@@ -67,17 +50,90 @@ const PullRequest: React.FC = () => {
         LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
     ];
 
+    const { assistantStates, resetAssistantStates, updateAssistantState } = useAssistantStates();
+
+    const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
+
+    // Create a pull request
+    const createPullRequest = async (
+        taskId: string,
+        owner: string,
+        repo: string,
+        branch: string,
+        description: string,
+        selectedModel: string,
+        generatedCode: CodeChanges,
+        implementationPlan: AIAssistantResponse<ImplementationPlan>,
+        excludedFiles: Set<string>
+    ) => {
+        const response = await fetch(`/api/pr`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                taskId,
+                owner,
+                repo,
+                branch,
+                description: description.trim(),
+                selectedModel,
+                prTitle: generatedCode?.title,
+                params: {
+                    implementationPlan,
+                    generatedCode: {
+                        ...generatedCodeResponse,
+                        response: {
+                            ...generatedCodeResponse?.response,
+                            newFiles: generatedCode?.newFiles?.filter(
+                                (file) => !excludedFiles.has(file.path)
+                            ),
+                            modifiedFiles: generatedCode?.modifiedFiles?.filter(
+                                (file) => !excludedFiles.has(file.path)
+                            ),
+                            deletedFiles: generatedCode?.deletedFiles?.filter(
+                                (file) => !excludedFiles.has(file.path)
+                            ),
+                        },
+                    },
+                },
+            }),
+        });
+
+        if (!response.ok) throw new Error("Failed to start task");
+        return response;
+    };
+
+    // Generate code
+    const generateCode = async (
+        taskId: string,
+        owner: string,
+        repo: string,
+        branch: string,
+        description: string,
+        selectedModel: string
+    ) => {
+        const response = await fetch(`/api/generate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                taskId,
+                owner,
+                repo,
+                branch,
+                description: description.trim(),
+                selectedModel,
+            }),
+        });
+
+        if (!response.ok) throw new Error("Failed to start task");
+        return response;
+    };
+
     useEffect(() => {
         setRepo(params.get("repo"));
         setBranch(params.get("branch"));
     }, [params]);
 
-    const updateAssistantState = (assistant: string, state: string) => {
-        setAssistantStates((prev) => ({ ...prev, [assistant]: state }));
-    };
-
     const handleAcceptChanges = async () => {
-        // prevent multiple clicks
         if (acceptedChanges) return;
 
         toggleCodeViewer();
@@ -85,87 +141,20 @@ const PullRequest: React.FC = () => {
         setAcceptedChanges(true);
 
         try {
-            // remove excluded files from code changes
-            const finalizedGeneratedCodeResponse = {
-                ...generatedCodeResponse,
-                response: {
-                    ...generatedCodeResponse?.response,
-                    newFiles: generatedCode?.newFiles?.filter(
-                        (file) => !excludedFiles.has(file.path)
-                    ),
-                    modifiedFiles: generatedCode?.modifiedFiles?.filter(
-                        (file) => !excludedFiles.has(file.path)
-                    ),
-                    deletedFiles: generatedCode?.deletedFiles?.filter(
-                        (file) => !excludedFiles.has(file.path)
-                    ),
-                },
-            };
-
-            const response = await fetch(`/api/pr`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    taskId,
-                    owner,
-                    repo,
-                    branch,
-                    description: description.trim(),
-                    selectedModel,
-                    prTitle: generatedCode?.title,
-                    params: {
-                        implementationPlan: implementationPlan,
-                        generatedCode: finalizedGeneratedCodeResponse,
-                    },
-                }),
-            });
-
-            if (!response.ok) throw new Error("Failed to start task");
-
-            const reader = response.body?.getReader();
-            if (!reader) {
-                throw new Error("Failed to get stream reader");
-            }
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                const lines = chunk.split("\n\n");
-
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        const data = JSON.parse(line.slice(6));
-
-                        if (data.type === "progress" || data.type === "error") {
-                            setProgress((prev) => [...prev, data.message]);
-                        } else if (data.type == "start") {
-                            const { assistant } = data.message;
-                            if (assistant === "pr") {
-                                updateAssistantState("PR", "working");
-                            }
-                        } else if (data.type === "complete") {
-                            const { assistant, response } = data.message;
-                            if (assistant === "pr") {
-                                updateAssistantState("PR", "completed");
-                            }
-                        }
-
-                        if (data.type === "final") {
-                            setGeneratedPRLink(data.message.prLink);
-                            return; // close the connection
-                        }
-                    }
-                }
-            }
+            const response = await createPullRequest(
+                taskId,
+                owner,
+                repo!,
+                branch!,
+                description,
+                selectedModel,
+                generatedCode!,
+                implementationPlan!,
+                excludedFiles
+            );
+            await handleStreamResponse(response);
         } catch (error: any) {
-            console.error("Error creating pull request:", error);
-            setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
-            setProgress((prev) => [...prev, error.message]);
-
-            resetAssistantStates();
+            handleError(error, "Error creating pull request:");
         } finally {
             setIsCreating(false);
         }
@@ -173,6 +162,108 @@ const PullRequest: React.FC = () => {
 
     const handleCreatePullRequest = async () => {
         setIsCreating(true);
+        resetState();
+
+        try {
+            const newTaskId = Date.now().toString();
+            setTaskId(newTaskId);
+
+            const response = await generateCode(
+                newTaskId,
+                owner,
+                repo!,
+                branch!,
+                description,
+                selectedModel
+            );
+            await handleStreamResponse(response);
+        } catch (error: any) {
+            handleError(error, "Error creating pull request:");
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const handleStreamResponse = async (response: Response) => {
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("Failed to get stream reader");
+
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split("\n\n");
+
+            for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                    const data = JSON.parse(line.slice(6));
+                    handleResponseData(data);
+                }
+            }
+        }
+    };
+
+    const handleResponseData = (data: any) => {
+        switch (data.type) {
+            case "progress":
+            case "error":
+                handleProgressOrError(data);
+                break;
+            case "start":
+                updateAssistantState(data.message.assistant, AssistantState.Working);
+                break;
+            case "complete":
+                handleComplete(data, data.message.assistant);
+                break;
+            case "final":
+                handleFinal(data);
+                break;
+        }
+    };
+
+    const handleProgressOrError = (data: any) => {
+        if (data.message.startsWith("file:")) {
+            setCurrentFile(data.message.slice(5));
+        } else {
+            setProgress((prev) => [...prev, data.message]);
+        }
+    };
+
+    const handleComplete = (data: any, assistant: keyof AssistantStates) => {
+        const { response } = data.message;
+        switch (assistant) {
+            case "specifications":
+                setSpecifications(response);
+                break;
+            case "planning":
+                setImplementationPlan(response);
+                break;
+            case "code":
+                setGeneratedCodeResponse(response);
+                setGeneratedCode(response.response);
+                break;
+        }
+        updateAssistantState(assistant, AssistantState.Completed);
+    };
+
+    const handleFinal = (data: any) => {
+        if (data.message.prLink) {
+            setGeneratedPRLink(data.message.prLink);
+        } else {
+            setProgress((prev) => [...prev, data.message]);
+        }
+    };
+
+    const handleError = (error: Error, message: string) => {
+        console.error(message, error);
+        setProgress((prev) => [...prev, `${message} Please try again.`, error.message]);
+        resetAssistantStates();
+    };
+
+    const resetState = () => {
         setProgress([]);
         setCurrentFile("");
         setGeneratedPRLink(null);
@@ -183,94 +274,6 @@ const PullRequest: React.FC = () => {
         setGeneratedCode(null);
         setExcludedFiles(new Set());
         resetAssistantStates();
-
-        try {
-            // taskId to track the progress
-            const newTaskId = Date.now().toString();
-            setTaskId(newTaskId);
-
-            const response = await fetch(`/api/generate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    taskId: newTaskId,
-                    owner,
-                    repo,
-                    branch,
-                    description: description.trim(),
-                    selectedModel,
-                }),
-            });
-
-            if (!response.ok) throw new Error("Failed to start task");
-
-            const reader = response.body?.getReader();
-            if (!reader) {
-                throw new Error("Failed to get stream reader");
-            }
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                const lines = chunk.split("\n\n");
-
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        const data = JSON.parse(line.slice(6));
-
-                        if (data.type === "progress" || data.type === "error") {
-                            if (data.message.startsWith("file:")) {
-                                setCurrentFile(data.message.slice(5));
-                            } else {
-                                setProgress((prev) => [...prev, data.message]);
-                            }
-                        } else if (data.type == "start") {
-                            const { assistant } = data.message;
-                            if (assistant === "specifications") {
-                                updateAssistantState("specifications", "working");
-                            } else if (assistant === "planning") {
-                                updateAssistantState("planning", "working");
-                            } else if (assistant === "code") {
-                                updateAssistantState("code", "working");
-                            }
-                        } else if (data.type === "complete") {
-                            const { assistant, response } = data.message;
-                            if (assistant === "specifications") {
-                                setSpecifications(response);
-                                updateAssistantState("specifications", "completed");
-                            } else if (assistant === "planning") {
-                                setImplementationPlan(response);
-                                updateAssistantState("planning", "completed");
-                            } else if (assistant === "code") {
-                                setGeneratedCodeResponse(response);
-                                setGeneratedCode(response.response);
-                                updateAssistantState("code", "completed");
-                            }
-                        }
-
-                        if (data.type === "final") {
-                            setProgress((prev) => [...prev, data.message]);
-                            return; // close the connection
-                        }
-                    }
-                }
-            }
-        } catch (error: any) {
-            console.error("Error creating pull request:", error);
-            setProgress((prev) => [...prev, "Error creating pull request. Please try again."]);
-            setProgress((prev) => [...prev, error.message]);
-
-            resetAssistantStates();
-        } finally {
-            setIsCreating(false);
-        }
-    };
-
-    const handleDescriptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setDescription(event.target.value);
     };
 
     const toggleCodeViewer = () => {
@@ -280,6 +283,10 @@ const PullRequest: React.FC = () => {
 
     const toggleFullPageCode = () => {
         setIsFullPageCode(!isFullPageCode);
+    };
+
+    const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setDescription(e.target.value);
     };
 
     return (
