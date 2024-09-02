@@ -289,8 +289,17 @@ const PullRequest: React.FC = () => {
         setDescription(e.target.value);
     };
 
+    const toggleDarkMode = () => {
+        const html = document.querySelector('html');
+        if (html) {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-6">
+        <div className="min-h-screen bg-[rgb(var(--background-rgb))] py-8 px-6">
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Code Viewer Modal */}
@@ -308,7 +317,7 @@ const PullRequest: React.FC = () => {
                                     initial={{ scale: 0.9 }}
                                     animate={{ scale: 1 }}
                                     exit={{ scale: 0.9 }}
-                                    className={`bg-white rounded-lg shadow-xl ${
+                                    className={`bg-[rgb(var(--background-rgb))] rounded-lg shadow-xl ${
                                         isFullPageCode
                                             ? "fixed inset-0 m-0"
                                             : "max-w-6xl w-full max-h-[90vh]"
@@ -323,7 +332,7 @@ const PullRequest: React.FC = () => {
                                                 onChange={() => setShowDiff((prev) => !prev)}
                                                 className="form-checkbox h-5 w-5 text-teal-600"
                                             />
-                                            <span className="text-gray-800">Show Diff</span>
+                                            <span className="text-[rgb(var(--foreground-rgb))]">Show Diff</span>
                                         </label>
 
                                         <div>
@@ -338,7 +347,7 @@ const PullRequest: React.FC = () => {
                                             )}
                                             <button
                                                 onClick={toggleFullPageCode}
-                                                className="mr-2 text-gray-900 hover:bg-gray-200 bg-gray-100 p-2 rounded-lg"
+                                                className="mr-2 text-[rgb(var(--foreground-rgb))] hover:bg-gray-200 bg-gray-100 p-2 rounded-lg"
                                             >
                                                 {isFullPageCode
                                                     ? "Exit Full Screen"
@@ -346,7 +355,7 @@ const PullRequest: React.FC = () => {
                                             </button>
                                             <button
                                                 onClick={toggleCodeViewer}
-                                                className="text-gray-900 hover:bg-gray-200 p-2 rounded-lg bg-gray-100"
+                                                className="text-[rgb(var(--foreground-rgb))] hover:bg-gray-200 p-2 rounded-lg bg-gray-100"
                                             >
                                                 Close
                                             </button>
@@ -373,41 +382,41 @@ const PullRequest: React.FC = () => {
                     </AnimatePresence>
 
                     {/* Left column: Form */}
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-6">
+                    <div className="bg-[rgb(var(--background-rgb))] rounded-lg shadow p-6">
+                        <h2 className="text-xl font-semibold text-[rgb(var(--foreground-rgb))] mb-6">
                             Create New Pull Request
                         </h2>
                         <div className="space-y-4">
                             {/* Selected Repository and Branch */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-600">
+                                <label className="block text-sm font-medium text-[rgb(var(--foreground-rgb))]">
                                     Selected Repository
                                 </label>
                                 <input
                                     value={repo ?? ""}
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 bg-[rgb(var(--background-rgb))] text-[rgb(var(--foreground-rgb))]"
                                     disabled
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-600">
+                                <label className="block text-sm font-medium text-[rgb(var(--foreground-rgb))]">
                                     Selected Branch
                                 </label>
                                 <input
                                     value={branch ?? ""}
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 bg-[rgb(var(--background-rgb))] text-[rgb(var(--foreground-rgb))]"
                                     disabled
                                 />
                             </div>
 
                             {/* Task Description */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-600">
+                                <label className="block text-sm font-medium text-[rgb(var(--foreground-rgb))]">
                                     Task Description
                                 </label>
                                 <textarea
-                                    className="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    className="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-[rgb(var(--background-rgb))] text-[rgb(var(--foreground-rgb))]"
                                     rows={8}
                                     placeholder="Describe the task..."
                                     value={description}
@@ -418,13 +427,13 @@ const PullRequest: React.FC = () => {
 
                             {/* AI Model Selection */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-600">
+                                <label className="block text-sm font-medium text-[rgb(var(--foreground-rgb))]">
                                     AI Model
                                 </label>
                                 <select
                                     value={selectedModel}
                                     onChange={(e) => setSelectedModel(e.target.value)}
-                                    className="mt-1 block w-full border shadow-sm pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                    className="mt-1 block w-full border shadow-sm pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-[rgb(var(--background-rgb))] text-[rgb(var(--foreground-rgb))]"
                                     disabled={isCreating}
                                 >
                                     {availableModels.map((model) => (
@@ -448,7 +457,7 @@ const PullRequest: React.FC = () => {
                                 {generatedCode && !acceptedChanges && (
                                     <div className="mt-6 border-t pt-4">
                                         {/* add a spacer */}
-                                        <span className="text-gray-600 text-sm">
+                                        <span className="text-[rgb(var(--foreground-rgb))] text-sm">
                                             The code has been generated successfully
                                         </span>
                                         <button
@@ -463,7 +472,7 @@ const PullRequest: React.FC = () => {
                                 {generatedPRLink && (
                                     <div className="mt-6 border-t pt-4">
                                         {/* add a spacer */}
-                                        <span className="text-gray-600 text-sm">
+                                        <span className="text-[rgb(var(--foreground-rgb))] text-sm">
                                             The PR has been created successfully
                                         </span>
                                         <a
@@ -492,6 +501,13 @@ const PullRequest: React.FC = () => {
                     </div>
                 </div>
             </div>
+            {/* Dark Mode Toggle Button */}
+            <button
+                onClick={toggleDarkMode}
+                className="fixed bottom-4 right-4 bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
+            >
+                Toggle Dark Mode
+            </button>
         </div>
     );
 };
