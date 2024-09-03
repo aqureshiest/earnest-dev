@@ -64,15 +64,15 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
         prompt: string
     ): Promise<AIResponse | null> {
         // pick the ai model
-        const aiService =
-            model === LLM_MODELS.OPENAI_GPT_4O_MINI || model === LLM_MODELS.OPENAI_GPT_4O
-                ? new OpenAIService(model)
-                : new ClaudeAIService(model);
-
         // const aiService =
-        //     this.constructor.name == "CodingAssistant"
-        //         ? new ClaudeAIService()
-        //         : new OpenAIService();
+        //     model === LLM_MODELS.OPENAI_GPT_4O_MINI || model === LLM_MODELS.OPENAI_GPT_4O
+        //         ? new OpenAIService(model)
+        //         : new ClaudeAIService(model);
+
+        const aiService =
+            this.constructor.name == "CodingAssistant"
+                ? new ClaudeAIService(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET)
+                : new OpenAIService(LLM_MODELS.OPENAI_GPT_4O);
 
         // generate code
         const { response, inputTokens, outputTokens, cost } = await aiService.generateResponse(

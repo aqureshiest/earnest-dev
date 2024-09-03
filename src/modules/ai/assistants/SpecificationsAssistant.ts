@@ -83,6 +83,8 @@ Respond in the following format:
 </response_format_instructions>
 
 Now, using the task description and the existing code files, provide detailed specifications for the task in the specified XML format.
+
+<specifications>
 `;
     }
 

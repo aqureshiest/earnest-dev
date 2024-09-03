@@ -1,262 +1,169 @@
-"use client";
+import React from "react";
+import { Users, Code, GitPullRequest, GitCommit, Clock, Search, Briefcase } from "lucide-react";
 
-import React, { useState, useEffect } from "react";
-import { Octokit } from "@octokit/rest";
-import PRModal from "./components/PRModal";
-import { useRouter } from "next/navigation";
+const teamsData = [
+    {
+        id: 1,
+        name: "Frontend Team",
+        members: 15,
+        repositories: 12,
+        prMetrics: {
+            totalPRs: 230,
+            avgPRSize: 84,
+            mergeRate: 92,
+        },
+        avgTimeToMerge: "2d 4h",
+        commitFrequency: 18,
+        image: "https://cdn.usegalileo.ai/sdxl10/64eb679b-a0e8-463d-8916-f80414e74d81.png",
+    },
+    {
+        id: 2,
+        name: "Backend Team",
+        members: 12,
+        repositories: 15,
+        prMetrics: {
+            totalPRs: 180,
+            avgPRSize: 120,
+            mergeRate: 88,
+        },
+        avgTimeToMerge: "1d 18h",
+        commitFrequency: 22,
+        image: "https://cdn.usegalileo.ai/sdxl10/0cae1499-efb2-48fe-9944-2a9e95673b84.png",
+    },
+    {
+        id: 3,
+        name: "Mobile Team",
+        members: 8,
+        repositories: 10,
+        prMetrics: {
+            totalPRs: 150,
+            avgPRSize: 95,
+            mergeRate: 90,
+        },
+        avgTimeToMerge: "1d 12h",
+        commitFrequency: 15,
+        image: "https://cdn.usegalileo.ai/sdxl10/878f3c66-b13a-4985-958b-6cb15a837f94.png",
+    },
+    {
+        id: 4,
+        name: "Data Science Team",
+        members: 7,
+        repositories: 8,
+        prMetrics: {
+            totalPRs: 120,
+            avgPRSize: 150,
+            mergeRate: 85,
+        },
+        avgTimeToMerge: "2d 2h",
+        commitFrequency: 12,
+        image: "https://cdn.usegalileo.ai/sdxl10/2bd11d93-9e24-42f5-b5a7-f2964e935fc9.png",
+    },
+];
 
-interface PullRequest {
-    id: number;
-    title: string;
-    url: string;
-    user: {
-        login: string;
-    };
-    created_at: string;
-    state: string;
-}
-
-interface Repo {
-    name: string;
-}
-
-const Home: React.FC = () => {
-    const [repos, setRepos] = useState<Repo[]>([]);
-    const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
-    const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
-    const [branches, setBranches] = useState<string[]>([]);
-    const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const router = useRouter();
-
-    const octokit = new Octokit({ auth: process.env.NEXT_PUBLIC_GITHUB_TOKEN });
-
-    const fetchBranches = async () => {
-        if (!selectedRepo) return;
-
-        try {
-            const octokit = new Octokit({ auth: process.env.NEXT_PUBLIC_GITHUB_TOKEN });
-            const { data } = await octokit.repos.listBranches({
-                owner: process.env.NEXT_PUBLIC_GITHUB_OWNER!,
-                repo: selectedRepo,
-            });
-            setBranches(data.map((branch) => branch.name));
-            const mainBranch = data.find(
-                (branch) => branch.name === "main" || branch.name === "master"
-            );
-            setSelectedBranch(mainBranch ? mainBranch.name : data[0].name);
-        } catch (error) {
-            console.error("Error fetching branches:", error);
-        }
-    };
-
-    const fetchPullRequests = async () => {
-        if (!selectedRepo || !selectedBranch) return;
-
-        try {
-            const { data } = await octokit.pulls.list({
-                owner: process.env.NEXT_PUBLIC_GITHUB_OWNER!,
-                repo: selectedRepo!,
-                base: selectedBranch!,
-                state: "all",
-            });
-            setPullRequests(
-                data.map((pr: any) => ({
-                    id: pr.id,
-                    title: pr.title,
-                    url: pr.html_url,
-                    user: pr.user,
-                    created_at: pr.created_at,
-                    state: pr.state,
-                }))
-            );
-        } catch (error) {
-            console.error("Error fetching pull requests:", error);
-        }
-    };
-
-    // Fetch repositories on page load
-    useEffect(() => {
-        async function fetchRepos() {
-            try {
-                const { data } = await octokit.repos.listForAuthenticatedUser();
-                setRepos(data.map((repo: any) => ({ name: repo.name })));
-            } catch (error) {
-                console.error("Error fetching repositories:", error);
-            }
-        }
-
-        fetchRepos();
-    }, [octokit]);
-
-    // Fetch branches when a repository is selected
-    useEffect(() => {
-        if (!selectedRepo) return;
-
-        fetchBranches();
-    }, [selectedRepo]);
-
-    // Fetch pull requests when a repository is selected
-    useEffect(() => {
-        if (!selectedRepo || !selectedBranch) return;
-
-        console.log("Fetching pull requests...");
-
-        fetchPullRequests();
-    }, [selectedRepo, selectedBranch]);
-
-    const handleRepoChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedRepo(event.target.value);
-        setPullRequests([]);
-        setBranches([]);
-    };
-
-    const handleBranchChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedBranch(event.target.value);
-    };
-
-    const handleCreatePR = () => {
-        router.push(`/pullrequest?repo=${selectedRepo}&branch=${selectedBranch}`);
-    };
-
-    const openModal = () => setIsModalOpen(true);
-    const closeModal = () => {
-        setIsModalOpen(false);
-        // refresh branches
-        fetchBranches();
-        // refetch pull requests
-        fetchPullRequests();
-    };
-
+const HomePage = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-8 px-6">
-            <main className="max-w-7xl mx-auto">
-                <header className="flex justify-between items-center mb-6 text-gray-800">
-                    <h1 className="text-3xl font-bold">Pull Requests</h1>
-                    <div className="flex items-center gap-x-3">
-                        {/* <button
-                            className="bg-teal-600 text-white px-4 py-2 rounded-lg shadow hover:bg-teal-500 transition duration-150"
-                            onClick={openModal}
-                            disabled={!selectedRepo || !selectedBranch}
-                        >
-                            Create Pull Request
-                        </button> */}
-                        <button
-                            onClick={() => handleCreatePR()}
-                            className="bg-teal-600 text-white px-4 py-2 rounded-lg shadow hover:bg-teal-500 transition duration-150 disabled:opacity-50 disabled:hover:bg-teal-600"
-                            disabled={!selectedRepo || !selectedBranch}
-                        >
-                            Create Pull Request
-                        </button>
-                    </div>
+            <div className="max-w-7xl mx-auto">
+                <header className="flex items-center justify-end mb-4">
+                    <button className="bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition">
+                        Manage Teams
+                    </button>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 max-w-[800px]">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-600">
-                            Select Repository
-                        </label>
-                        <select
-                            value={selectedRepo ?? ""}
-                            onChange={handleRepoChange}
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        >
-                            <option value="" disabled>
-                                Select a repository...
-                            </option>
-                            {repos.map((repo) => (
-                                <option key={repo.name} value={repo.name}>
-                                    {repo.name}
-                                </option>
-                            ))}
-                        </select>
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                    <h1 className="text-2xl font-semibold text-gray-800 mb-2">Engineering teams</h1>
+                    <p className="text-gray-600 mb-4">
+                        Explore the different engineering teams and their repositories
+                    </p>
+
+                    <div className="mb-6">
+                        <div className="relative">
+                            <Search
+                                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                                size={20}
+                            />
+                            <input
+                                placeholder="Search for a team by name"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"
+                            />
+                        </div>
                     </div>
 
-                    {selectedRepo && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-600">
-                                Select Branch
-                            </label>
-                            <select
-                                value={selectedBranch ?? ""}
-                                onChange={handleBranchChange}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                        {[
+                            { label: "Active PRs", value: 45, icon: GitPullRequest },
+                            { label: "Avg PR Review Time", value: "1d 4h", icon: Clock },
+                            { label: "Recent Commits", value: 287, icon: GitCommit },
+                        ].map((item, index) => (
+                            <div
+                                key={index}
+                                className="bg-gray-50 rounded-lg p-4 flex items-center space-x-4"
                             >
-                                {branches.map((branch) => (
-                                    <option key={branch} value={branch}>
-                                        {branch}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-                </div>
+                                <item.icon className="text-teal-600" size={24} />
+                                <div>
+                                    <p className="text-2xl font-bold text-gray-800">{item.value}</p>
+                                    <p className="text-sm text-gray-600">{item.label}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Title
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Author
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Date Created
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {pullRequests.map((pr) => (
-                                <tr key={pr.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <a
-                                            href={pr.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-500 hover:underline"
-                                        >
-                                            {pr.title}
-                                        </a>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{pr.user.login}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {new Date(pr.created_at).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                pr.state === "open"
-                                                    ? "bg-teal-100 text-teal-800"
-                                                    : "bg-red-100 text-red-800"
-                                            }`}
-                                        >
-                                            {pr.state}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {teamsData.map((team) => (
+                            <div
+                                key={team.id}
+                                className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:bg-gray-50 hover:cursor-pointer"
+                            >
+                                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-teal-50">
+                                    <div className="flex items-center space-x-3">
+                                        <div
+                                            className="w-10 h-10 rounded-full bg-cover bg-center"
+                                            style={{ backgroundImage: `url(${team.image})` }}
+                                        />
+                                        <div className="flex items-center space-x-2">
+                                            {/* <Briefcase className="text-gray-400" size={16} /> */}
+                                            <h3 className="text-lg font-semibold text-gray-800">
+                                                {team.name}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center text-gray-600">
+                                        <Users size={16} className="mr-1" />
+                                        <span>{team.members}</span>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 divide-x divide-gray-200">
+                                    <MetricItem
+                                        icon={Code}
+                                        label="Repos"
+                                        value={team.repositories}
+                                    />
+                                    <MetricItem
+                                        icon={GitPullRequest}
+                                        label="PRs"
+                                        value={team.prMetrics.totalPRs}
+                                    />
+                                    <MetricItem
+                                        icon={GitCommit}
+                                        label="Commits/day"
+                                        value={team.commitFrequency}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-
-                {selectedRepo && selectedBranch && (
-                    <PRModal
-                        isOpen={isModalOpen}
-                        onRequestClose={closeModal}
-                        owner={process.env.NEXT_PUBLIC_GITHUB_OWNER!}
-                        repo={selectedRepo}
-                        branch={selectedBranch}
-                    />
-                )}
-            </main>
+            </div>
         </div>
     );
 };
 
-export default Home;
+const MetricItem = ({ icon: Icon, label, value }) => (
+    <div className="flex flex-col items-center justify-center p-4">
+        <Icon className="text-teal-600 mb-2" size={20} />
+        <p className="text-xl font-semibold text-gray-800">{value}</p>
+        <p className="text-sm text-gray-600">{label}</p>
+    </div>
+);
+
+export default HomePage;

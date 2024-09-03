@@ -30,6 +30,9 @@ export class OpenAIService {
                 temperature: 0,
             });
 
+            console.log("completion >>", completion);
+            console.log("completion.choices >>", JSON.stringify(completion.choices, null, 2));
+
             const response = completion.choices[0]?.message?.content?.trim();
             if (!response) {
                 throw new Error("No response generated.");

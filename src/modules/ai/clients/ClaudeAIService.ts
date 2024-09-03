@@ -36,6 +36,9 @@ export class ClaudeAIService {
                 }
             );
 
+            console.log("completion >>", completion);
+            console.log("completion.choices >>", JSON.stringify(completion.content, null, 2));
+
             const response =
                 completion.content[0]?.type == "text" ? completion.content[0].text : "";
             if (!response) {
