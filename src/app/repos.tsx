@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Octokit } from "@octokit/rest";
-import PRModal from "./components/PRModal";
 import { useRouter } from "next/navigation";
 
 interface PullRequest {
@@ -244,16 +243,6 @@ const Home: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-
-                {selectedRepo && selectedBranch && (
-                    <PRModal
-                        isOpen={isModalOpen}
-                        onRequestClose={closeModal}
-                        owner={process.env.NEXT_PUBLIC_GITHUB_OWNER!}
-                        repo={selectedRepo}
-                        branch={selectedBranch}
-                    />
-                )}
             </main>
         </div>
     );

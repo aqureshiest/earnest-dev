@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Octokit } from "@octokit/rest";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Users, Search, Plus, Edit2, Trash2, ArrowLeft, Github, X } from "lucide-react";
+import { Users, Search, Plus, Edit2, Trash2, ArrowLeft, Code, Computer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -17,17 +17,26 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 
 const octokit = new Octokit({ auth: process.env.NEXT_PUBLIC_GITHUB_TOKEN });
 
 const TeamManagementPage = () => {
     const [teams, setTeams] = useState([]);
     const [newTeam, setNewTeam] = useState({ name: "", description: "" });
-    const [repositories, setRepositories] = useState([]);
+    const [repositories, setRepositories] = useState<any>([]);
     const [searchRepo, setSearchRepo] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [editingTeam, setEditingTeam] = useState(null);
     const [teamToDelete, setTeamToDelete] = useState(null);
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
 
     useEffect(() => {
         fetchRepositories();
@@ -37,11 +46,12 @@ const TeamManagementPage = () => {
         setIsLoading(true);
         try {
             const response = await octokit.repos.listForAuthenticatedUser();
+            console.log("response >>", response);
             setRepositories(
                 response.data.map((repo) => ({
-                    id: repo.id.toString(),
-                    name: repo.name,
-                    description: repo.description,
+                    id: repo.id.toString() || "",
+                    name: repo.name || "",
+                    description: repo.description || "",
                 }))
             );
         } catch (error) {
@@ -64,12 +74,14 @@ const TeamManagementPage = () => {
                 setTeams([...teams, { ...newTeam, id: Date.now().toString(), repositories: [] }]);
             }
             setNewTeam({ name: "", description: "" });
+            setIsSheetOpen(false);
         }
     };
 
     const handleEditTeam = (team) => {
         setEditingTeam(team);
         setNewTeam({ name: team.name, description: team.description });
+        setIsSheetOpen(true);
     };
 
     const handleDeleteTeam = (team) => {
@@ -87,6 +99,7 @@ const TeamManagementPage = () => {
 
     const onDragEnd = (result) => {
         const { source, destination } = result;
+        console.log("result >>", result);
 
         if (!destination) return;
 
@@ -119,84 +132,82 @@ const TeamManagementPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <header className="flex items-center justify-between mb-8">
                         <h1 className="text-2xl font-semibold text-gray-800">Manage Teams</h1>
-                        <Button variant="outline">
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-                        </Button>
+                        <div className="flex space-x-4">
+                            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                                <SheetTrigger asChild>
+                                    <Button>
+                                        <Plus className="mr-2 h-4 w-4" /> Create New Team
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent>
+                                    <SheetHeader>
+                                        <SheetTitle>
+                                            {editingTeam ? "Edit Team" : "Create New Team"}
+                                        </SheetTitle>
+                                        <SheetDescription>
+                                            {editingTeam
+                                                ? "Edit the team details below."
+                                                : "Enter the details for the new team."}
+                                        </SheetDescription>
+                                    </SheetHeader>
+                                    <form
+                                        onSubmit={(e) => {
+                                            e.preventDefault();
+                                            handleCreateTeam();
+                                        }}
+                                        className="space-y-4 mt-4"
+                                    >
+                                        <div>
+                                            <label
+                                                htmlFor="teamName"
+                                                className="block text-sm font-medium text-gray-700"
+                                            >
+                                                Team Name
+                                            </label>
+                                            <Input
+                                                id="teamName"
+                                                value={newTeam.name}
+                                                onChange={(e) =>
+                                                    setNewTeam({ ...newTeam, name: e.target.value })
+                                                }
+                                                placeholder="Enter team name"
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label
+                                                htmlFor="teamDescription"
+                                                className="block text-sm font-medium text-gray-700"
+                                            >
+                                                Description
+                                            </label>
+                                            <Input
+                                                id="teamDescription"
+                                                value={newTeam.description}
+                                                onChange={(e) =>
+                                                    setNewTeam({
+                                                        ...newTeam,
+                                                        description: e.target.value,
+                                                    })
+                                                }
+                                                placeholder="Enter team description"
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                        <Button type="submit" className="w-full">
+                                            {editingTeam ? "Update Team" : "Create Team"}
+                                        </Button>
+                                    </form>
+                                </SheetContent>
+                            </Sheet>
+                            <Button variant="outline">
+                                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+                            </Button>
+                        </div>
                     </header>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <Card>
-                            <CardHeader>
-                                <h2 className="text-xl font-semibold text-gray-800">
-                                    {editingTeam ? "Edit Team" : "Create New Team"}
-                                </h2>
-                            </CardHeader>
-                            <CardContent>
-                                <form
-                                    onSubmit={(e) => {
-                                        e.preventDefault();
-                                        handleCreateTeam();
-                                    }}
-                                    className="space-y-4"
-                                >
-                                    <div>
-                                        <label
-                                            htmlFor="teamName"
-                                            className="block text-sm font-medium text-gray-700"
-                                        >
-                                            Team Name
-                                        </label>
-                                        <Input
-                                            id="teamName"
-                                            value={newTeam.name}
-                                            onChange={(e) =>
-                                                setNewTeam({ ...newTeam, name: e.target.value })
-                                            }
-                                            placeholder="Enter team name"
-                                            className="mt-1"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label
-                                            htmlFor="teamDescription"
-                                            className="block text-sm font-medium text-gray-700"
-                                        >
-                                            Description
-                                        </label>
-                                        <Input
-                                            id="teamDescription"
-                                            value={newTeam.description}
-                                            onChange={(e) =>
-                                                setNewTeam({
-                                                    ...newTeam,
-                                                    description: e.target.value,
-                                                })
-                                            }
-                                            placeholder="Enter team description"
-                                            className="mt-1"
-                                        />
-                                    </div>
-                                    <Button type="submit" className="w-full">
-                                        {editingTeam ? "Update Team" : "Create Team"}
-                                    </Button>
-                                    {editingTeam && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={() => {
-                                                setEditingTeam(null);
-                                                setNewTeam({ name: "", description: "" });
-                                            }}
-                                        >
-                                            Cancel Edit
-                                        </Button>
-                                    )}
-                                </form>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <Card className="md:col-span-1">
                             <CardHeader>
                                 <h2 className="text-xl font-semibold text-gray-800">
                                     GitHub Repositories
@@ -224,7 +235,7 @@ const TeamManagementPage = () => {
                                                 <ul
                                                     {...provided.droppableProps}
                                                     ref={provided.innerRef}
-                                                    className="space-y-2 max-h-96 overflow-y-auto"
+                                                    className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto"
                                                 >
                                                     {filteredRepositories.map((repo, index) => (
                                                         <Draggable
@@ -239,7 +250,7 @@ const TeamManagementPage = () => {
                                                                     {...provided.dragHandleProps}
                                                                     className="bg-white p-3 rounded-md shadow-sm flex items-center space-x-3 hover:bg-gray-50"
                                                                 >
-                                                                    <Github
+                                                                    <Code
                                                                         size={20}
                                                                         className="text-gray-500"
                                                                     />
@@ -264,8 +275,7 @@ const TeamManagementPage = () => {
                             </CardContent>
                         </Card>
 
-                        <div className="space-y-6">
-                            <h2 className="text-xl font-semibold text-gray-800">Existing Teams</h2>
+                        <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {teams.map((team) => (
                                 <Droppable key={team.id} droppableId={team.id}>
                                     {(provided) => (
@@ -294,11 +304,9 @@ const TeamManagementPage = () => {
                                                 </div>
                                             </CardHeader>
                                             <CardContent>
-                                                <p className="text-gray-600 mb-4">
-                                                    {team.description}
-                                                </p>
+                                                <p className="text-gray-600">{team.description}</p>
                                                 <div className="flex items-center text-gray-600 mb-2">
-                                                    <Users size={16} className="mr-2" />
+                                                    <Computer size={16} className="mr-2" />
                                                     <span>
                                                         {team.repositories.length} Repositories
                                                     </span>

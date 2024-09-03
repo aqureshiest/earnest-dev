@@ -74,3 +74,18 @@ interface AIResponse {
     outputTokens: number;
     cost: number;
 }
+
+// teams types
+
+interface Team {
+    id: string;
+    name: string;
+    repos: TeamRepo[];
+}
+
+interface TeamRepo {
+    id: number;
+    teamId: number;
+    owner: string;
+    repo: string;
+}

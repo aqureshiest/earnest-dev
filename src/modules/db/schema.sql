@@ -66,3 +66,18 @@ CREATE TABLE IF NOT EXISTS BranchCommits (
     commitHash TEXT NOT NULL,
     UNIQUE (owner, repo, ref)
 );
+
+-- 004_create_teams_table.sql
+CREATE TABLE IF NOT EXISTS Teams (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+);
+
+-- 005_create_team_repos_table.sql
+CREATE TABLE IF NOT EXISTS TeamRepos (
+    id SERIAL PRIMARY KEY,
+    teamId INT NOT NULL,
+    owner TEXT NOT NULL,
+    repo TEXT NOT NULL,
+    UNIQUE (teamId, owner, repo)
+);
