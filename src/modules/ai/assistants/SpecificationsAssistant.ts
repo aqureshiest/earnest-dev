@@ -105,20 +105,26 @@ Now, using the task description and the existing code files, provide detailed sp
             options
         ) as any;
 
-        // Flatten the data into the final format
-        const specifications: Specifications = parsedData.specifications.specification.map(
-            (spec: any) => ({
-                title: spec.title,
-                summary: spec.thoughts,
-                key_steps: Array.isArray(spec.key_steps?.step)
-                    ? spec.key_steps.step
-                    : [spec.key_steps.step],
-                // considerations: Array.isArray(spec.considerations?.consideration)
-                //     ? spec.considerations.consideration
-                //     : [spec.considerations.consideration],
-            })
-        );
+        try {
+            // Flatten the data into the final format
+            const specifications: Specifications = parsedData.specifications.specification.map(
+                (spec: any) => ({
+                    title: spec.title,
+                    summary: spec.thoughts,
+                    key_steps: Array.isArray(spec.key_steps?.step)
+                        ? spec.key_steps.step
+                        : [spec.key_steps.step],
+                    // considerations: Array.isArray(spec.considerations?.consideration)
+                    //     ? spec.considerations.consideration
+                    //     : [spec.considerations.consideration],
+                })
+            );
 
-        return specifications;
+            return specifications;
+        } catch (error: any) {
+            console.error("Error parsing specifications", error);
+            console.error("Parsed data", JSON.stringify(parsedData, null, 2));
+            throw new Error(error);
+        }
     }
 }

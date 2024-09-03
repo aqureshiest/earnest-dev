@@ -117,18 +117,25 @@ Now, using the task description, existing code files, and specifications generat
             options
         ) as any;
 
-        const plan: ImplementationPlan = {
-            steps: parsedData.implementation_plan.step.map((step: any) => ({
-                title: step.title,
-                thoughts: step.thoughts,
-                files: step.files.file.map((file: any) => ({
-                    path: file.path,
-                    operation: file.operation,
-                    todos: file.todos.todo,
+        try {
+            const plan: ImplementationPlan = {
+                steps: parsedData.implementation_plan.step.map((step: any) => ({
+                    title: step.title,
+                    thoughts: step.thoughts,
+                    files:
+                        step.files.file?.map((file: any) => ({
+                            path: file.path,
+                            operation: file.operation,
+                            todos: file.todos.todo,
+                        })) || [],
                 })),
-            })),
-        };
+            };
 
-        return plan;
+            return plan;
+        } catch (error: any) {
+            console.error("Error parsing implementation plan", error);
+            console.error("Parsed data", JSON.stringify(parsedData, null, 2));
+            throw new Error(error);
+        }
     }
 }

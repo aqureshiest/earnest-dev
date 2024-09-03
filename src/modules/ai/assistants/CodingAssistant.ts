@@ -134,27 +134,33 @@ Now, using the task description, existing code files, and implementation plan ge
             options
         ) as any;
 
-        // Normalize the parsed data
-        const codeChanges: CodeChanges = {
-            title: parsedData.code_changes.title,
-            newFiles:
-                parsedData.code_changes.new_files?.file?.map((file: any) => ({
-                    path: file.path,
-                    thoughts: file.thoughts,
-                    content: file.content.trim(),
-                })) || [],
-            modifiedFiles:
-                parsedData.code_changes.modified_files?.file?.map((file: any) => ({
-                    path: file.path,
-                    thoughts: file.thoughts,
-                    content: file.content.trim(),
-                })) || [],
-            deletedFiles:
-                parsedData.code_changes.deleted_files?.file?.map((file: any) => ({
-                    path: file.path,
-                })) || [],
-        };
+        try {
+            // Normalize the parsed data
+            const codeChanges: CodeChanges = {
+                title: parsedData.code_changes.title,
+                newFiles:
+                    parsedData.code_changes.new_files?.file?.map((file: any) => ({
+                        path: file.path,
+                        thoughts: file.thoughts,
+                        content: file.content.trim(),
+                    })) || [],
+                modifiedFiles:
+                    parsedData.code_changes.modified_files?.file?.map((file: any) => ({
+                        path: file.path,
+                        thoughts: file.thoughts,
+                        content: file.content.trim(),
+                    })) || [],
+                deletedFiles:
+                    parsedData.code_changes.deleted_files?.file?.map((file: any) => ({
+                        path: file.path,
+                    })) || [],
+            };
 
-        return codeChanges;
+            return codeChanges;
+        } catch (error: any) {
+            console.error("Error parsing code", error);
+            console.error("Parsed data", JSON.stringify(parsedData, null, 2));
+            throw new Error(error);
+        }
     }
 }
