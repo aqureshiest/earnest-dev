@@ -1,59 +1,77 @@
 import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2 } from "lucide-react";
 
-const ProgressFeed = ({ progress, currentFile }: { progress: any; currentFile: any }) => {
-    const messagesContainerRef = useRef<HTMLDivElement>(null);
+interface ProgressFeedProps {
+    progress: string[];
+    currentFile?: string;
+}
 
-    // Scroll to the bottom of the messages div whenever progress updates
-    const scrollToBottom = () => {
-        if (messagesContainerRef && messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
-    };
+const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile }) => {
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        scrollToBottom();
-    }, [progress]);
+        if (scrollAreaRef.current) {
+            const scrollElement = scrollAreaRef.current.querySelector(
+                "[data-radix-scroll-area-viewport]"
+            );
+            if (scrollElement) {
+                scrollElement.scrollTop = scrollElement.scrollHeight;
+            }
+        }
+    }, [progress, currentFile]);
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Progress Feed</h2>
-            <div className="h-60 overflow-y-auto" ref={messagesContainerRef}>
-                <AnimatePresence>
-                    {progress.map((message: any, index: number) => (
-                        <motion.div
-                            key={index}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className="mb-2 p-2 bg-gray-100 rounded"
-                        >
-                            <p className="text-sm text-gray-700">
-                                {message.startsWith("*") ? (
-                                    <span className="ml-4">• {message.slice(1)}</span>
-                                ) : (
-                                    message
-                                )}
-                            </p>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
+        <Card>
+            <CardHeader>
+                <CardTitle>Progress Feed</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-[240px] overflow-y-auto pr-4" ref={scrollAreaRef}>
+                    <AnimatePresence initial={false}>
+                        {progress.map((message, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.2 }}
+                                className="mb-2"
+                            >
+                                <div className="p-2 bg-muted rounded-md">
+                                    <p className="text-sm text-foreground">
+                                        {message.startsWith("*") ? (
+                                            <span className="ml-4 flex items-center">
+                                                <span className="mr-2 text-primary">•</span>
+                                                {message.slice(1)}
+                                            </span>
+                                        ) : (
+                                            message
+                                        )}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
 
-                {currentFile && (
-                    <div className="mb-2 p-2 bg-gray-100 rounded flex items-center">
-                        <motion.span
-                            className="mr-2"
-                            animate={{ opacity: [1, 0, 1] }}
-                            transition={{ repeat: Infinity, duration: 1 }}
+                    {currentFile && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="mb-2 p-2 bg-primary/10 rounded-md flex items-center"
                         >
-                            ●
-                        </motion.span>
-                        Processing: {currentFile}
-                    </div>
-                )}
-            </div>
-        </div>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+                            <span className="text-sm text-primary-foreground">
+                                Processing: {currentFile}
+                            </span>
+                        </motion.div>
+                    )}
+                </ScrollArea>
+            </CardContent>
+        </Card>
     );
 };
 

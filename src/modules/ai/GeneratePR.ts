@@ -22,7 +22,7 @@ export class GeneratePR {
             throw new Error("Implementation plan and generated code are required.");
         }
 
-        sendTaskUpdate(this.taskId, "start", { assistant: "pr" });
+        sendTaskUpdate(this.taskId, "start", { assistant: "PR" });
         sendTaskUpdate(this.taskId, "progress", "Generating PR...");
         // write PR description
         const prDescription = await this.writerAssistant.process({
@@ -36,7 +36,7 @@ export class GeneratePR {
             throw new Error("PR description not generated.");
         }
 
-        sendTaskUpdate(this.taskId, "complete", { assistant: "pr", response: "" });
+        sendTaskUpdate(this.taskId, "complete", { assistant: "PR", response: "" });
         await this.emitMetrics(prDescription);
 
         return prDescription;

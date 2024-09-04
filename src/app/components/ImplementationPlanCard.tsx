@@ -1,123 +1,107 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { LightbulbIcon, FileIcon } from "lucide-react";
+
+interface File {
+    path: string;
+    operation: string;
+    todos: string[];
+}
+
+interface Step {
+    title: string;
+    thoughts: string;
+    files: File[];
+}
+
+interface ImplementationPlan {
+    steps: Step[];
+}
+
+interface AIAssistantResponse<T> {
+    response: T;
+    cost: number;
+    inputTokens: number;
+    outputTokens: number;
+}
 
 const ImplementationPlanCard = ({
     implementationPlan,
 }: {
     implementationPlan: AIAssistantResponse<ImplementationPlan> | null;
 }) => {
-    const steps = (implementationPlan?.response?.steps || []) as Step[];
-
-    const [isOpen, setIsOpen] = useState(Array(steps.length).fill(false));
-    const [isEditing, setIsEditing] = useState(Array(steps.length).fill(false));
-
-    const toggleAccordion = (index: number) => {
-        setIsOpen((prevIsOpen) => {
-            const newIsOpen = [...prevIsOpen];
-            newIsOpen[index] = !newIsOpen[index];
-            return newIsOpen;
-        });
-    };
-
-    const toggleEditing = (index: number) => {
-        setIsEditing((prevIsEditing) => {
-            const newIsEditing = [...prevIsEditing];
-            newIsEditing[index] = !newIsEditing[index];
-            return newIsEditing;
-        });
-    };
+    const steps = implementationPlan?.response?.steps || [];
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-lg shadow p-6"
         >
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Implementation Plan</h2>
-                {implementationPlan && (
-                    <div className="text-xs text-right">
-                        <div className="text-gray-500">
-                            Cost: ${implementationPlan?.cost.toFixed(6)}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-xl font-bold">Implementation Plan</CardTitle>
+                    {implementationPlan && (
+                        <div className="text-xs text-muted-foreground">
+                            <div>Cost: ${implementationPlan.cost.toFixed(6)}</div>
+                            <div>Input Tokens: {implementationPlan.inputTokens}</div>
+                            <div>Output Tokens: {implementationPlan.outputTokens}</div>
                         </div>
-                        <div className="text-gray-500">
-                            Input Tokens: {implementationPlan?.inputTokens}
-                        </div>
-                        <div className="text-gray-500">
-                            Output Tokens: {implementationPlan?.outputTokens}
-                        </div>
-                    </div>
-                )}
-            </div>
-            <div className="space-y-4">
-                {steps.map((item, index) => (
-                    <motion.div
-                        key={index}
-                        initial={false}
-                        animate={{ height: isOpen[index] ? "auto" : 40 }}
-                        transition={{ duration: 0.3 }}
-                        className="border border-gray-300 rounded-md shadow-sm overflow-hidden"
-                    >
-                        <div
-                            className="bg-gray-100 px-4 py-2 cursor-pointer flex justify-between items-center"
-                            onClick={() => toggleAccordion(index)}
-                        >
-                            <h3 className="font-normal text-gray-700">{item.title}</h3>
-                            {/* <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleEditing(index);
-                                }}
-                                className="bg-gray-600 text-white px-2 py-1 rounded text-xs hover:bg-gray-500 transition disabled:bg-gray-400"
-                                disabled={!isOpen[index]}
-                            >
-                                {isEditing[index] ? "Save" : "Edit"}
-                            </button> */}
-                        </div>
-                        {isOpen[index] && (
-                            <div className="p-4 space-y-4">
-                                <div>
-                                    <h4 className="text-sm font-semibold text-gray-600 flex items-center">
-                                        <span className="mr-2">💡</span> Thoughts
-                                    </h4>
-                                    <textarea
-                                        className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                        rows={2}
-                                        value={item.thoughts}
-                                        disabled={!isEditing[index]}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    {item.files.map((file, fileIndex) => (
-                                        <motion.div
-                                            key={fileIndex}
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ duration: 0.3 }}
-                                            className="space-y-2"
-                                        >
-                                            <div className="font-medium text-gray-700 flex items-center">
-                                                <span className="mr-2">📄</span>
-                                                {file.path}{" "}
-                                                <span className="font-normal text-sm ml-2">
-                                                    ({file.operation})
-                                                </span>
+                    )}
+                </CardHeader>
+                <CardContent>
+                    <Accordion type="single" collapsible className="w-full">
+                        {steps.map((step, index) => (
+                            <AccordionItem key={index} value={`item-${index}`}>
+                                <AccordionTrigger className="hover:no-underline">
+                                    <span className="text-base font-medium">{step.title}</span>
+                                </AccordionTrigger>
+                                <AccordionContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center text-sm font-medium">
+                                            <LightbulbIcon className="mr-2 h-4 w-4" />
+                                            Thoughts
+                                        </Label>
+                                        <Textarea
+                                            value={step.thoughts}
+                                            readOnly
+                                            className="min-h-[80px] resize-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-4">
+                                        {step.files.map((file, fileIndex) => (
+                                            <div key={fileIndex} className="space-y-2">
+                                                <Label className="flex items-center text-sm font-medium">
+                                                    <FileIcon className="mr-2 h-4 w-4" />
+                                                    {file.path}
+                                                    <Badge variant="secondary" className="ml-2">
+                                                        {file.operation}
+                                                    </Badge>
+                                                </Label>
+                                                <Textarea
+                                                    value={file.todos.join("\n")}
+                                                    readOnly
+                                                    className="min-h-[120px] resize-none"
+                                                />
                                             </div>
-                                            <textarea
-                                                className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                                rows={file.todos.length}
-                                                value={file.todos.join("\n")}
-                                                disabled={!isEditing[index]}
-                                            />
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-                ))}
-            </div>
+                                        ))}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                </CardContent>
+            </Card>
         </motion.div>
     );
 };

@@ -9,15 +9,37 @@ import AssistantWorkspace from "../components/AssistantWorkspace";
 import ProgressFeed from "../components/ProgressFeed";
 import { AnimatePresence, motion } from "framer-motion";
 import CodeViewer from "../components/CodeViewer";
+
 import { AssistantState, AssistantStates, useAssistantStates } from "./useAssistantStates";
+
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Check, Code, View } from "lucide-react";
+import { Octokit } from "@octokit/rest";
+
+interface Repo {
+    name: string;
+}
 
 const PullRequest: React.FC = () => {
     const params = useSearchParams();
 
+    const [repos, setRepos] = useState<Repo[]>([]);
+    const [branches, setBranches] = useState<string[]>([]);
+
     const [taskId, setTaskId] = useState("");
 
-    const [repo, setRepo] = useState<string | null>(null);
-    const [branch, setBranch] = useState<string | null>(null);
+    const [repo, setRepo] = useState<string>("");
+    const [branch, setBranch] = useState<string>("");
     const [description, setDescription] = useState("");
 
     const [progress, setProgress] = useState<string[]>([]);
@@ -53,6 +75,46 @@ const PullRequest: React.FC = () => {
     const { assistantStates, resetAssistantStates, updateAssistantState } = useAssistantStates();
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
+    const octokit = new Octokit({ auth: process.env.NEXT_PUBLIC_GITHUB_TOKEN });
+
+    const fetchBranches = async () => {
+        if (!repo) return;
+
+        try {
+            const { data } = await octokit.repos.listBranches({
+                owner: process.env.NEXT_PUBLIC_GITHUB_OWNER!,
+                repo: repo,
+            });
+            setBranches(data.map((branch) => branch.name));
+            const mainBranch = data.find(
+                (branch) => branch.name === "main" || branch.name === "master"
+            );
+            setBranch(mainBranch ? mainBranch.name : data[0].name);
+        } catch (error) {
+            console.error("Error fetching branches:", error);
+        }
+    };
+
+    // Fetch repositories on page load
+    useEffect(() => {
+        async function fetchRepos() {
+            try {
+                const { data } = await octokit.repos.listForAuthenticatedUser();
+                setRepos(data.map((repo: any) => ({ name: repo.name })));
+            } catch (error) {
+                console.error("Error fetching repositories:", error);
+            }
+        }
+
+        fetchRepos();
+    }, [octokit]);
+
+    // Fetch branches when a repository is selected
+    useEffect(() => {
+        if (!repo) return;
+
+        fetchBranches();
+    }, [repo]);
 
     // Create a pull request
     const createPullRequest = async (
@@ -127,11 +189,6 @@ const PullRequest: React.FC = () => {
         if (!response.ok) throw new Error("Failed to start task");
         return response;
     };
-
-    useEffect(() => {
-        setRepo(params.get("repo"));
-        setBranch(params.get("branch"));
-    }, [params]);
 
     const handleAcceptChanges = async () => {
         if (acceptedChanges) return;
@@ -290,7 +347,7 @@ const PullRequest: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-6">
+        <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Code Viewer Modal */}
@@ -373,112 +430,130 @@ const PullRequest: React.FC = () => {
                     </AnimatePresence>
 
                     {/* Left column: Form */}
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                            Create New Pull Request
-                        </h2>
-                        <div className="space-y-4">
-                            {/* Selected Repository and Branch */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600">
-                                    Selected Repository
-                                </label>
-                                <input
-                                    value={repo ?? ""}
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
-                                    disabled
-                                />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Create Pull Request</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {/* Selected Repository and Branch */}
+                                <div>
+                                    <Label htmlFor="repo">Selected Repository</Label>
+                                    <Select value={repo} onValueChange={(value) => setRepo(value)}>
+                                        <SelectTrigger id="repo">
+                                            <SelectValue placeholder="Select a repository" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {repos.map((repo) => (
+                                                <SelectItem key={repo.name} value={repo.name}>
+                                                    {repo.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="branch">Selected Branch</Label>
+                                    <Select
+                                        value={branch}
+                                        onValueChange={(value) => setBranch(value)}
+                                    >
+                                        <SelectTrigger id="branch">
+                                            <SelectValue placeholder="Select a branch" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {branches.map((branch) => (
+                                                <SelectItem key={branch} value={branch}>
+                                                    {branch}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Task Description */}
+                                <div>
+                                    <Label htmlFor="description">Task Description</Label>
+                                    <Textarea
+                                        className="mt-1"
+                                        rows={8}
+                                        placeholder="Describe the task..."
+                                        value={description}
+                                        onChange={handleDescriptionChange}
+                                        disabled={isCreating}
+                                    />
+                                </div>
+
+                                {/* AI Model Selection */}
+                                <div>
+                                    <Label htmlFor="aiModel">AI Model</Label>
+                                    <Select
+                                        value={selectedModel}
+                                        onValueChange={(value) => setSelectedModel(value)}
+                                        disabled={isCreating}
+                                    >
+                                        <SelectTrigger id="aiModel">
+                                            <SelectValue placeholder="Select an AI model" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableModels.map((model) => (
+                                                <SelectItem key={model} value={model}>
+                                                    {model.replace(/_/g, " ")}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="space-y-4 pt-4">
+                                    <Button
+                                        onClick={handleCreatePullRequest}
+                                        className="w-full"
+                                        disabled={isCreating || !repo || !branch || !description}
+                                    >
+                                        <Code className="mr-2 h-4 w-4" />
+                                        {isCreating ? "Processing..." : "Generate Code"}
+                                    </Button>
+
+                                    {generatedCode && !acceptedChanges && (
+                                        <div className="mt-6 border-t pt-4">
+                                            {/* add a spacer */}
+                                            <span className="text-sm">
+                                                The code has been generated successfully
+                                            </span>
+                                            <Button
+                                                onClick={toggleCodeViewer}
+                                                className="w-full mt-2"
+                                            >
+                                                <Check className="mr-2 h-4 w-4" />
+                                                Review Generated Code
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {generatedPRLink && (
+                                        <div className="mt-6 border-t pt-4">
+                                            {/* add a spacer */}
+                                            <span className="text-sm">
+                                                The PR has been created successfully
+                                            </span>
+                                            <Button asChild className="w-full mt-2">
+                                                <a
+                                                    href={generatedPRLink}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                >
+                                                    View Pull Request
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600">
-                                    Selected Branch
-                                </label>
-                                <input
-                                    value={branch ?? ""}
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2"
-                                    disabled
-                                />
-                            </div>
-
-                            {/* Task Description */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600">
-                                    Task Description
-                                </label>
-                                <textarea
-                                    className="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    rows={8}
-                                    placeholder="Describe the task..."
-                                    value={description}
-                                    onChange={handleDescriptionChange}
-                                    disabled={isCreating}
-                                />
-                            </div>
-
-                            {/* AI Model Selection */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600">
-                                    AI Model
-                                </label>
-                                <select
-                                    value={selectedModel}
-                                    onChange={(e) => setSelectedModel(e.target.value)}
-                                    className="mt-1 block w-full border shadow-sm pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                                    disabled={isCreating}
-                                >
-                                    {availableModels.map((model) => (
-                                        <option key={model} value={model}>
-                                            {model.replace(/_/g, " ")}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="mt-6 border-t pt-4">
-                                <button
-                                    onClick={handleCreatePullRequest}
-                                    className="w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition disabled:bg-gray-300"
-                                    disabled={isCreating}
-                                >
-                                    {isCreating ? "Processing..." : "Create Pull Request"}
-                                </button>
-
-                                {generatedCode && !acceptedChanges && (
-                                    <div className="mt-6 border-t pt-4">
-                                        {/* add a spacer */}
-                                        <span className="text-gray-600 text-sm">
-                                            The code has been generated successfully
-                                        </span>
-                                        <button
-                                            onClick={toggleCodeViewer}
-                                            className="mt-2 w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
-                                        >
-                                            Review Generated Code
-                                        </button>
-                                    </div>
-                                )}
-
-                                {generatedPRLink && (
-                                    <div className="mt-6 border-t pt-4">
-                                        {/* add a spacer */}
-                                        <span className="text-gray-600 text-sm">
-                                            The PR has been created successfully
-                                        </span>
-                                        <a
-                                            href={generatedPRLink}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="mt-2 w-full bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition text-center block"
-                                        >
-                                            View Pull Request
-                                        </a>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Right column: Assistant Progress and Output */}
                     <div className="space-y-6">

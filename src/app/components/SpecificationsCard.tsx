@@ -1,109 +1,89 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { LightbulbIcon, ClipboardList } from "lucide-react";
+
+interface Specification {
+    title: string;
+    summary: string;
+    key_steps: string[];
+}
+
+interface AIAssistantResponse<T> {
+    response: T;
+    cost: number;
+    inputTokens: number;
+    outputTokens: number;
+}
 
 const SpecificationsCard = ({
     specifications,
 }: {
-    specifications: AIAssistantResponse<Specifications> | null;
+    specifications: AIAssistantResponse<Specification[]> | null;
 }) => {
-    const specs = (specifications?.response || []) as Specification[];
-
-    const [isOpen, setIsOpen] = useState(Array(specs.length).fill(false));
-    const [isEditable, setIsEditable] = useState(Array(specs.length).fill(false));
-
-    const toggleAccordion = (index: number) => {
-        setIsOpen((prevIsOpen) => {
-            const newIsOpen = [...prevIsOpen];
-            newIsOpen[index] = !newIsOpen[index];
-            return newIsOpen;
-        });
-    };
-
-    const toggleEditable = (index: number) => {
-        setIsEditable((prevIsEditable) => {
-            const newIsEditable = [...prevIsEditable];
-            newIsEditable[index] = !newIsEditable[index];
-            return newIsEditable;
-        });
-    };
+    const specs = specifications?.response || [];
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-lg shadow p-6"
         >
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">Specifications</h2>
-                {specifications && (
-                    <div className="text-xs text-right">
-                        <div className="text-gray-500">
-                            Cost: ${specifications?.cost.toFixed(6)}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-xl font-bold">Specifications</CardTitle>
+                    {specifications && (
+                        <div className="text-xs text-muted-foreground">
+                            <div>Cost: ${specifications.cost.toFixed(6)}</div>
+                            <div>Input Tokens: {specifications.inputTokens}</div>
+                            <div>Output Tokens: {specifications.outputTokens}</div>
                         </div>
-                        <div className="text-gray-500">
-                            Input Tokens: {specifications?.inputTokens}
-                        </div>
-                        <div className="text-gray-500">
-                            Output Tokens: {specifications?.outputTokens}
-                        </div>
-                    </div>
-                )}
-            </div>
-            <div className="space-y-4">
-                {specs.map((spec, index) => (
-                    <motion.div
-                        key={index}
-                        initial={false}
-                        animate={{ height: isOpen[index] ? "auto" : 40 }}
-                        transition={{ duration: 0.3 }}
-                        className="border border-gray-300 rounded-md shadow-sm overflow-hidden"
-                    >
-                        <div
-                            className="bg-gray-100 px-4 py-2 cursor-pointer flex justify-between items-center"
-                            onClick={() => toggleAccordion(index)}
-                        >
-                            <h3 className="font-regular text-gray-700">{spec.title}</h3>
-                            {/* <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleEditable(index);
-                                }}
-                                disabled={!isOpen[index]}
-                                className="bg-gray-600 text-white px-2 py-1 rounded text-xs hover:bg-gray-500 transition disabled:bg-gray-400"
-                            >
-                                {isEditable[index] ? "Save" : "Edit"}
-                            </button> */}
-                        </div>
-                        {isOpen[index] && (
-                            <div className="p-4 space-y-4">
-                                <div>
-                                    <h4 className="text-sm font-semibold text-gray-600 flex items-center">
-                                        <span className="mr-2">💡</span> Thoughts
-                                    </h4>
-                                    <textarea
-                                        className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                        rows={2}
-                                        value={spec.summary}
-                                        disabled={!isEditable[index]}
-                                    />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-semibold text-gray-600 flex items-center">
-                                        <span className="mr-2">📋</span> Specification
-                                    </h4>
-                                    <textarea
-                                        className="mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm"
-                                        rows={spec.key_steps.length}
-                                        value={spec.key_steps.join("\n")}
-                                        disabled={!isEditable[index]}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </motion.div>
-                ))}
-            </div>
+                    )}
+                </CardHeader>
+                <CardContent>
+                    <Accordion type="single" collapsible className="w-full">
+                        {specs.map((spec, index) => (
+                            <AccordionItem key={index} value={`item-${index}`}>
+                                <AccordionTrigger className="hover:no-underline">
+                                    <span className="text-base font-medium">{spec.title}</span>
+                                </AccordionTrigger>
+                                <AccordionContent className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center text-sm font-medium">
+                                            <LightbulbIcon className="mr-2 h-4 w-4" />
+                                            Thoughts
+                                        </Label>
+                                        <Textarea
+                                            value={spec.summary}
+                                            readOnly
+                                            className="min-h-[80px] resize-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="flex items-center text-sm font-medium">
+                                            <ClipboardList className="mr-2 h-4 w-4" />
+                                            Specification
+                                        </Label>
+                                        <Textarea
+                                            value={spec.key_steps.join("\n")}
+                                            readOnly
+                                            className="min-h-[120px] resize-none"
+                                        />
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                </CardContent>
+            </Card>
         </motion.div>
     );
 };
