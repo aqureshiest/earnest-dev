@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Check, Code, View } from "lucide-react";
+import { Check, Code, Maximize, Minimize, View, X } from "lucide-react";
 import { Octokit } from "@octokit/rest";
+import { Switch } from "@/components/ui/switch";
 
 interface Repo {
     name: string;
@@ -357,7 +358,7 @@ const PullRequest: React.FC = () => {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 ${
+                                className={`fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 ${
                                     isFullPageCode ? "z-50" : "z-40"
                                 }`}
                             >
@@ -365,65 +366,71 @@ const PullRequest: React.FC = () => {
                                     initial={{ scale: 0.9 }}
                                     animate={{ scale: 1 }}
                                     exit={{ scale: 0.9 }}
-                                    className={`bg-white rounded-lg shadow-xl ${
+                                    className={`bg-card text-card-foreground rounded-lg shadow-lg ${
                                         isFullPageCode
                                             ? "fixed inset-0 m-0"
                                             : "max-w-6xl w-full max-h-[90vh]"
                                     }`}
                                 >
-                                    <div className="p-4 border-b flex justify-between items-center">
-                                        <h2 className="text-xl font-semibold">Code Changes</h2>
-                                        <label className="flex items-center space-x-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={showDiff}
-                                                onChange={() => setShowDiff((prev) => !prev)}
-                                                className="form-checkbox h-5 w-5 text-teal-600"
-                                            />
-                                            <span className="text-gray-800">Show Diff</span>
-                                        </label>
-
-                                        <div>
-                                            {!acceptedChanges && (
-                                                <button
-                                                    onClick={handleAcceptChanges}
-                                                    disabled={generatedPRLink != null}
-                                                    className="mr-6 bg-teal-700 text-white px-4 py-2 rounded-md hover:bg-teal-600 transition"
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                            <CardTitle>Code Changes</CardTitle>
+                                            <div className="flex items-center space-x-2">
+                                                <Switch
+                                                    id="show-diff"
+                                                    checked={showDiff}
+                                                    onCheckedChange={() =>
+                                                        setShowDiff((prev) => !prev)
+                                                    }
+                                                />
+                                                <Label htmlFor="show-diff">Show Diff</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                {!acceptedChanges && (
+                                                    <Button
+                                                        onClick={handleAcceptChanges}
+                                                        disabled={generatedPRLink != null}
+                                                        className="mr-2"
+                                                    >
+                                                        Accept Changes
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={toggleFullPageCode}
                                                 >
-                                                    Accept Changes
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={toggleFullPageCode}
-                                                className="mr-2 text-gray-900 hover:bg-gray-200 bg-gray-100 p-2 rounded-lg"
-                                            >
-                                                {isFullPageCode
-                                                    ? "Exit Full Screen"
-                                                    : "Full Screen"}
-                                            </button>
-                                            <button
-                                                onClick={toggleCodeViewer}
-                                                className="text-gray-900 hover:bg-gray-200 p-2 rounded-lg bg-gray-100"
-                                            >
-                                                Close
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div
-                                        className={`${
-                                            isFullPageCode ? "h-[calc(100vh-60px)]" : "h-[70vh]"
-                                        }`}
-                                    >
-                                        <CodeViewer
-                                            codeChanges={generatedCode}
-                                            owner={owner}
-                                            repo={repo}
-                                            branch={branch}
-                                            showDiff={showDiff}
-                                            excludedFiles={excludedFiles}
-                                            setExcludedFiles={setExcludedFiles}
-                                        />
-                                    </div>
+                                                    {isFullPageCode ? (
+                                                        <Minimize className="h-4 w-4" />
+                                                    ) : (
+                                                        <Maximize className="h-4 w-4" />
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={toggleCodeViewer}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent
+                                            className={`p-0 ${
+                                                isFullPageCode ? "h-[calc(100vh-60px)]" : "h-[70vh]"
+                                            }`}
+                                        >
+                                            <CodeViewer
+                                                codeChanges={generatedCode}
+                                                owner={owner}
+                                                repo={repo}
+                                                branch={branch}
+                                                showDiff={showDiff}
+                                                excludedFiles={excludedFiles}
+                                                setExcludedFiles={setExcludedFiles}
+                                            />
+                                        </CardContent>
+                                    </Card>
                                 </motion.div>
                             </motion.div>
                         )}

@@ -2,13 +2,15 @@ import React, { useEffect, useState } from "react";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
 import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued";
-import { XCircleIcon } from "@heroicons/react/20/solid";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface BaseFile {
     path: string;
     thoughts?: string;
     content?: string;
-    oldContents?: string; // For modified files
+    oldContents?: string;
 }
 
 type NewFile = BaseFile & {
@@ -20,7 +22,7 @@ type ModifiedFile = BaseFile & {
     content: string;
 };
 
-type DeletedFile = BaseFile; // No content needed
+type DeletedFile = BaseFile;
 
 interface CodeChanges {
     title: string;
@@ -63,35 +65,31 @@ const CodeViewer = ({
 
     const renderFileList = (files: (NewFile | ModifiedFile | DeletedFile)[], category: string) => (
         <div className="mb-4">
-            <h3 className="font-semibold mb-2">{category}</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">{category}</h3>
             {files.map((file) => (
                 <div
                     key={file.path}
-                    className={`p-2 cursor-pointer flex items-center justify-between ${
-                        selectedFile === file ? "bg-gray-200" : "hover:bg-gray-100"
+                    className={`p-2 cursor-pointer flex items-center justify-between rounded-md ${
+                        selectedFile === file ? "bg-accent" : "hover:bg-accent/50"
                     } ${excludedFiles.has(file.path) ? "opacity-50" : ""} group`}
                 >
-                    <span onClick={() => setSelectedFile(file)} className="flex-grow">
+                    <span onClick={() => setSelectedFile(file)} className="flex-grow text-sm">
                         {file.path}
                     </span>
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => {
                             e.stopPropagation();
                             toggleExcludeFile(file.path);
                         }}
-                        className={`ml-2 focus:outline-none ${
-                            excludedFiles.has(file.path) ? "" : "hidden group-hover:block"
+                        className={`ml-2 ${
+                            excludedFiles.has(file.path) ? "" : "opacity-0 group-hover:opacity-100"
                         }`}
                         title={excludedFiles.has(file.path) ? "Include in PR" : "Exclude from PR"}
                     >
-                        <XCircleIcon
-                            className={`h-5 w-5 ${
-                                excludedFiles.has(file.path)
-                                    ? "text-red-500"
-                                    : "text-gray-400 hover:text-red-500"
-                            }`}
-                        />
-                    </button>
+                        <X className="h-4 w-4" />
+                    </Button>
                 </div>
             ))}
         </div>
@@ -138,7 +136,7 @@ const CodeViewer = ({
     const renderFileContent = () => {
         if (!selectedFile) {
             return (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-muted-foreground">
                     Select a file to view its content
                 </div>
             );
@@ -146,13 +144,17 @@ const CodeViewer = ({
 
         return (
             <div className="p-4">
-                <h3 className="font-semibold mb-2">{selectedFile.path}</h3>
+                <h3 className="text-lg font-semibold mb-2">{selectedFile.path}</h3>
 
                 {selectedFile.thoughts && (
-                    <div className="mb-4 p-2 bg-yellow-50 border border-yellow-100 rounded">
-                        <h4 className="font-medium mb-1">Thoughts:</h4>
-                        <p>{selectedFile.thoughts}</p>
-                    </div>
+                    <Card className="mb-4">
+                        <CardHeader>
+                            <CardTitle className="text-sm">Thoughts</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm">{selectedFile.thoughts}</p>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {renderFileTypeContent()}
@@ -169,8 +171,8 @@ const CodeViewer = ({
         if (selectedFile && "oldContents" in selectedFile && showDiff) {
             return (
                 <ReactDiffViewer
-                    oldValue={selectedFile.oldContents!} // Using non-null assertion
-                    newValue={selectedFile.content!} // Using non-null assertion
+                    oldValue={selectedFile.oldContents!}
+                    newValue={selectedFile.content!}
                     splitView={false}
                     hideLineNumbers={true}
                     showDiffOnly={false}
@@ -184,33 +186,37 @@ const CodeViewer = ({
             selectedFile &&
             codeChanges.deletedFiles?.includes(selectedFile as DeletedFile)
         ) {
-            return <p className="text-red-500">This file has been deleted.</p>;
+            return <p className="text-destructive">This file has been deleted.</p>;
         }
         return null;
     };
 
     return (
-        <div className="flex h-full">
-            <div className="w-1/3 overflow-y-auto border-r p-4">
-                <h2 className="text-xl font-bold mb-4">{codeChanges.title}</h2>
-                {codeChanges.newFiles &&
-                    codeChanges.newFiles.length > 0 &&
-                    renderFileList(codeChanges.newFiles, "New Files")}
-                {codeChanges.modifiedFiles &&
-                    codeChanges.modifiedFiles.length > 0 &&
-                    renderFileList(codeChanges.modifiedFiles, "Modified Files")}
-                {codeChanges.deletedFiles &&
-                    codeChanges.deletedFiles.length > 0 &&
-                    renderFileList(codeChanges.deletedFiles, "Deleted Files")}
+        <Card className="flex h-full">
+            <div className="w-1/3 border-r overflow-y-auto">
+                <CardHeader>
+                    <CardTitle>{codeChanges.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {codeChanges.newFiles &&
+                        codeChanges.newFiles.length > 0 &&
+                        renderFileList(codeChanges.newFiles, "New Files")}
+                    {codeChanges.modifiedFiles &&
+                        codeChanges.modifiedFiles.length > 0 &&
+                        renderFileList(codeChanges.modifiedFiles, "Modified Files")}
+                    {codeChanges.deletedFiles &&
+                        codeChanges.deletedFiles.length > 0 &&
+                        renderFileList(codeChanges.deletedFiles, "Deleted Files")}
+                </CardContent>
             </div>
             <div className="w-2/3 overflow-y-auto">
                 {loading ? (
-                    <div className="p-4 text-center text-gray-500">Loading...</div>
+                    <div className="p-4 text-center text-muted-foreground">Loading...</div>
                 ) : (
                     renderFileContent()
                 )}
             </div>
-        </div>
+        </Card>
     );
 };
 
