@@ -39,7 +39,7 @@ const SpecificationsCard = ({
         >
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xl font-bold">Specifications</CardTitle>
+                    <CardTitle>Specifications</CardTitle>
                     {specifications && (
                         <div className="text-xs text-muted-foreground">
                             <div>Cost: ${specifications.cost.toFixed(6)}</div>
@@ -53,7 +53,7 @@ const SpecificationsCard = ({
                         {specs.map((spec, index) => (
                             <AccordionItem key={index} value={`item-${index}`}>
                                 <AccordionTrigger className="hover:no-underline">
-                                    <span className="text-base font-medium">{spec.title}</span>
+                                    <span>{spec.title}</span>
                                 </AccordionTrigger>
                                 <AccordionContent className="space-y-4">
                                     <div className="space-y-2">

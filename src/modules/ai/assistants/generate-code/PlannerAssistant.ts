@@ -1,8 +1,8 @@
 import { CODEFILES_PLACEHOLDER, SPECS_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { BaseAssistant } from "./BaseAssistant";
-import { PromptBuilder } from "../support/PromptBuilder";
-import { TokenLimiter } from "../support/TokenLimiter";
-import { ResponseParser } from "../support/ResponseParser";
+import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
+import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
+import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 
 export class PlannerAssistant extends BaseAssistant<ImplementationPlan> {
     private responseParser: ResponseParser<ImplementationPlan>;

@@ -1,7 +1,7 @@
-import { displayTime } from "../utilities/displayTime";
-import { CodingAssistant } from "./assistants/CodingAssistant";
-import { PlannerAssistant } from "./assistants/PlannerAssistant";
-import { SpecificationsAssistant } from "./assistants/SpecificationsAssistant";
+import { displayTime } from "../utils/displayTime";
+import { CodingAssistant } from "@/modules/ai/assistants/generate-code/CodingAssistant";
+import { PlannerAssistant } from "@/modules/ai/assistants/generate-code/PlannerAssistant";
+import { SpecificationsAssistant } from "@/modules/ai/assistants/generate-code/SpecificationsAssistant";
 import { sendTaskUpdate } from "@/app/api/generate/route";
 
 export class GenerateCode {

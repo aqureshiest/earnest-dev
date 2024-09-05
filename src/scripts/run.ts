@@ -1,7 +1,15 @@
+import { CodeAnalyzer } from "@/modules/ai/assistants/CodeAnalyzer";
 import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
+import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { PGDatabaseService } from "@/modules/db/PGDatabaseService";
 import { DatabaseService } from "@/modules/db/SupDatabaseService";
+import { GitHubService } from "@/modules/github/GitHubService";
+import { RepositoryService } from "@/modules/github/RepositoryService";
+import { formatFiles } from "@/modules/utils/formatFiles";
+import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { loadEnvConfig } from "@next/env";
+import { encode } from "gpt-tokenizer";
+import { github } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 loadEnvConfig("");
 
@@ -80,26 +88,106 @@ module.exports = {
 };
 `;
 
-    const embeddingService = new EmbeddingService();
-    const embedding1 = await embeddingService.generateEmbeddings(text);
+    // const embeddingService = new EmbeddingService();
+    // const embedding1 = await embeddingService.generateEmbeddings(text);
 
-    // // save file details
-    const fileDetails = {
-        name: "file1",
-        owner: "owner1",
-        repo: "repo1",
-        ref: "ref1",
-        path: "path1",
-        content: "content1",
-        commitHash: "commitHash1",
-        tokenCount: 1,
-        embeddings: embedding1,
-    };
-    const result = await dbService.saveFileDetails(fileDetails);
-    console.log(result);
+    // // // save file details
+    // const fileDetails = {
+    //     name: "file1",
+    //     owner: "owner1",
+    //     repo: "repo1",
+    //     ref: "ref1",
+    //     path: "path1",
+    //     content: "content1",
+    //     commitHash: "commitHash1",
+    //     tokenCount: 1,
+    //     embeddings: embedding1,
+    // };
+    // const result = await dbService.saveFileDetails(fileDetails);
+    // console.log(result);
 
     // const embedding2 = await embeddingService.generateEmbeddings(text);
     // console.log(embedding1 == embedding2);
+
+    const repositoryService = new RepositoryService();
+
+    const repos = ["bookstore"]; // , "earnest-dev", "sds", "lc"
+    for (const r in repos) {
+        const repo = repos[r];
+        console.log(">>>> processing repo", repo);
+
+        let files: any[] = [];
+        let fetchedFiles: any[] = [];
+
+        // get files
+        await runWithTime("get files", async () => {
+            files = await repositoryService.getRepositoryFiles("aqureshiest", repo);
+        });
+
+        // fetch files
+        await runWithTime("fetch files", async () => {
+            fetchedFiles = await repositoryService.fetchFiles(files);
+        });
+
+        let tokenizedFiles: any[] = [];
+        // tokenize the files
+        await runWithTime("tokenize files", async () => {
+            const tokenLimiter = new TokenLimiter();
+            tokenizedFiles = tokenLimiter.tokenizeFiles(fetchedFiles);
+        });
+        // print file name and tokens
+        tokenizedFiles.forEach((file) => {
+            console.log(" > ", file.path, file.tokenCount);
+        });
+        // add up all the tokens
+        const totalTokens = tokenizedFiles.reduce((acc, file) => acc + file.tokenCount, 0);
+        console.log("total tokens", totalTokens);
+
+        const embeddingService = new EmbeddingService();
+        let embeddedFiles: any[] = [];
+        // embed the files
+        await runWithTime("embed files", async () => {
+            embeddedFiles = await embeddingService.generateEmbeddingsForFilesInChunks(
+                tokenizedFiles
+            );
+        });
+
+        // save everything
+        await runWithTime("save files", async () => {
+            await repositoryService.syncBranch("aqureshiest", repo, "main", embeddedFiles);
+        });
+
+        console.log("-------------------");
+        sleep(1000);
+    }
+
+    // const tokenLimiter = new TokenLimiter();
+    // const chunks = tokenLimiter.splitInChunks(files, 1000);
+    // console.log("chunks length", chunks.length);
+
+    // for (let i = 0; i < chunks.length; i++) {
+    //     console.log("chunk", i + 1);
+
+    //     // const request: AIAssistantRequest = {
+    //     //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
+    //     //     task: "analyze code chunk " + (i + 1),
+    //     //     files: chunks,
+    //     //     params: {
+    //     //         chunkNumber: i + 1,
+    //     //     },
+    //     // };
+    //     // const codeAnalyzer = new CodeAnalyzer();
+    //     // await codeAnalyzer.process(request);
+    // }
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const runWithTime = async (label: string, fn: () => Promise<any>) => {
+    console.time(label);
+    const result = await fn();
+    console.timeEnd(label);
+    return result;
+};
 
 main();

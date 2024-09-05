@@ -1,5 +1,5 @@
 import { sendTaskUpdate } from "@/app/api/pr/route";
-import { WriterAssistant } from "./assistants/WriterAssistant";
+import { WriterAssistant } from "@/modules/ai/assistants/generate-code/WriterAssistant";
 
 export class GeneratePR {
     private writerAssistant: WriterAssistant;

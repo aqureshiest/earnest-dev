@@ -1,5 +1,5 @@
 import { GitHubService } from "@/modules/github/GitHubService";
-import { parseYaml } from "@/modules/utilities/parseYaml";
+import { parseYaml } from "@/modules/utils/parseYaml";
 import { loadEnvConfig } from "@next/env";
 import * as Diff from "diff";
 

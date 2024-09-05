@@ -1,4 +1,4 @@
-import { EMBEDDINGS_DIMENSIONS, EMBEDDINGS_MODEL } from "@/constants";
+import { EMBEDDINGS_DIMENSIONS, EMBEDDINGS_MAX_TOKENS, EMBEDDINGS_MODEL } from "@/constants";
 import { encode } from "gpt-tokenizer";
 import OpenAI from "openai";
 
@@ -6,30 +6,27 @@ export class EmbeddingService {
     private openai: OpenAI;
 
     constructor() {
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-            dangerouslyAllowBrowser: true,
-        });
+        this.openai = new OpenAI();
     }
 
     async generateEmbeddingsForFilesInChunks(files: FileDetails[]) {
-        const maxTokenSize = 8192;
-        const buffer = 500;
         const chunks: FileDetails[][] = [];
         let chunk: FileDetails[] = [];
         let chunkSize = 0;
 
         console.log("Embeddings request for", files.length, "files");
+        const buffer = 191; // 8191 - 191
+        const allowedTokens = EMBEDDINGS_MAX_TOKENS - buffer;
 
         for (const file of files) {
             const tokens = encode(`${file.path}\n${file.content}`).length;
 
-            if (tokens >= maxTokenSize - buffer) {
+            if (tokens >= allowedTokens) {
                 console.warn(
                     `File ${file.path} has ${tokens} tokens. Too large to process. Skipping`
                 );
             } else {
-                if (chunkSize + tokens < maxTokenSize - buffer) {
+                if (chunkSize + tokens < allowedTokens) {
                     chunk.push(file);
                     chunkSize += tokens;
                 } else {
@@ -47,7 +44,7 @@ export class EmbeddingService {
 
         console.log("Processing", chunks.length, "chunks");
         // Process chunks in parallel with a concurrency limit
-        const concurrencyLimit = 5; // Adjust based on API capacity
+        const concurrencyLimit = 5;
         const chunkPromises = chunks.map((chunk) => async () => {
             try {
                 const updatedChunk = await this.generateEmbeddingsForFiles(chunk);
@@ -96,6 +93,8 @@ export class EmbeddingService {
             dimensions: EMBEDDINGS_DIMENSIONS,
             input: inputTexts,
         });
+
+        console.log("embeddings usage", response.usage);
 
         const embeddings = response?.data?.map((item) => item.embedding) || [];
 

@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { calculateLLMCost } from "../../utilities/llmCost";
-import { LLM_MODELS } from "../../utilities/llmInfo";
+import { calculateLLMCost } from "../../utils/llmCost";
+import { LLM_MODELS } from "../../utils/llmInfo";
 
 export class OpenAIService {
     private openai: OpenAI;

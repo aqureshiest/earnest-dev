@@ -1,8 +1,8 @@
-import { parseYaml } from "@/modules/utilities/parseYaml";
-import { parseMarkdown } from "@/modules/utilities/parseMarkdown";
-import { parseDiff } from "@/modules/utilities/parseDiff";
-import { parseXml } from "@/modules/utilities/parseXml";
-import { saveRunInfo } from "@/modules/utilities/saveRunInfo";
+import { parseYaml } from "@/modules/utils/parseYaml";
+import { parseMarkdown } from "@/modules/utils/parseMarkdown";
+import { parseDiff } from "@/modules/utils/parseDiff";
+import { parseXml } from "@/modules/utils/parseXml";
+import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
 export class ResponseParser<T> {
     parse(model: string, task: string, assistant: string, response: string, options: any = {}): T {

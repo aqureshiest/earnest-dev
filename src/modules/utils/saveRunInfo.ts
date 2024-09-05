@@ -21,7 +21,7 @@ export function saveRunInfo<T>(
     // replace any non alphabetic characters with underscores
     const task_dir = task
         .trim()
-        .replace(/[^a-zA-Z]/g, "_")
+        .replace(/[^a-zA-Z0-9]/g, "_")
         .slice(0, 50);
 
     // timestamp as milliseconds as string

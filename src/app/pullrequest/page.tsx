@@ -1,6 +1,6 @@
 "use client";
 
-import { LLM_MODELS } from "@/modules/utilities/llmInfo";
+import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import SpecificationsCard from "../components/SpecificationsCard";
@@ -23,7 +23,18 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Check, Code, Maximize, Minimize, View, X } from "lucide-react";
+
+import {
+    Check,
+    Code,
+    EyeIcon,
+    Maximize,
+    Minimize,
+    SearchCheck,
+    View,
+    ViewIcon,
+    X,
+} from "lucide-react";
 import { Octokit } from "@octokit/rest";
 import { Switch } from "@/components/ui/switch";
 
@@ -347,6 +358,14 @@ const PullRequest: React.FC = () => {
         setDescription(e.target.value);
     };
 
+    useEffect(() => {
+        // focus on selected repo element
+        const selectedRepoElement = document.getElementById("repo");
+        if (selectedRepoElement) {
+            selectedRepoElement.focus();
+        }
+    }, []);
+
     return (
         <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
@@ -392,6 +411,7 @@ const PullRequest: React.FC = () => {
                                                         disabled={generatedPRLink != null}
                                                         className="mr-2"
                                                     >
+                                                        <Check className="mr-2 h-4 w-4" />
                                                         Accept Changes
                                                     </Button>
                                                 )}
@@ -514,7 +534,7 @@ const PullRequest: React.FC = () => {
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="space-y-4 pt-4">
+                                <div className="space-y-4">
                                     <Button
                                         onClick={handleCreatePullRequest}
                                         className="w-full"
@@ -534,7 +554,7 @@ const PullRequest: React.FC = () => {
                                                 onClick={toggleCodeViewer}
                                                 className="w-full mt-2"
                                             >
-                                                <Check className="mr-2 h-4 w-4" />
+                                                <SearchCheck className="mr-2 h-4 w-4" />
                                                 Review Generated Code
                                             </Button>
                                         </div>

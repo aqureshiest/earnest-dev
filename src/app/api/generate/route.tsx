@@ -37,10 +37,9 @@ export async function POST(req: Request) {
                             owner,
                             repo,
                             branch,
-                            "",
                             taskId
                         );
-                        sendTaskUpdate(taskId, "command", "IC"); // this is a system command: Indexing completed
+                        // sendTaskUpdate(taskId, "command", "IC"); // this is a system command: Indexing completed
                         sendTaskUpdate(taskId, "progress", `Fetched ${files.length} files.`);
 
                         sendTaskUpdate(taskId, "progress", "Tokenizing files...");
@@ -51,22 +50,22 @@ export async function POST(req: Request) {
                             filesWithContent
                         );
 
-                        // check if token limits removed any files
-                        if (tokenizedFiles.length < filesWithContent.length) {
-                            sendTaskUpdate(
-                                taskId,
-                                "progress",
-                                `Removed ${
-                                    filesWithContent.length - tokenizedFiles.length
-                                } files from context due to token limits.`
-                            );
-                        }
-
                         sendTaskUpdate(taskId, "progress", "Embedding files...");
                         const filesWithEmbeddings =
                             await embeddingService.generateEmbeddingsForFilesInChunks(
                                 tokenizedFiles
                             );
+
+                        // check if token limits removed any files
+                        if (filesWithEmbeddings.length < tokenizedFiles.length) {
+                            sendTaskUpdate(
+                                taskId,
+                                "progress",
+                                `Removed ${
+                                    tokenizedFiles.length - filesWithEmbeddings.length
+                                } files from context due to embedding token limits.`
+                            );
+                        }
 
                         // sync branch
                         sendTaskUpdate(taskId, "progress", "Syncing branch...");

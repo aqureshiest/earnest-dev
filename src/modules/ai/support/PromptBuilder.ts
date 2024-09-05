@@ -1,5 +1,5 @@
 import { CODEFILES_PLACEHOLDER } from "@/constants";
-import { formatFiles } from "@/modules/utilities/formatFiles";
+import { formatFiles } from "@/modules/utils/formatFiles";
 
 export class PromptBuilder {
     buildUserPrompt(basePrompt: string, params: Record<string, string>): string {
@@ -9,7 +9,7 @@ export class PromptBuilder {
         );
 
         const userPrompt = keys.reduce((acc, key) => {
-            return acc.replace(`[[${key.toUpperCase()}]]`, params[key]);
+            return acc.replaceAll(`[[${key.toUpperCase()}]]`, params[key]);
         }, basePrompt);
 
         return userPrompt;

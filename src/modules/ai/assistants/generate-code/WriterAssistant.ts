@@ -1,8 +1,8 @@
 import { GENERATED_CODE_PLACEHOLDER, PLAN_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { BaseAssistant } from "./BaseAssistant";
-import { ResponseParser } from "../support/ResponseParser";
-import { PromptBuilder } from "../support/PromptBuilder";
-import { TokenLimiter } from "../support/TokenLimiter";
+import { ResponseParser } from "@/modules/ai/support/ResponseParser";
+import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
+import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 
 export class WriterAssistant extends BaseAssistant<string> {
     private responseParser: ResponseParser<string>;

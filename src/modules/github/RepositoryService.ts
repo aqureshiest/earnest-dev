@@ -1,7 +1,6 @@
 import { EXCLUDE_PATTERNS } from "@/constants";
 import { GitHubService } from "./GitHubService";
 import { DatabaseService } from "../db/SupDatabaseService";
-import { sendTaskUpdate } from "@/app/api/generate/route";
 
 export class RepositoryService {
     private ghService: GitHubService;
@@ -16,50 +15,53 @@ export class RepositoryService {
         owner: string,
         repo: string,
         ref: string = "main",
-        path: string = "",
-        taskId: string
+        taskId: string = ""
     ): Promise<FileDetails[]> {
         let result: FileDetails[] = [];
 
-        const files = await this.ghService.getFiles(owner, repo, ref, path);
-        // exclude files that match the patterns
-        const filteredFiles = files.filter((file) => !RepositoryService.shouldExclude(file.name));
+        // get files from the repo
+        const files = await this.ghService.listRepoFiles(owner, repo, ref);
+        // get files from the database
+        const savedFiles = await this.dbService.getAllFileDetails(owner, repo, ref);
 
-        // process each file
+        // create a map of saved files
+        const savedFilesMap = new Map<string, FileDetails>();
+        for (const savedFile of savedFiles) {
+            savedFilesMap.set(savedFile.path, savedFile);
+        }
+
+        // apply exclusion filter
+        const filteredFiles = files.filter(
+            (file) => file.path && !RepositoryService.shouldExclude(file.path)
+        );
+
         for (const file of filteredFiles) {
-            if (file.type === "file") {
-                // send message
-                sendTaskUpdate(taskId, "progress", `file:${file.path}`);
+            // make sure all props exist on the file
+            if (!file.path || !file.sha) {
+                continue;
+            }
 
-                // check if we already have this file in the store
-                const savedFile = await this.dbService.getFileDetails(owner, repo, ref, file.path);
-                // make sure the commit hash is the same
-                if (savedFile && savedFile.commitHash === file.sha) {
-                    console.log("Using saved file >>", file.path, savedFile.commitHash);
-                    result.push(savedFile);
-                } else {
-                    console.log("New file >> ", file.path);
-                    result.push({
-                        name: file.name,
-                        path: file.path,
-                        owner,
-                        repo,
-                        ref,
-                        content: "",
-                        commitHash: file.sha,
-                        embeddings: [],
-                        tokenCount: 0,
-                    });
-                }
-            } else if (file.type === "dir" && !file.name.startsWith(".")) {
-                const nestedFiles = await this.getRepositoryFiles(
+            // check if file already exists in the database
+            const savedFile = savedFilesMap.get(file.path);
+
+            // if exists and hash matches, use the saved file
+            if (savedFile && savedFile.commitHash === file.sha) {
+                // console.log("Using saved file >>", file.path, savedFile.commitHash);
+                result.push(savedFile);
+            } else {
+                // otherwise, create a new file
+                // console.log("New or updated file >> ", file.path);
+                result.push({
+                    name: file.path.split("/").pop()!,
+                    path: file.path!,
                     owner,
                     repo,
                     ref,
-                    file.path,
-                    taskId
-                );
-                result.push(...nestedFiles);
+                    content: "",
+                    commitHash: file.sha,
+                    embeddings: [],
+                    tokenCount: 0,
+                });
             }
         }
 
@@ -70,11 +72,11 @@ export class RepositoryService {
         const promises = files.map(async (file) => {
             // no need to fetch content if it's already there
             if (file.content) {
-                console.log("file content already fetched", file.path);
+                // console.log("file content already fetched", file.path);
                 return file;
             }
 
-            console.log("fetching file content", file.path);
+            // console.log("fetching file content", file.path);
             const content = await this.ghService.readFile(
                 file.owner,
                 file.repo,

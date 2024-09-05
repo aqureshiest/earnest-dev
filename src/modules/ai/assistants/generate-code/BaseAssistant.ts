@@ -1,9 +1,9 @@
-import { saveRunInfo } from "@/modules/utilities/saveRunInfo";
-import { LLM_MODELS } from "../../utilities/llmInfo";
-import { ClaudeAIService } from "../clients/ClaudeAIService";
-import { OpenAIService } from "../clients/OpenAIService";
-import { TokenLimiter } from "../support/TokenLimiter";
-import { PromptBuilder } from "../support/PromptBuilder";
+import { saveRunInfo } from "@/modules/utils/saveRunInfo";
+import { LLM_MODELS } from "@/modules/utils/llmInfo";
+import { ClaudeAIService } from "@/modules/ai/clients/ClaudeAIService";
+import { OpenAIService } from "@/modules/ai/clients/OpenAIService";
+import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
+import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 
 abstract class BaseAssistant<T> implements AIAssistant<T> {
     constructor(private promptBuilder: PromptBuilder, private tokenLimiter: TokenLimiter) {}

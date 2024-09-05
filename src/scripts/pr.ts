@@ -1,5 +1,5 @@
 import PullRequestService from "@/modules/github/PullRequestService";
-import { parseYaml } from "@/modules/utilities/parseYaml";
+import { parseYaml } from "@/modules/utils/parseYaml";
 import { loadEnvConfig } from "@next/env";
 import { encode } from "gpt-tokenizer";
 
@@ -23,7 +23,7 @@ async function main() {
     const branch = "main";
 
     const prService = new PullRequestService(owner, repo, branch);
-    const prLink = await prService.createPullRequest(codeChanges, codeChanges.prTitle, "Test PR");
+    const prLink = await prService.createPullRequest(codeChanges, codeChanges.title, "Test PR");
 
     console.log(prLink);
 }

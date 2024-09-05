@@ -50,7 +50,7 @@ const ImplementationPlanCard = ({
         >
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xl font-bold">Implementation Plan</CardTitle>
+                    <CardTitle>Implementation Plan</CardTitle>
                     {implementationPlan && (
                         <div className="text-xs text-muted-foreground">
                             <div>Cost: ${implementationPlan.cost.toFixed(6)}</div>
@@ -64,7 +64,7 @@ const ImplementationPlanCard = ({
                         {steps.map((step, index) => (
                             <AccordionItem key={index} value={`item-${index}`}>
                                 <AccordionTrigger className="hover:no-underline">
-                                    <span className="text-base font-medium">{step.title}</span>
+                                    <span>{step.title}</span>
                                 </AccordionTrigger>
                                 <AccordionContent className="space-y-4">
                                     <div className="space-y-2">

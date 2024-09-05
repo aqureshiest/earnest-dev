@@ -1,5 +1,5 @@
-import { calculateLLMCost } from "@/modules/utilities/llmCost";
-import { LLM_MODELS, LLMS } from "@/modules/utilities/llmInfo";
+import { calculateLLMCost } from "@/modules/utils/llmCost";
+import { LLM_MODELS, LLMS } from "@/modules/utils/llmInfo";
 import Anthropic from "@anthropic-ai/sdk";
 import { headers } from "next/headers";
 

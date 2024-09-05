@@ -119,7 +119,20 @@ export class DatabaseService {
             throw new Error(`Error fetching all file details: ${error.message}`);
         }
 
-        return data as FileDetails[];
+        return data.map(
+            (file) =>
+                ({
+                    name: file.name,
+                    path: file.path,
+                    content: file.content,
+                    owner: file.owner,
+                    repo: file.repo,
+                    ref: file.ref,
+                    commitHash: file.commithash,
+                    tokenCount: file.tokencount,
+                    embeddings: file.embeddings,
+                } as FileDetails)
+        );
     }
 
     async findSimilar(
