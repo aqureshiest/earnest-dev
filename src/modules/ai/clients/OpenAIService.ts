@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { calculateLLMCost } from "../../utils/llmCost";
 import { LLM_MODELS } from "../../utils/llmInfo";
+import { encode } from "gpt-tokenizer";
 
 export class OpenAIService {
     private openai: OpenAI;
@@ -15,6 +16,10 @@ export class OpenAIService {
         try {
             console.log(this.constructor.name, "Generating response for model", this.model);
 
+            console.log(
+                "fourth time check prompt length",
+                encode(prompt).length + encode(systemPrompt).length
+            );
             const completion = await this.openai.chat.completions.create({
                 messages: [
                     {

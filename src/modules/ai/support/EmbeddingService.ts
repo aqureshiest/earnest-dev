@@ -94,7 +94,7 @@ export class EmbeddingService {
             input: inputTexts,
         });
 
-        console.log("embeddings usage", response.usage);
+        // console.log("embeddings usage", response.usage);
 
         const embeddings = response?.data?.map((item) => item.embedding) || [];
 

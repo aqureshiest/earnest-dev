@@ -2,9 +2,10 @@ import { CODEFILES_PLACEHOLDER } from "@/constants";
 import { PromptBuilder } from "../support/PromptBuilder";
 import { ResponseParser } from "../support/ResponseParser";
 import { TokenLimiter } from "../support/TokenLimiter";
-import { BaseAssistant } from "./generate-code/BaseAssistant";
+import { BaseAssistant } from "./BaseAssistant";
+import { BaseAssistantChunkable } from "./BaseAssistantChunkable";
 
-export class CodeAnalyzer extends BaseAssistant<string> {
+export class CodeAnalyzer extends BaseAssistantChunkable<string> {
     private responseParser: ResponseParser<string>;
 
     constructor() {

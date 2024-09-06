@@ -6,7 +6,7 @@ import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 
 abstract class BaseAssistant<T> implements AIAssistant<T> {
-    constructor(private promptBuilder: PromptBuilder, private tokenLimiter: TokenLimiter) {}
+    constructor(protected promptBuilder: PromptBuilder, protected tokenLimiter: TokenLimiter) {}
 
     abstract getSystemPrompt(): string;
     abstract getPrompt(params?: any): string;
@@ -34,6 +34,7 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
             systemPrompt + userPrompt,
             files
         );
+        console.log("Total tokens after applying limit:", totalTokens);
 
         // Now add the allowed files to the prompt
         const finalPromptWithFiles = this.promptBuilder.addFilesToPrompt(userPrompt, allowedFiles);
@@ -68,11 +69,6 @@ abstract class BaseAssistant<T> implements AIAssistant<T> {
             model === LLM_MODELS.OPENAI_GPT_4O_MINI || model === LLM_MODELS.OPENAI_GPT_4O
                 ? new OpenAIService(model)
                 : new ClaudeAIService(model);
-
-        // const aiService =
-        //     this.constructor.name == "CodingAssistant"
-        //         ? new ClaudeAIService()
-        //         : new OpenAIService();
 
         // generate code
         const { response, inputTokens, outputTokens, cost } = await aiService.generateResponse(

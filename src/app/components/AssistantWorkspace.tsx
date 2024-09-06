@@ -1,16 +1,14 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Telescope, FileSearch, Code, GitPullRequest } from "lucide-react";
 
-const assistants = [
-    { name: "specifications", icon: FileSearch },
-    { name: "planning", icon: Telescope },
-    { name: "code", icon: Code },
-    { name: "PR", icon: GitPullRequest },
-];
-
-const AssistantWorkspace = ({ assistantStates }: { assistantStates: any }) => {
+const AssistantWorkspace = ({
+    assistants,
+    assistantStates,
+}: {
+    assistants: { name: string; icon: any }[];
+    assistantStates: { [key: string]: "idle" | "working" | "completed" };
+}) => {
     return (
         <Card>
             <CardHeader>

@@ -28,9 +28,12 @@ import {
     Check,
     Code,
     EyeIcon,
+    FileSearch,
+    GitPullRequest,
     Maximize,
     Minimize,
     SearchCheck,
+    Telescope,
     View,
     ViewIcon,
     X,
@@ -82,6 +85,13 @@ const PullRequest: React.FC = () => {
         LLM_MODELS.OPENAI_GPT_4O_MINI,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
+    ];
+
+    const assistants = [
+        { name: "specifications", icon: FileSearch },
+        { name: "planning", icon: Telescope },
+        { name: "code", icon: Code },
+        { name: "PR", icon: GitPullRequest },
     ];
 
     const { assistantStates, resetAssistantStates, updateAssistantState } = useAssistantStates();
@@ -584,7 +594,10 @@ const PullRequest: React.FC = () => {
 
                     {/* Right column: Assistant Progress and Output */}
                     <div className="space-y-6">
-                        <AssistantWorkspace assistantStates={assistantStates} />
+                        <AssistantWorkspace
+                            assistants={assistants}
+                            assistantStates={assistantStates}
+                        />
 
                         <ProgressFeed progress={progress} currentFile={currentFile} />
 

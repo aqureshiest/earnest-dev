@@ -3,6 +3,9 @@ import { LLMS } from "../../utils/llmInfo";
 import { formatFiles } from "@/modules/utils/formatFiles";
 
 export class TokenLimiter {
+    BUFFER = 500;
+    PADDING = 1.4;
+
     tokenizeFiles(files: FileDetails[]) {
         return files
             .map((file) => {
@@ -25,18 +28,19 @@ export class TokenLimiter {
         // get LLM info
         const LLM: any = LLMS.find((m) => m.model === model);
 
-        const buffer = 500;
-        const allowedTokens = LLM.maxInputTokens - buffer;
+        // TODO: might have to apply the 70/30 IO ratio here
+        const allowedTokens = LLM.maxInputTokens - this.BUFFER;
 
         // start with token length of the prompt
-        let totalTokens = encode(prompt).length * 1.4;
+        let totalTokens = encode(prompt).length * this.PADDING;
 
         const allowedFiles = [];
         let index = 0;
         // add files to the prompt
         for (const file of files) {
             const contents = formatFiles([file]);
-            let fileTokens = (file.tokenCount || encode(contents).length) * 1.4;
+            let fileTokens = (file.tokenCount || encode(contents).length) * this.PADDING; // TODO: IO ratio
+            // console.log(`File: ${file.path}, Tokens: ${fileTokens}`);
 
             // keep adding to token length
             if (totalTokens + fileTokens < allowedTokens) {
@@ -44,6 +48,7 @@ export class TokenLimiter {
                 allowedFiles.push(file);
             } else {
                 console.log(`Skipping files past ${index} index in files list due to token limit`);
+                console.log(`Total tokens: ${totalTokens}, Allowed tokens: ${allowedTokens}`);
                 break;
             }
 
@@ -56,29 +61,43 @@ export class TokenLimiter {
         };
     }
 
-    splitInChunks(files: FileDetails[], tokenLimit: number) {
-        const chunks: FileDetails[] = [];
+    splitInChunks(model: string, prompt: string, files: FileDetails[]) {
+        const chunks: { files: FileDetails[]; tokens: number }[] = [];
         let chunk: FileDetails[] = [];
         let chunkTokens = 0;
 
+        // get LLM info
+        const LLM: any = LLMS.find((m) => m.model === model);
+
+        // remove prompt tokens space
+        let promptTokens = encode(prompt).length * this.PADDING;
+
+        // TODO: might have to apply the 70/30 IO ratio here
+        const allowedTokens = LLM.maxInputTokens - this.BUFFER - promptTokens;
+
         for (const file of files) {
             const contents = formatFiles([file]);
-            let fileTokens = (file.tokenCount || encode(contents).length) * 1.4;
-            console.log("processing file >>", file.path, "tokens", fileTokens);
+            let fileTokens = (file.tokenCount || encode(contents).length) * this.PADDING; //TODO: IO ratio
 
             // keep adding to token length
-            if (chunkTokens + fileTokens < tokenLimit - 500) {
+            if (chunkTokens + fileTokens < allowedTokens) {
                 chunkTokens += fileTokens;
                 chunk.push(file);
             } else {
-                chunks.push(...chunk);
+                chunks.push({
+                    files: chunk,
+                    tokens: chunkTokens,
+                });
                 chunk = [file];
                 chunkTokens = fileTokens;
             }
         }
 
         if (chunk.length) {
-            chunks.push(...chunk);
+            chunks.push({
+                files: chunk,
+                tokens: chunkTokens,
+            });
         }
 
         return chunks;

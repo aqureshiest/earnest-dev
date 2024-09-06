@@ -14,8 +14,7 @@ export class RepositoryService {
     async getRepositoryFiles(
         owner: string,
         repo: string,
-        ref: string = "main",
-        taskId: string = ""
+        ref: string = "main"
     ): Promise<FileDetails[]> {
         let result: FileDetails[] = [];
 

@@ -19,4 +19,9 @@ export class PromptBuilder {
         const formattedFiles = formatFiles(files);
         return prompt.replace(CODEFILES_PLACEHOLDER, formattedFiles);
     }
+
+    addChunkFilesToPrompt(prompt: string, chunkNumber: number, files: FileDetails[]): string {
+        const updatedPrompt = prompt.replace("[[CHUNKNUMBER]]", chunkNumber.toString());
+        return this.addFilesToPrompt(updatedPrompt, files);
+    }
 }

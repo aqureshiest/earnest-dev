@@ -1,5 +1,5 @@
 import { CODEFILES_PLACEHOLDER, SPECS_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
-import { BaseAssistant } from "./BaseAssistant";
+import { BaseAssistant } from "../BaseAssistant";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";

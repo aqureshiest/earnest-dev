@@ -1,6 +1,7 @@
 import { calculateLLMCost } from "@/modules/utils/llmCost";
 import { LLM_MODELS, LLMS } from "@/modules/utils/llmInfo";
 import Anthropic from "@anthropic-ai/sdk";
+import { encode } from "gpt-tokenizer";
 import { headers } from "next/headers";
 
 export class ClaudeAIService {

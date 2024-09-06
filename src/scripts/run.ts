@@ -160,25 +160,6 @@ module.exports = {
         console.log("-------------------");
         sleep(1000);
     }
-
-    // const tokenLimiter = new TokenLimiter();
-    // const chunks = tokenLimiter.splitInChunks(files, 1000);
-    // console.log("chunks length", chunks.length);
-
-    // for (let i = 0; i < chunks.length; i++) {
-    //     console.log("chunk", i + 1);
-
-    //     // const request: AIAssistantRequest = {
-    //     //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
-    //     //     task: "analyze code chunk " + (i + 1),
-    //     //     files: chunks,
-    //     //     params: {
-    //     //         chunkNumber: i + 1,
-    //     //     },
-    //     // };
-    //     // const codeAnalyzer = new CodeAnalyzer();
-    //     // await codeAnalyzer.process(request);
-    // }
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

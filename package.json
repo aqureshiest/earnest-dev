@@ -10,7 +10,8 @@
     "run": "tsx src/scripts/run.ts",
     "eval": "tsx src/scripts/eval.ts",
     "pr": "tsx src/scripts/pr.ts",
-    "jira": "tsx src/scripts/jira.ts"
+    "jira": "tsx src/scripts/jira.ts",
+    "ca": "tsx src/scripts/ca.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.25.0",

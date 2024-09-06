@@ -1,16 +1,11 @@
-import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
-import { RepositoryService } from "@/modules/github/RepositoryService";
-import { DatabaseService } from "@/modules/db/SupDatabaseService";
-import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { GenerateCode } from "@/modules/ai/GenerateCode";
 import { NextResponse } from "next/server";
+import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 
 const clients = new Map<string, ReadableStreamDefaultController<any>>();
 
 export async function POST(req: Request) {
-    const repositoryService = new RepositoryService();
-    const dbService = new DatabaseService();
-    const embeddingService = new EmbeddingService();
+    const prepareCodebase = new PrepareCodebase();
 
     try {
         const { taskId, owner, repo, branch, description, selectedModel } = await req.json();
@@ -24,65 +19,13 @@ export async function POST(req: Request) {
                     clients.set(taskId, controller);
                     req.signal.addEventListener("abort", () => clients.delete(taskId));
 
-                    // lets get the branch commit hash from github
-                    sendTaskUpdate(taskId, "progress", "Checking branch sync status...");
-                    const isSynced = await repositoryService.isBranchSynced(owner, repo, branch);
-                    if (isSynced) {
-                        // files ready to be processed
-                        sendTaskUpdate(taskId, "progress", "Branch is already synced.");
-                    } else {
-                        // prepare repository for processing
-                        sendTaskUpdate(taskId, "progress", "Indexing repository...");
-                        const files: FileDetails[] = await repositoryService.getRepositoryFiles(
-                            owner,
-                            repo,
-                            branch,
-                            taskId
-                        );
-                        // sendTaskUpdate(taskId, "command", "IC"); // this is a system command: Indexing completed
-                        sendTaskUpdate(taskId, "progress", `Fetched ${files.length} files.`);
-
-                        sendTaskUpdate(taskId, "progress", "Tokenizing files...");
-                        const filesWithContent: FileDetails[] = await repositoryService.fetchFiles(
-                            files
-                        );
-                        const tokenizedFiles: FileDetails[] = new TokenLimiter().tokenizeFiles(
-                            filesWithContent
-                        );
-
-                        sendTaskUpdate(taskId, "progress", "Embedding files...");
-                        const filesWithEmbeddings =
-                            await embeddingService.generateEmbeddingsForFilesInChunks(
-                                tokenizedFiles
-                            );
-
-                        // check if token limits removed any files
-                        if (filesWithEmbeddings.length < tokenizedFiles.length) {
-                            sendTaskUpdate(
-                                taskId,
-                                "progress",
-                                `Removed ${
-                                    tokenizedFiles.length - filesWithEmbeddings.length
-                                } files from context due to embedding token limits.`
-                            );
-                        }
-
-                        // sync branch
-                        sendTaskUpdate(taskId, "progress", "Syncing branch...");
-                        await repositoryService.syncBranch(
-                            owner,
-                            repo,
-                            branch,
-                            filesWithEmbeddings
-                        );
-                    }
-
-                    // look up files similar to the description
-                    const filesToUse = await dbService.findSimilar(
-                        description,
+                    // prepare codebase
+                    const filesToUse = await prepareCodebase.prepare(
                         owner,
                         repo,
-                        branch
+                        branch,
+                        description,
+                        taskId
                     );
 
                     // run the assistants to generate code

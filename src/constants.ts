@@ -77,6 +77,7 @@ export const EXCLUDE_PATTERNS = [
     ".pydoc",
     "requirements.txt",
     "Pipfile.lock",
+    ".txt",
 ];
 
 export const EMBEDDINGS_MODEL = "text-embedding-3-large";
