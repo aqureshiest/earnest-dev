@@ -233,7 +233,7 @@ const PullRequest: React.FC = () => {
             );
             await handleStreamResponse(response);
         } catch (error: any) {
-            handleError(error, "Error creating pull request:");
+            handleError(error.message);
         } finally {
             setIsCreating(false);
         }
@@ -257,7 +257,7 @@ const PullRequest: React.FC = () => {
             );
             await handleStreamResponse(response);
         } catch (error: any) {
-            handleError(error, "Error creating pull request:");
+            handleError(error.message);
         } finally {
             setIsCreating(false);
         }
@@ -288,8 +288,10 @@ const PullRequest: React.FC = () => {
     const handleResponseData = (data: any) => {
         switch (data.type) {
             case "progress":
+                handleProgress(data);
+                break;
             case "error":
-                handleProgressOrError(data);
+                handleError(new Error(data.message));
                 break;
             case "start":
                 updateAssistantState(data.message.assistant, AssistantState.Working);
@@ -303,7 +305,7 @@ const PullRequest: React.FC = () => {
         }
     };
 
-    const handleProgressOrError = (data: any) => {
+    const handleProgress = (data: any) => {
         if (data.message.startsWith("file:")) {
             setCurrentFile(data.message.slice(5));
         } else {
@@ -336,9 +338,9 @@ const PullRequest: React.FC = () => {
         }
     };
 
-    const handleError = (error: Error, message: string) => {
-        console.error(message, error);
-        setProgress((prev) => [...prev, `${message} Please try again.`, error.message]);
+    const handleError = (error: Error) => {
+        console.error(error);
+        setProgress((prev) => [...prev, error.message]);
         resetAssistantStates();
     };
 

@@ -4,6 +4,7 @@ export enum AssistantState {
     Idle = "idle",
     Working = "working",
     Completed = "completed",
+    Failed = "failed",
 }
 
 export type AssistantStates = {

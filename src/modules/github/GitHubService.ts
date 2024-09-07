@@ -1,5 +1,4 @@
 import { Octokit } from "@octokit/rest";
-import { retryWithExponentialBackoff } from "@/modules/utils/retryWithExponentialBackoff";
 
 export class GitHubService {
     private octokit: Octokit;
@@ -74,30 +73,15 @@ export class GitHubService {
         return files;
     }
 
-    async getFiles(owner: string, repo: string, ref: string = "main", path: string = "") {
-        return retryWithExponentialBackoff(async () => {
-            const { data: files } = await this.octokit.repos.getContent({
-                owner,
-                repo,
-                ref,
-                path,
-            });
-
-            return Array.isArray(files) ? files : [files];
-        });
-    }
-
     async readFile(owner: string, repo: string, ref: string = "main", path: string) {
-        return retryWithExponentialBackoff(async () => {
-            const { data: content } = await this.octokit.repos.getContent({
-                owner,
-                repo,
-                ref,
-                path,
-            });
-
-            return content;
+        const { data: content } = await this.octokit.repos.getContent({
+            owner,
+            repo,
+            ref,
+            path,
         });
+
+        return content;
     }
 
     async getPrimaryLanguage(owner: string, repo: string) {

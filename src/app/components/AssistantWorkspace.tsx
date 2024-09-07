@@ -7,7 +7,7 @@ const AssistantWorkspace = ({
     assistantStates,
 }: {
     assistants: { name: string; icon: any }[];
-    assistantStates: { [key: string]: "idle" | "working" | "completed" };
+    assistantStates: { [key: string]: "idle" | "working" | "completed" | "failed" };
 }) => {
     return (
         <Card>
@@ -24,6 +24,8 @@ const AssistantWorkspace = ({
                                         ? `bg-primary text-primary-foreground`
                                         : assistantStates[assistant.name] === "completed"
                                         ? `bg-primary/20 text-primary`
+                                        : assistantStates[assistant.name] === "failed"
+                                        ? `bg-destructive/60 text-destructive-foreground`
                                         : "bg-muted text-muted-foreground"
                                 } shadow-sm`}
                                 animate={

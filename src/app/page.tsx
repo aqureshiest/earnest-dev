@@ -49,7 +49,7 @@ const HomePage: React.FC = () => {
                     <CardFooter>
                         <Button asChild>
                             <Link href="/pullrequest">
-                                Try It Out <ArrowRight className="ml-2 h-4 w-4" />
+                                Create a Pull Request <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>
                         </Button>
                     </CardFooter>
