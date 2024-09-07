@@ -1,6 +1,7 @@
 import { EXCLUDE_PATTERNS } from "@/constants";
 import { GitHubService } from "./GitHubService";
 import { DatabaseService } from "../db/SupDatabaseService";
+import { retryWithExponentialBackoff } from "../utils/retryWithExponentialBackoff";
 
 export class RepositoryService {
     private ghService: GitHubService;
@@ -68,30 +69,32 @@ export class RepositoryService {
     }
 
     async fetchFiles(files: FileDetails[]) {
-        const promises = files.map(async (file) => {
-            // no need to fetch content if it's already there
-            if (file.content) {
-                // console.log("file content already fetched", file.path);
-                return file;
-            }
+        const promises = files.map((file) =>
+            retryWithExponentialBackoff(async () => {
+                // no need to fetch content if it's already there
+                if (file.content) {
+                    // console.log("file content already fetched", file.path);
+                    return file;
+                }
 
-            // console.log("fetching file content", file.path);
-            const content = await this.ghService.readFile(
-                file.owner,
-                file.repo,
-                file.ref,
-                file.path
-            );
+                // console.log("fetching file content", file.path);
+                const content = await this.ghService.readFile(
+                    file.owner,
+                    file.repo,
+                    file.ref,
+                    file.path
+                );
 
-            if (!("content" in content)) {
-                throw new Error("No content found in file");
-            }
+                if (!("content" in content)) {
+                    throw new Error("No content found in file");
+                }
 
-            return {
-                ...file,
-                content: Buffer.from(content.content, "base64").toString("utf-8"),
-            };
-        });
+                return {
+                    ...file,
+                    content: Buffer.from(content.content, "base64").toString("utf-8"),
+                };
+            })
+        );
 
         return Promise.all(promises);
     }
