@@ -12,29 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { LightbulbIcon, FileIcon } from "lucide-react";
 
-interface File {
-    path: string;
-    operation: string;
-    todos: string[];
-}
-
-interface Step {
-    title: string;
-    thoughts: string;
-    files: File[];
-}
-
-interface ImplementationPlan {
-    steps: Step[];
-}
-
-interface AIAssistantResponse<T> {
-    response: T;
-    cost: number;
-    inputTokens: number;
-    outputTokens: number;
-}
-
 const ImplementationPlanCard = ({
     implementationPlan,
 }: {

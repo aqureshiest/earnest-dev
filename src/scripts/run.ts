@@ -9,7 +9,6 @@ import { formatFiles } from "@/modules/utils/formatFiles";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { loadEnvConfig } from "@next/env";
 import { encode } from "gpt-tokenizer";
-import { github } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 loadEnvConfig("");
 

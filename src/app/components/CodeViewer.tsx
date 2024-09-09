@@ -6,30 +6,23 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface BaseFile {
+interface BaseFileView {
     path: string;
     thoughts?: string;
     content?: string;
     oldContents?: string;
 }
 
-type NewFile = BaseFile & {
+type NewFileView = BaseFileView & {
     content: string;
 };
 
-type ModifiedFile = BaseFile & {
+type ModifiedFileView = BaseFileView & {
     oldContents: string;
     content: string;
 };
 
-type DeletedFile = BaseFile;
-
-interface CodeChanges {
-    title: string;
-    newFiles?: NewFile[];
-    modifiedFiles?: ModifiedFile[];
-    deletedFiles?: DeletedFile[];
-}
+type DeletedFileView = BaseFileView;
 
 const CodeViewer = ({
     codeChanges,
@@ -48,7 +41,7 @@ const CodeViewer = ({
     excludedFiles: Set<string>;
     setExcludedFiles: React.Dispatch<React.SetStateAction<Set<string>>>;
 }) => {
-    const [selectedFile, setSelectedFile] = useState<BaseFile | null>(null);
+    const [selectedFile, setSelectedFile] = useState<BaseFileView | null>(null);
     const [loading, setLoading] = useState(false);
 
     const toggleExcludeFile = (filePath: string) => {

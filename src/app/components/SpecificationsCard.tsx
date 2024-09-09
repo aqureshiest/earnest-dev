@@ -11,25 +11,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { LightbulbIcon, ClipboardList } from "lucide-react";
 
-interface Specification {
-    title: string;
-    summary: string;
-    key_steps: string[];
-}
-
-interface AIAssistantResponse<T> {
-    response: T;
-    cost: number;
-    inputTokens: number;
-    outputTokens: number;
-}
-
 const SpecificationsCard = ({
     specifications,
 }: {
-    specifications: AIAssistantResponse<Specification[]> | null;
+    specifications: AIAssistantResponse<Specifications> | null;
 }) => {
-    const specs = specifications?.response || [];
+    const specs = (specifications?.response || []) as Specification[];
 
     return (
         <motion.div

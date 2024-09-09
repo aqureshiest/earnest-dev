@@ -1,7 +1,6 @@
 "use client";
 
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
-import { useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import SpecificationsCard from "../components/SpecificationsCard";
 import ImplementationPlanCard from "../components/ImplementationPlanCard";
@@ -47,8 +46,6 @@ interface Repo {
 }
 
 const PullRequest: React.FC = () => {
-    const params = useSearchParams();
-
     const [repos, setRepos] = useState<Repo[]>([]);
     const [branches, setBranches] = useState<string[]>([]);
 

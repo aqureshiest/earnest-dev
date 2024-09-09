@@ -177,14 +177,14 @@ class PullRequestService {
         for (const deletedFile of codeChanges.deletedFiles || []) {
             try {
                 // skip empty or current directory
-                if (!deletedFile || deletedFile == ".") {
+                if (!deletedFile || deletedFile.path == ".") {
                     continue;
                 }
 
                 const { data: fileData } = await this.octokit.repos.getContent({
                     owner: this.owner,
                     repo: this.repo,
-                    path: deletedFile,
+                    path: deletedFile.path,
                     ref: `heads/${branch}`,
                 });
 
