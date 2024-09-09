@@ -22,8 +22,9 @@ To run this project, you need to set up several environment variables. Follow th
 1. Go to your GitHub account.
 2. Navigate to **Settings** > **Developer settings** > **Personal access tokens**.
 3. Generate a new token with `repo` scope to allow access to your repositories.
-4. Copy the token and set it as the value for `GITHUB_TOKEN` and `NEXT_PUBLIC_GITHUB_TOKEN` in your `.env.local` file.
-5. The `NEXT_PUBLIC_GITHUB_OWNER` should be set to the GitHub username or organization name owning the repositories.
+4. Under `Permissions`, select `Read and write` for `Pull requests` and `Contents`.
+5. Copy the token and set it as the value for `GITHUB_TOKEN` and `NEXT_PUBLIC_GITHUB_TOKEN` in your `.env.local` file.
+6. The `NEXT_PUBLIC_GITHUB_OWNER` should be set to the GitHub username or organization name owning the repositories.
 
 ### OpenAI API Key
 
@@ -54,11 +55,11 @@ To set up the project locally, follow these steps:
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/earnest-ai-dev.git
+    git clone https://github.com/yourusername/earnest-dev.git
     ```
 2. Navigate to the project directory:
     ```bash
-    cd earnest-ai-dev
+    cd earnest-dev
     ```
 3. Install dependencies:
     ```bash

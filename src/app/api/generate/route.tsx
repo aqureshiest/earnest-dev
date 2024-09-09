@@ -5,13 +5,13 @@ import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 const clients = new Map<string, ReadableStreamDefaultController<any>>();
 
 export async function POST(req: Request) {
-    const prepareCodebase = new PrepareCodebase();
-
     try {
         const { taskId, owner, repo, branch, description, selectedModel } = await req.json();
         if (!taskId) {
             return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
         }
+
+        const prepareCodebase = new PrepareCodebase();
 
         const stream = new ReadableStream({
             async start(controller) {

@@ -90,7 +90,8 @@ Respond in the following format:
 </response_format_instructions>
 
 Now, analyze the provided chunk and respond using this format, focusing on practical functionality and developer-oriented insights.
-`;
+
+<chunk_analysis>`;
     }
 
     protected handleResponse(model: string, task: string, response: string): string {

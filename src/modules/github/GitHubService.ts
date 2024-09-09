@@ -14,6 +14,13 @@ export class GitHubService {
             visibility: "all",
         });
 
+        // check if we are in an env where access to repos is limited
+        const limitedAccessRepos = process.env.NEXT_PUBLIC_LIMIT_TO_REPOS;
+        if (limitedAccessRepos) {
+            const limitedRepos = limitedAccessRepos.split(",");
+            return repos.filter((repo) => limitedRepos.includes(repo.name));
+        }
+
         return repos;
     }
 

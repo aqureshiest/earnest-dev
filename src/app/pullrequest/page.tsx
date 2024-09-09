@@ -30,6 +30,8 @@ import {
     EyeIcon,
     FileSearch,
     GitPullRequest,
+    Loader,
+    Loader2,
     Maximize,
     Minimize,
     SearchCheck,
@@ -38,7 +40,6 @@ import {
     ViewIcon,
     X,
 } from "lucide-react";
-import { Octokit } from "@octokit/rest";
 import { Switch } from "@/components/ui/switch";
 
 interface Repo {
@@ -50,6 +51,9 @@ const PullRequest: React.FC = () => {
 
     const [repos, setRepos] = useState<Repo[]>([]);
     const [branches, setBranches] = useState<string[]>([]);
+
+    const [loadingRepos, setLoadingRepos] = useState(false);
+    const [loadingBranches, setLoadingBranches] = useState(false);
 
     const [taskId, setTaskId] = useState("");
 
@@ -97,23 +101,33 @@ const PullRequest: React.FC = () => {
     const { assistantStates, resetAssistantStates, updateAssistantState } = useAssistantStates();
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
-    const octokit = new Octokit({ auth: process.env.NEXT_PUBLIC_GITHUB_TOKEN });
 
     const fetchBranches = async () => {
         if (!repo) return;
 
         try {
-            const { data } = await octokit.repos.listBranches({
-                owner: process.env.NEXT_PUBLIC_GITHUB_OWNER!,
-                repo: repo,
+            setLoadingBranches(true);
+
+            // fetch api call to /api/gh
+            const response = await fetch("/api/gh", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "list-branches", owner, repo }),
             });
-            setBranches(data.map((branch) => branch.name));
+
+            if (!response.ok) throw new Error("Failed to fetch branches");
+
+            const data = await response.json();
+
+            setBranches(data.map((branch: any) => branch.name));
             const mainBranch = data.find(
-                (branch) => branch.name === "main" || branch.name === "master"
+                (branch: any) => branch.name === "main" || branch.name === "master"
             );
             setBranch(mainBranch ? mainBranch.name : data[0].name);
         } catch (error) {
             console.error("Error fetching branches:", error);
+        } finally {
+            setLoadingBranches(false);
         }
     };
 
@@ -121,15 +135,27 @@ const PullRequest: React.FC = () => {
     useEffect(() => {
         async function fetchRepos() {
             try {
-                const { data } = await octokit.repos.listForAuthenticatedUser();
+                setLoadingRepos(true);
+
+                const response = await fetch("/api/gh", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "list-repos" }),
+                });
+
+                if (!response.ok) throw new Error("Failed to fetch repositories");
+
+                const data = await response.json();
                 setRepos(data.map((repo: any) => ({ name: repo.name })));
             } catch (error) {
                 console.error("Error fetching repositories:", error);
+            } finally {
+                setLoadingRepos(false);
             }
         }
 
         fetchRepos();
-    }, [octokit]);
+    }, []);
 
     // Fetch branches when a repository is selected
     useEffect(() => {
@@ -477,7 +503,12 @@ const PullRequest: React.FC = () => {
                             <div className="space-y-4">
                                 {/* Selected Repository and Branch */}
                                 <div>
-                                    <Label htmlFor="repo">Selected Repository</Label>
+                                    <div className="flex items-center mb-2">
+                                        <Label htmlFor="repo">Selected Repository</Label>
+                                        {loadingRepos && (
+                                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                                        )}
+                                    </div>
                                     <Select value={repo} onValueChange={(value) => setRepo(value)}>
                                         <SelectTrigger id="repo">
                                             <SelectValue placeholder="Select a repository" />
@@ -493,7 +524,12 @@ const PullRequest: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="branch">Selected Branch</Label>
+                                    <div className="flex items-center mb-2">
+                                        <Label htmlFor="branch">Selected Branch</Label>
+                                        {loadingBranches && (
+                                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                                        )}
+                                    </div>
                                     <Select
                                         value={branch}
                                         onValueChange={(value) => setBranch(value)}
