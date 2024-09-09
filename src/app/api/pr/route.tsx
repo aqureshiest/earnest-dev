@@ -1,8 +1,7 @@
 import PullRequestService from "@/modules/github/PullRequestService";
 import { GeneratePR } from "@/modules/ai/GeneratePR";
 import { NextResponse } from "next/server";
-
-const clients = new Map<string, ReadableStreamDefaultController<any>>();
+import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 
 export async function POST(req: Request) {
     try {
@@ -15,8 +14,8 @@ export async function POST(req: Request) {
         const stream = new ReadableStream({
             async start(controller) {
                 try {
-                    clients.set(taskId, controller);
-                    req.signal.addEventListener("abort", () => clients.delete(taskId));
+                    setClient(taskId, controller);
+                    req.signal.addEventListener("abort", () => deleteClient(taskId));
 
                     const { implementationPlan, generatedCode } = params;
 
@@ -46,11 +45,11 @@ export async function POST(req: Request) {
                 } finally {
                     // close the stream
                     controller.close();
-                    clients.delete(taskId);
+                    deleteClient(taskId);
                 }
             },
             cancel() {
-                clients.delete(taskId);
+                deleteClient(taskId);
             },
         });
 
@@ -67,18 +66,5 @@ export async function POST(req: Request) {
             status: 500,
             headers: { "Content-Type": "application/json" },
         });
-    }
-}
-
-export function sendTaskUpdate(taskId: string, type: string, message: any) {
-    const controller = clients.get(taskId);
-    if (controller) {
-        try {
-            controller.enqueue(`data: ${JSON.stringify({ type, taskId, message })}\n\n`);
-        } catch (error) {
-            console.error("Error sending SSE update:", error);
-            controller.error(new Error("Failed to send update"));
-            clients.delete(taskId);
-        }
     }
 }

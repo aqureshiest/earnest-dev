@@ -1,8 +1,8 @@
-import { sendTaskUpdate } from "@/app/api/generate/route";
 import { DatabaseService } from "../db/SupDatabaseService";
 import { RepositoryService } from "../github/RepositoryService";
 import { TokenLimiter } from "./support/TokenLimiter";
 import { EmbeddingService } from "./support/EmbeddingService";
+import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 
 export class PrepareCodebase {
     repositoryService: RepositoryService;

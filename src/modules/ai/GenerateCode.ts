@@ -2,7 +2,7 @@ import { displayTime } from "../utils/displayTime";
 import { CodingAssistant } from "@/modules/ai/assistants/generate-code/CodingAssistant";
 import { PlannerAssistant } from "@/modules/ai/assistants/generate-code/PlannerAssistant";
 import { SpecificationsAssistant } from "@/modules/ai/assistants/generate-code/SpecificationsAssistant";
-import { sendTaskUpdate } from "@/app/api/generate/route";
+import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 
 export class GenerateCode {
     private specificationsAssistant: SpecificationsAssistant;
