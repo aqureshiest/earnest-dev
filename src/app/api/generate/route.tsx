@@ -31,25 +31,23 @@ export async function POST(req: Request) {
 
                     // prepare codebase
                     const filesToUse = await prepareCodebase.prepare(taskRequest);
-
-                    // add files to task request
                     taskRequest.files = filesToUse;
+
+                    sendTaskUpdate(taskId, "progress", "Starting AI Assistants...");
 
                     // run the assistants to generate code
                     const codeGenerator = new GenerateCode();
-                    sendTaskUpdate(taskId, "progress", "Starting AI Assistants...");
                     await codeGenerator.runWorkflow(taskRequest);
 
                     // send final response
                     sendTaskUpdate(taskId, "final", "Code generation completed.");
                 } catch (error: any) {
                     console.error("Error within generate code stream:", error);
-                    // send final response
                     sendTaskUpdate(taskId, "error", `Code generation failed. ${error.message}`);
                 } finally {
                     // close the stream
-                    controller.close();
                     deleteClient(taskId);
+                    controller.close();
                 }
             },
             cancel() {

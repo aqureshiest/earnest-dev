@@ -8,7 +8,7 @@ export function sendTaskUpdate(taskId: string, type: string, message: any) {
         } catch (error) {
             console.error("Error sending SSE update:", error);
             controller.error(new Error("Failed to send update"));
-            clients.delete(taskId);
+            // clients.delete(taskId);
         }
     }
 }
