@@ -86,7 +86,7 @@ Now, using the task description and the existing code files, provide detailed sp
 `;
     }
 
-    handleResponse(request: CodingTaskRequest, response: string): Specifications {
+    handleResponse(response: string): Specifications {
         const options = {
             ignoreAttributes: false,
             isArray: (name: any, jpath: any) => name === "specification" || name === "step", // || name === "consideration"

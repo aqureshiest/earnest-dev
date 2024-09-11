@@ -97,7 +97,7 @@ Now, analyze the provided chunk and respond using this format, focusing on pract
         throw new Error("Method not implemented.");
     }
 
-    protected handleResponse(request: CodingTaskRequest, response: string): string {
+    protected handleResponse(response: string): string {
         // extract the chunk_analysis block
         const match = response.match(/<chunk_analysis>[\s\S]*<\/chunk_analysis>/);
         const matchedBlock = match ? match[0] : "";

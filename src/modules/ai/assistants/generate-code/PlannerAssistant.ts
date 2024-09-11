@@ -97,7 +97,7 @@ Now, using the task description, existing code files, and specifications generat
 `;
     }
 
-    handleResponse(request: CodingTaskRequest, response: string): ImplementationPlan {
+    handleResponse(response: string): ImplementationPlan {
         const options = {
             ignoreAttributes: false,
             isArray: (name: any, jpath: any) =>

@@ -12,7 +12,7 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
 
     abstract process(request: T): Promise<AIAssistantResponse<R> | null>;
 
-    protected abstract handleResponse(request: T, response: string): R;
+    protected abstract handleResponse(response: string): R;
 
     protected async generateResponse(
         model: string,

@@ -60,7 +60,7 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
                 }
 
                 // Parse the response
-                const parsed = this.handleResponse(request, aiResponse.response);
+                const parsed = this.handleResponse(aiResponse.response);
 
                 // Save result data
                 responses.push({

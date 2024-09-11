@@ -115,7 +115,7 @@ Now, using the task description, existing code files, and implementation plan ge
 `;
     }
 
-    handleResponse(request: CodingTaskRequest, response: string): CodeChanges {
+    handleResponse(response: string): CodeChanges {
         const options = {
             ignoreAttributes: false,
             isArray: (name: any, jpath: any) => name === "file",
