@@ -33,6 +33,8 @@ export async function POST(req: Request) {
                         },
                     };
 
+                    sendTaskUpdate(taskId, "progress", "Starting pull request...");
+
                     // call the assistant to generate PR
                     const prGenerator = new GeneratePR();
                     const response = await prGenerator.runWorkflow(taskRequest);
