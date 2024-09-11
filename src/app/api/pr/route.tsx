@@ -19,12 +19,23 @@ export async function POST(req: Request) {
 
                     const { implementationPlan, generatedCode } = params;
 
+                    const taskRequest: CodingTaskRequest = {
+                        taskId,
+                        owner,
+                        repo,
+                        branch,
+                        task: description,
+                        model: selectedModel,
+                        files: [],
+                        params: {
+                            implementationPlan: implementationPlan.responseStr,
+                            generatedCode: generatedCode.responseStr,
+                        },
+                    };
+
                     // call the assistant to generate PR
-                    const prGenerator = new GeneratePR(taskId);
-                    const response = await prGenerator.runWorkflow(selectedModel, description, {
-                        implementationPlan: implementationPlan.responseStr,
-                        generatedCode: generatedCode.responseStr,
-                    });
+                    const prGenerator = new GeneratePR();
+                    const response = await prGenerator.runWorkflow(taskRequest);
 
                     sendTaskUpdate(taskId, "progress", "Finalizing pull request...");
 

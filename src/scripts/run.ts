@@ -1,8 +1,6 @@
 import { CodeAnalyzer } from "@/modules/ai/assistants/CodeAnalyzer";
 import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { PGDatabaseService } from "@/modules/db/PGDatabaseService";
-import { DatabaseService } from "@/modules/db/SupDatabaseService";
 import { GitHubService } from "@/modules/github/GitHubService";
 import { RepositoryService } from "@/modules/github/RepositoryService";
 import { formatFiles } from "@/modules/utils/formatFiles";
@@ -13,7 +11,7 @@ import { encode } from "gpt-tokenizer";
 loadEnvConfig("");
 
 async function main() {
-    const dbService = new DatabaseService();
+    // const dbService = new DatabaseService();
 
     const text = `const Book = require("../models/Book");
 

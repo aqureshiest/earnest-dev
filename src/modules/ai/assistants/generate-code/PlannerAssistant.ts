@@ -1,10 +1,11 @@
 import { CODEFILES_PLACEHOLDER, SPECS_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
-import { BaseAssistant } from "../BaseAssistant";
+import { CodebaseAssistant } from "../CodebaseAssistant";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
+import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
-export class PlannerAssistant extends BaseAssistant<ImplementationPlan> {
+export class PlannerAssistant extends CodebaseAssistant<ImplementationPlan> {
     private responseParser: ResponseParser<ImplementationPlan>;
 
     constructor() {
@@ -97,7 +98,7 @@ Now, using the task description, existing code files, and specifications generat
 `;
     }
 
-    handleResponse(model: string, task: string, response: string): ImplementationPlan {
+    handleResponse(request: CodingTaskRequest, response: string): ImplementationPlan {
         const options = {
             ignoreAttributes: false,
             isArray: (name: any, jpath: any) =>
@@ -109,13 +110,10 @@ Now, using the task description, existing code files, and specifications generat
         const matchedBlock = match ? match[0] : "";
 
         // Parse the response into an intermediate format
-        const parsedData = this.responseParser.parse(
-            model,
-            task,
-            this.constructor.name,
-            matchedBlock,
-            options
-        ) as any;
+        const parsedData = this.responseParser.parse(matchedBlock, options) as any;
+
+        // Save the run info after parsing
+        saveRunInfo(request, this.constructor.name, "ai_response", parsedData, "xml");
 
         try {
             const plan: ImplementationPlan = {

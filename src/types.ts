@@ -10,6 +10,22 @@ interface FileDetails {
     embeddings: number[];
 }
 
+// request types
+
+interface TaskRequest {
+    taskId: string;
+    task: string;
+    model: string;
+}
+
+interface CodingTaskRequest extends TaskRequest {
+    owner: string;
+    repo: string;
+    branch: string;
+    files: FileDetails[];
+    params?: any;
+}
+
 // specifications types
 
 interface Specifications {

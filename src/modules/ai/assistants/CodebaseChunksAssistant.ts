@@ -1,15 +1,10 @@
 import { saveRunInfo } from "@/modules/utils/saveRunInfo";
-import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { BaseAssistant } from "./BaseAssistant";
 
-abstract class BaseAssistantChunkable<T> extends BaseAssistant<T> implements AIAssistant<T> {
-    constructor(promptBuilder: PromptBuilder, tokenLimiter: TokenLimiter) {
-        super(promptBuilder, tokenLimiter);
-    }
-
-    async processInChunks(request: AIAssistantRequest): Promise<AIAssistantResponse<T>[] | null> {
+abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskRequest, R> {
+    async processInChunks(request: CodingTaskRequest): Promise<AIAssistantResponse<R>[] | null> {
         const { model, task, files, params } = request;
+
         console.log(
             `[${this.constructor.name}] Processing task:\n>>${task}\n>>with model: ${model}`
         );
@@ -48,20 +43,9 @@ abstract class BaseAssistantChunkable<T> extends BaseAssistant<T> implements AIA
                 chunk.files
             );
 
-            saveRunInfo(
-                model,
-                task,
-                this.constructor.name,
-                `system_prompt_chunk_${index + 1}`,
-                systemPrompt
-            );
-            saveRunInfo(
-                model,
-                task,
-                this.constructor.name,
-                `user_prompt_chunk_${index + 1}`,
-                finalPromptWithFiles
-            );
+            const caller = this.constructor.name;
+            saveRunInfo(request, caller, `system_prompt_chunk_${index + 1}`, systemPrompt);
+            saveRunInfo(request, caller, `user_prompt_chunk_${index + 1}`, finalPromptWithFiles);
 
             try {
                 // Generate response for the chunk
@@ -76,7 +60,7 @@ abstract class BaseAssistantChunkable<T> extends BaseAssistant<T> implements AIA
                 }
 
                 // Parse the response
-                const parsed = this.handleResponse(model, task, aiResponse.response);
+                const parsed = this.handleResponse(request, aiResponse.response);
 
                 // Save result data
                 responses.push({
@@ -102,4 +86,4 @@ abstract class BaseAssistantChunkable<T> extends BaseAssistant<T> implements AIA
     }
 }
 
-export { BaseAssistantChunkable };
+export { CodebaseChunksAssistant };

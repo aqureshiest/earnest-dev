@@ -1,15 +1,15 @@
 import { EXCLUDE_PATTERNS } from "@/constants";
 import { GitHubService } from "./GitHubService";
-import { DatabaseService } from "../db/SupDatabaseService";
 import { retryWithExponentialBackoff } from "../utils/retryWithExponentialBackoff";
+import { RepositoryDataService } from "../db/RepositoryDataService";
 
 export class RepositoryService {
     private ghService: GitHubService;
-    private dbService: DatabaseService;
+    private dataService: RepositoryDataService;
 
     constructor() {
         this.ghService = new GitHubService();
-        this.dbService = new DatabaseService();
+        this.dataService = new RepositoryDataService();
     }
 
     async getRepositoryFiles(
@@ -22,7 +22,7 @@ export class RepositoryService {
         // get files from the repo
         const files = await this.ghService.listRepoFiles(owner, repo, ref);
         // get files from the database
-        const savedFiles = await this.dbService.getAllFileDetails(owner, repo, ref);
+        const savedFiles = await this.dataService.getAllFileDetails(owner, repo, ref);
 
         // create a map of saved files
         const savedFilesMap = new Map<string, FileDetails>();
@@ -100,7 +100,7 @@ export class RepositoryService {
     }
 
     async isBranchSynced(owner: string, repo: string, ref: string = "main") {
-        const dbCommitHash = await this.dbService.getBranchCommit(owner, repo, ref);
+        const dbCommitHash = await this.dataService.getBranchCommit(owner, repo, ref);
         const ghBranch = await this.ghService.getBranch(owner, repo, ref);
 
         return dbCommitHash === ghBranch.commit.sha;
@@ -111,11 +111,11 @@ export class RepositoryService {
 
         // save all files
         files.forEach(async (file) => {
-            await this.dbService.saveFileDetails(file);
+            await this.dataService.saveFileDetails(file);
         });
 
         // save branch commit (for next iteration)
-        await this.dbService.saveBranchCommit(owner, repo, ref, ghBranch.commit.sha);
+        await this.dataService.saveBranchCommit(owner, repo, ref, ghBranch.commit.sha);
     }
 
     static shouldExclude(filePath: string): boolean {

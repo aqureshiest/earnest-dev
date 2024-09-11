@@ -66,3 +66,17 @@ CREATE TABLE IF NOT EXISTS BranchCommits (
     commitHash TEXT NOT NULL,
     UNIQUE (owner, repo, ref)
 );
+
+
+-- 004_create_run_logs_table.sql
+CREATE TABLE IF NOT EXISTS RunLogs (
+    id SERIAL PRIMARY KEY,
+    taskId TEXT NOT NULL,
+    model TEXT NOT NULL,
+    task TEXT,
+    assistant TEXT NOT NULL,
+    infoType TEXT NOT NULL,
+    info TEXT NOT NULL,
+    contentType TEXT NOT NULL,    
+    UNIQUE (taskId)
+);

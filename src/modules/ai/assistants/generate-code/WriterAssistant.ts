@@ -1,10 +1,11 @@
 import { GENERATED_CODE_PLACEHOLDER, PLAN_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
-import { BaseAssistant } from "../BaseAssistant";
+import { CodebaseAssistant } from "../CodebaseAssistant";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
+import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
-export class WriterAssistant extends BaseAssistant<string> {
+export class WriterAssistant extends CodebaseAssistant<string> {
     private responseParser: ResponseParser<string>;
 
     constructor() {
@@ -72,13 +73,11 @@ Please go ahead and generate the PR description based on the provided informatio
 `;
     }
 
-    handleResponse(model: string, task: string, response: string): string {
-        const description = this.responseParser.parse(
-            model,
-            task,
-            this.constructor.name,
-            response
-        ) as any;
+    handleResponse(request: CodingTaskRequest, response: string): string {
+        const description = this.responseParser.parse(response) as any;
+
+        // Save the run info after parsing
+        saveRunInfo(request, this.constructor.name, "ai_response", description, "yaml");
 
         return description;
     }

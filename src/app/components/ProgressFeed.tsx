@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import RunLogsModal from "./RunLogsModal";
 
 interface ProgressFeedProps {
     progress: string[];
@@ -11,6 +13,8 @@ interface ProgressFeedProps {
 
 const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile }) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
     useEffect(() => {
         if (scrollAreaRef.current) {
@@ -29,7 +33,7 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile }) =>
                 <CardTitle>Progress Feed</CardTitle>
             </CardHeader>
             <CardContent>
-                <ScrollArea className="h-[240px] overflow-y-auto pr-4" ref={scrollAreaRef}>
+                <div className="h-[240px] overflow-y-auto pr-4" ref={scrollAreaRef}>
                     <AnimatePresence initial={false}>
                         {progress.map((message, index) => (
                             <motion.div
@@ -69,7 +73,16 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile }) =>
                             </span>
                         </motion.div>
                     )}
-                </ScrollArea>
+                </div>
+
+                <Button
+                    variant="outline"
+                    className="mt-2 w-full"
+                    onClick={() => setIsLogModalOpen(true)}
+                >
+                    View Logs
+                </Button>
+                {/* <RunLogsModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} /> */}
             </CardContent>
         </Card>
     );

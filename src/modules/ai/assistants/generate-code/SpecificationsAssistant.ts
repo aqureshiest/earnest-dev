@@ -1,10 +1,11 @@
 import { CODEFILES_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
-import { BaseAssistant } from "../BaseAssistant";
+import { CodebaseAssistant } from "../CodebaseAssistant";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
+import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
-export class SpecificationsAssistant extends BaseAssistant<Specifications> {
+export class SpecificationsAssistant extends CodebaseAssistant<Specifications> {
     private responseParser: ResponseParser<Specifications>;
 
     constructor() {
@@ -86,7 +87,7 @@ Now, using the task description and the existing code files, provide detailed sp
 `;
     }
 
-    handleResponse(model: string, task: string, response: string): Specifications {
+    handleResponse(request: CodingTaskRequest, response: string): Specifications {
         const options = {
             ignoreAttributes: false,
             isArray: (name: any, jpath: any) => name === "specification" || name === "step", // || name === "consideration"
@@ -97,13 +98,10 @@ Now, using the task description and the existing code files, provide detailed sp
         const matchedBlock = match ? match[0] : "";
 
         // Parse the response into an intermediate format
-        const parsedData = this.responseParser.parse(
-            model,
-            task,
-            this.constructor.name,
-            matchedBlock,
-            options
-        ) as any;
+        const parsedData = this.responseParser.parse(matchedBlock, options) as any;
+
+        // Save the run info after parsing
+        saveRunInfo(request, this.constructor.name, "ai_response", parsedData, "xml");
 
         try {
             // Flatten the data into the final format
@@ -114,9 +112,6 @@ Now, using the task description and the existing code files, provide detailed sp
                     key_steps: Array.isArray(spec.key_steps?.step)
                         ? spec.key_steps.step
                         : [spec.key_steps.step],
-                    // considerations: Array.isArray(spec.considerations?.consideration)
-                    //     ? spec.considerations.consideration
-                    //     : [spec.considerations.consideration],
                 })
             );
 

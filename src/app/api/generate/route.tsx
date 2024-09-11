@@ -18,19 +18,26 @@ export async function POST(req: Request) {
                     setClient(taskId, controller);
                     req.signal.addEventListener("abort", () => deleteClient(taskId));
 
-                    // prepare codebase
-                    const filesToUse = await prepareCodebase.prepare(
+                    const taskRequest: CodingTaskRequest = {
+                        taskId,
                         owner,
                         repo,
                         branch,
-                        description,
-                        taskId
-                    );
+                        task: description,
+                        model: selectedModel,
+                        files: [],
+                    };
+
+                    // prepare codebase
+                    const filesToUse = await prepareCodebase.prepare(taskRequest);
+
+                    // add files to task request
+                    taskRequest.files = filesToUse;
 
                     // run the assistants to generate code
-                    const codeGenerator = new GenerateCode(taskId);
+                    const codeGenerator = new GenerateCode();
                     sendTaskUpdate(taskId, "progress", "Starting AI Assistants...");
-                    await codeGenerator.runWorkflow(selectedModel, description, filesToUse);
+                    await codeGenerator.runWorkflow(taskRequest);
 
                     // send final response
                     sendTaskUpdate(taskId, "final", "Code generation completed.");

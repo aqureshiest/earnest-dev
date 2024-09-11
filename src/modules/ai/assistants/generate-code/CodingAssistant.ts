@@ -1,10 +1,11 @@
 import { CODEFILES_PLACEHOLDER, PLAN_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
-import { BaseAssistant } from "../BaseAssistant";
+import { CodebaseAssistant } from "../CodebaseAssistant";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
+import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
-export class CodingAssistant extends BaseAssistant<CodeChanges> {
+export class CodingAssistant extends CodebaseAssistant<CodeChanges> {
     private responseParser: ResponseParser<CodeChanges>;
 
     constructor() {
@@ -115,7 +116,7 @@ Now, using the task description, existing code files, and implementation plan ge
 `;
     }
 
-    handleResponse(model: string, task: string, response: string): CodeChanges {
+    handleResponse(request: CodingTaskRequest, response: string): CodeChanges {
         const options = {
             ignoreAttributes: false,
             isArray: (name: any, jpath: any) => name === "file",
@@ -126,13 +127,10 @@ Now, using the task description, existing code files, and implementation plan ge
         const codeChangesBlock = match ? match[0] : "";
 
         // Parse the response into an intermediate format
-        const parsedData = this.responseParser.parse(
-            model,
-            task,
-            this.constructor.name,
-            codeChangesBlock,
-            options
-        ) as any;
+        const parsedData = this.responseParser.parse(codeChangesBlock, options) as any;
+
+        // Save the run info after parsing
+        saveRunInfo(request, this.constructor.name, "ai_response", parsedData, "xml");
 
         try {
             // Normalize the parsed data

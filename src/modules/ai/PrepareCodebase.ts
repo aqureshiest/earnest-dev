@@ -1,4 +1,4 @@
-import { DatabaseService } from "../db/SupDatabaseService";
+import { RepositoryDataService } from "../db/RepositoryDataService";
 import { RepositoryService } from "../github/RepositoryService";
 import { TokenLimiter } from "./support/TokenLimiter";
 import { EmbeddingService } from "./support/EmbeddingService";
@@ -6,22 +6,18 @@ import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 
 export class PrepareCodebase {
     repositoryService: RepositoryService;
-    dbService: DatabaseService;
+    dataService: RepositoryDataService;
     embeddingService: EmbeddingService;
 
     constructor() {
         this.repositoryService = new RepositoryService();
-        this.dbService = new DatabaseService();
+        this.dataService = new RepositoryDataService();
         this.embeddingService = new EmbeddingService();
     }
 
-    async prepare(
-        owner: string,
-        repo: string,
-        branch: string,
-        description: string,
-        taskId: string = ""
-    ) {
+    async prepare(taskRequest: CodingTaskRequest) {
+        const { owner, repo, branch, task: description, taskId } = taskRequest;
+
         // lets get the branch commit hash from github
         sendTaskUpdate(taskId, "progress", "Checking branch sync status...");
         const isSynced = await this.repositoryService.isBranchSynced(owner, repo, branch);
@@ -65,7 +61,7 @@ export class PrepareCodebase {
         }
 
         // look up files similar to the description
-        const filesToUse = await this.dbService.findSimilar(description, owner, repo, branch);
+        const filesToUse = await this.dataService.findSimilar(description, owner, repo, branch);
 
         return filesToUse;
     }

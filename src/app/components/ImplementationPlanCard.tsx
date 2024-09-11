@@ -19,6 +19,10 @@ const ImplementationPlanCard = ({
 }) => {
     const steps = implementationPlan?.response?.steps || [];
 
+    if (!steps.length) {
+        return null;
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}

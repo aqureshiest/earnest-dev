@@ -2,10 +2,11 @@ import { CODEFILES_PLACEHOLDER } from "@/constants";
 import { PromptBuilder } from "../support/PromptBuilder";
 import { ResponseParser } from "../support/ResponseParser";
 import { TokenLimiter } from "../support/TokenLimiter";
-import { BaseAssistant } from "./BaseAssistant";
-import { BaseAssistantChunkable } from "./BaseAssistantChunkable";
+import { CodebaseAssistant } from "./CodebaseAssistant";
+import { CodebaseChunksAssistant } from "./CodebaseChunksAssistant";
+import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
-export class CodeAnalyzer extends BaseAssistantChunkable<string> {
+export class CodeAnalyzer extends CodebaseChunksAssistant<string> {
     private responseParser: ResponseParser<string>;
 
     constructor() {
@@ -94,18 +95,16 @@ Now, analyze the provided chunk and respond using this format, focusing on pract
 <chunk_analysis>`;
     }
 
-    protected handleResponse(model: string, task: string, response: string): string {
+    protected handleResponse(request: CodingTaskRequest, response: string): string {
         // extract the chunk_analysis block
         const match = response.match(/<chunk_analysis>[\s\S]*<\/chunk_analysis>/);
         const matchedBlock = match ? match[0] : "";
 
         // Parse the response into an intermediate format
-        const parsedData = this.responseParser.parse(
-            model,
-            task,
-            this.constructor.name,
-            matchedBlock
-        ) as any;
+        const parsedData = this.responseParser.parse(matchedBlock) as any;
+
+        // Save the run info after parsing
+        saveRunInfo(request, this.constructor.name, "ai_response", parsedData, "xml");
 
         return response;
     }

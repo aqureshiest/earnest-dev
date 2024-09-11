@@ -1,10 +1,3 @@
-interface AIAssistantRequest {
-    model: string;
-    task: string;
-    files: FileDetails[];
-    params?: any;
-}
-
 interface AIAssistantResponse<T> {
     response: T | null;
     responseStr: string;
@@ -14,10 +7,8 @@ interface AIAssistantResponse<T> {
     cost: number;
 }
 
-interface AIAssistant<T> {
+interface AIAssistant<T extends TaskRequest, R> {
     getSystemPrompt(): string;
-
     getPrompt(params?: any): string;
-
-    process(request: AIAssistantRequest): Promise<AIAssistantResponse<T> | null>;
+    process(request: T): Promise<AIAssistantResponse<R> | null>;
 }

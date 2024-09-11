@@ -4,52 +4,45 @@ import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 export class GeneratePR {
     private writerAssistant: WriterAssistant;
 
-    private taskId: string;
-
-    constructor(taskId: string) {
+    constructor() {
         this.writerAssistant = new WriterAssistant();
-
-        this.taskId = taskId;
     }
 
     async runWorkflow(
-        model: string,
-        task: string,
+        taskRequest: CodingTaskRequest,
         params?: any
     ): Promise<AIAssistantResponse<string>> {
+        const { taskId } = taskRequest;
+
         // make sure implementation plan and generated code are provided in the params
         if (!params || !params.implementationPlan || !params.generatedCode) {
             throw new Error("Implementation plan and generated code are required.");
         }
 
-        sendTaskUpdate(this.taskId, "start", { assistant: "PR" });
-        sendTaskUpdate(this.taskId, "progress", "Generating PR...");
+        sendTaskUpdate(taskId, "start", { assistant: "PR" });
+        sendTaskUpdate(taskId, "progress", "Generating PR...");
+
         // write PR description
-        const prDescription = await this.writerAssistant.process({
-            model,
-            task,
-            files: [], // no existing codebase files needed for writing PR
-            params,
-        });
+        const prDescription = await this.writerAssistant.process(taskRequest);
 
         if (!prDescription) {
             throw new Error("PR description not generated.");
         }
 
-        sendTaskUpdate(this.taskId, "complete", { assistant: "PR", response: "" });
-        await this.emitMetrics(prDescription);
+        sendTaskUpdate(taskId, "complete", { assistant: "PR", response: "" });
+        await this.emitMetrics(taskId, prDescription);
 
         return prDescription;
     }
 
-    private async emitMetrics(result: AIAssistantResponse<any>) {
+    private async emitMetrics(taskId: string, result: AIAssistantResponse<any>) {
         sendTaskUpdate(
-            this.taskId,
+            taskId,
             "progress",
             `*Approximated tokens: ${result.calculatedTokens.toFixed(0)}`
         );
-        sendTaskUpdate(this.taskId, "progress", `*Actual Input tokens: ${result.inputTokens}`);
-        sendTaskUpdate(this.taskId, "progress", `*Actual Output tokens: ${result.outputTokens}`);
-        sendTaskUpdate(this.taskId, "progress", `*Cost: $${result.cost.toFixed(6)}`);
+        sendTaskUpdate(taskId, "progress", `*Actual Input tokens: ${result.inputTokens}`);
+        sendTaskUpdate(taskId, "progress", `*Actual Output tokens: ${result.outputTokens}`);
+        sendTaskUpdate(taskId, "progress", `*Cost: $${result.cost.toFixed(6)}`);
     }
 }

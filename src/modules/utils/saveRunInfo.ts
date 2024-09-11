@@ -10,14 +10,15 @@ export enum SUPPORTED_FILE_EXTENSIONS {
     XML = "xml",
 }
 
-export function saveRunInfo<T>(
-    model: string,
-    task: string,
+export function saveRunInfo<R extends TaskRequest, T>(
+    request: R,
     assistant: string,
     infoType: string,
     info: T,
     infoExtension: string = "txt"
 ) {
+    const { model, task } = request;
+
     // replace any non alphabetic characters with underscores
     const task_dir = task
         .trim()

@@ -19,7 +19,7 @@ const AssistantWorkspace = ({
                     {assistants.map((assistant) => (
                         <div key={assistant.name} className="text-center space-y-3">
                             <motion.div
-                                className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                                className={`w-12 h-12 rounded-full flex items-center justify-center ${
                                     assistantStates[assistant.name] === "working"
                                         ? `bg-primary text-primary-foreground`
                                         : assistantStates[assistant.name] === "completed"
@@ -39,7 +39,7 @@ const AssistantWorkspace = ({
                                         : { duration: 0.3 }
                                 }
                             >
-                                <assistant.icon className="w-8 h-8" />
+                                <assistant.icon className="w-6 h-6" />
                             </motion.div>
                             <p className="text-sm font-medium text-muted-foreground capitalize">
                                 {assistant.name}
