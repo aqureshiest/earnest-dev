@@ -1,10 +1,7 @@
 import { CodeAnalyzer } from "@/modules/ai/assistants/CodeAnalyzer";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
-import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { RepositoryService } from "@/modules/github/RepositoryService";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { loadEnvConfig } from "@next/env";
-import { encode } from "gpt-tokenizer";
 
 loadEnvConfig("");
 
@@ -14,19 +11,21 @@ async function main() {
 
     const codeAnalyzer = new CodeAnalyzer();
     const prepareCodebase = new PrepareCodebase();
-    const files = await prepareCodebase.prepare(
-        "aqureshiest",
-        "sds",
-        "main",
-        "analyze sds code in full"
-    );
+
+    const request: CodingTaskRequest = {
+        taskId: "aqureshiest",
+        owner: "sds",
+        repo: "main",
+        branch: "analyze sds code in full",
+        task: "analyze sds code in full",
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
+        files: [],
+    };
+
+    const files = await prepareCodebase.prepare(request);
     console.log("files length", files.length);
 
-    await codeAnalyzer.processInChunks({
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
-        task: "analyze sds code in full",
-        files,
-    });
+    await codeAnalyzer.processInChunks(request);
 
     // const request = {
     //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,

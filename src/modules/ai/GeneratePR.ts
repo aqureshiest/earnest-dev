@@ -8,11 +8,8 @@ export class GeneratePR {
         this.writerAssistant = new WriterAssistant();
     }
 
-    async runWorkflow(
-        taskRequest: CodingTaskRequest,
-        params?: any
-    ): Promise<AIAssistantResponse<string>> {
-        const { taskId } = taskRequest;
+    async runWorkflow(taskRequest: CodingTaskRequest): Promise<AIAssistantResponse<string>> {
+        const { taskId, params } = taskRequest;
 
         // make sure implementation plan and generated code are provided in the params
         if (!params || !params.implementationPlan || !params.generatedCode) {

@@ -29,6 +29,7 @@ import {
     EyeIcon,
     FileSearch,
     GitPullRequest,
+    GitPullRequestArrow,
     Loader,
     Loader2,
     Maximize,
@@ -269,6 +270,8 @@ const PullRequest: React.FC = () => {
         try {
             const newTaskId = Date.now().toString();
             setTaskId(newTaskId);
+
+            setProgress((prev) => [...prev, `Task ${newTaskId} started`]);
 
             const response = await generateCode(
                 newTaskId,
@@ -617,6 +620,7 @@ const PullRequest: React.FC = () => {
                                                     target="_blank"
                                                     rel="noreferrer"
                                                 >
+                                                    <GitPullRequestArrow className="mr-2 h-4 w-4" />
                                                     View Pull Request
                                                 </a>
                                             </Button>
@@ -634,7 +638,11 @@ const PullRequest: React.FC = () => {
                             assistantStates={assistantStates}
                         />
 
-                        <ProgressFeed progress={progress} currentFile={currentFile} />
+                        <ProgressFeed
+                            taskId={taskId}
+                            progress={progress}
+                            currentFile={currentFile}
+                        />
 
                         <SpecificationsCard specifications={specifications} />
 

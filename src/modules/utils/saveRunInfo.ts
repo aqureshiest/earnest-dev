@@ -3,7 +3,7 @@ import path from "path";
 import yaml from "js-yaml";
 import { XMLBuilder } from "fast-xml-parser";
 
-export enum SUPPORTED_FILE_EXTENSIONS {
+export enum EXTS {
     TXT = "txt",
     YAML = "yaml",
     MD = "md",
@@ -17,39 +17,15 @@ export function saveRunInfo<R extends TaskRequest, T>(
     info: T,
     infoExtension: string = "txt"
 ) {
-    const { model, task } = request;
+    const { taskId, task, model } = request;
 
-    // replace any non alphabetic characters with underscores
-    const task_dir = task
-        .trim()
-        .replace(/[^a-zA-Z0-9]/g, "_")
-        .slice(0, 50);
-
-    // timestamp as milliseconds as string
-    const timestamp = Date.now().toString();
-
-    // create directory for this run in the root directory
-    const runDir = path.join(process.cwd(), "runs", task_dir, assistant.toLowerCase());
-
-    // mk dirs
-    fs.mkdirSync(runDir, { recursive: true });
-
-    // make sure it exists
-    if (!fs.existsSync(runDir)) {
-        console.error("Unable to create Run directory");
-        return;
-    }
-
-    // create a new file in the runDir
-    const runInfoFile = path.join(runDir, `${infoType}_${timestamp}.${infoExtension}`);
-
+    // convert info to string
     let infoString = "";
-
-    if (infoExtension === SUPPORTED_FILE_EXTENSIONS.YAML) {
+    if (infoExtension === EXTS.YAML) {
         infoString = yaml.dump(info);
-    } else if (infoExtension === SUPPORTED_FILE_EXTENSIONS.MD) {
+    } else if (infoExtension === EXTS.MD) {
         infoString = info as string;
-    } else if (infoExtension === SUPPORTED_FILE_EXTENSIONS.XML) {
+    } else if (infoExtension === EXTS.XML) {
         const builder = new XMLBuilder({
             ignoreAttributes: false,
             format: true,
@@ -60,34 +36,42 @@ export function saveRunInfo<R extends TaskRequest, T>(
         infoString = info as string;
     }
 
-    fs.writeFileSync(runInfoFile, infoString.trim());
-}
+    const writeToFile = process.env.WRITE_RUN_INFO_TO_FILE;
+    const writeToConsole = process.env.WRITE_RUN_INFO_TO_CONSOLE;
 
-export function getRunInfo<T = string>(
-    model: string,
-    task: string,
-    assistant: string,
-    infoType: string
-) {
-    const task_dir = task
-        .trim()
-        .replace(/[^a-zA-Z]/g, "_")
-        .slice(0, 50);
+    if (writeToFile === "true") {
+        // create directory for this run in the root directory
+        const runDir = path.join(process.cwd(), "runs", taskId, assistant.toLowerCase());
 
-    // look up run directory
-    const runDir = path.join(process.cwd(), "runs", task_dir, assistant.toLowerCase());
+        // check if dir already exists
+        if (!fs.existsSync(runDir)) {
+            // mk dirs
+            fs.mkdirSync(runDir, { recursive: true });
 
-    // make sure it exists
-    if (!fs.existsSync(runDir)) {
-        console.error(`Run dir ${runDir} does not exist`);
-        return;
+            // exclude last dir from runDir
+            const dirs = runDir.split(path.sep);
+            const taskDir = dirs.slice(0, dirs.length - 1).join(path.sep);
+
+            // write a text file that contains the task and model
+            const runInfoFile = path.join(taskDir, "info.txt");
+            const runInfo = `Task: ${task}\nModel: ${model}\n`;
+            fs.writeFileSync(runInfoFile, runInfo);
+        }
+
+        // make sure it exists
+        if (!fs.existsSync(runDir)) {
+            console.error("Unable to create Run directory");
+            return;
+        }
+
+        // create a new file in the runDir
+        const runInfoFile = path.join(runDir, `${infoType}.${infoExtension}`);
+
+        fs.writeFileSync(runInfoFile, infoString.trim());
     }
 
-    // look for the supported file
-    for (const ext of Object.values(SUPPORTED_FILE_EXTENSIONS)) {
-        const runInfoFile = path.join(runDir, `${infoType}.${ext}`);
-        if (fs.existsSync(runInfoFile)) {
-            return fs.readFileSync(runInfoFile, "utf-8") as T;
-        }
+    if (writeToConsole === "true") {
+        // output to console
+        console.log(`[${taskId}] [${assistant}] ${infoType}:\n${infoString.trim()}`);
     }
 }

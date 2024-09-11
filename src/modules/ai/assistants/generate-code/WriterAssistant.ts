@@ -3,7 +3,6 @@ import { CodebaseAssistant } from "../CodebaseAssistant";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
 export class WriterAssistant extends CodebaseAssistant<string> {
     private responseParser: ResponseParser<string>;
@@ -76,9 +75,10 @@ Please go ahead and generate the PR description based on the provided informatio
     handleResponse(request: CodingTaskRequest, response: string): string {
         const description = this.responseParser.parse(response) as any;
 
-        // Save the run info after parsing
-        saveRunInfo(request, this.constructor.name, "ai_response", description, "yaml");
-
         return description;
+    }
+
+    protected override responseType(): string {
+        return "markdown";
     }
 }

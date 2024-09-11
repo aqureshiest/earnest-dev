@@ -3,18 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import RunLogsModal from "./RunLogsModal";
 
 interface ProgressFeedProps {
+    taskId: string;
     progress: string[];
     currentFile?: string;
 }
 
-const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile }) => {
+const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile, taskId }) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
     useEffect(() => {
         if (scrollAreaRef.current) {
@@ -33,7 +30,7 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile }) =>
                 <CardTitle>Progress Feed</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[240px] overflow-y-auto pr-4" ref={scrollAreaRef}>
+                <ScrollArea className="h-[240px] pr-4" ref={scrollAreaRef}>
                     <AnimatePresence initial={false}>
                         {progress.map((message, index) => (
                             <motion.div
@@ -73,16 +70,16 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile }) =>
                             </span>
                         </motion.div>
                     )}
-                </div>
+                </ScrollArea>
 
-                <Button
+                {/* <Button
                     variant="outline"
                     className="mt-2 w-full"
                     onClick={() => setIsLogModalOpen(true)}
                 >
+                    <Logs className="h-4 w-4 mr-2" />
                     View Logs
-                </Button>
-                {/* <RunLogsModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} /> */}
+                </Button> */}
             </CardContent>
         </Card>
     );

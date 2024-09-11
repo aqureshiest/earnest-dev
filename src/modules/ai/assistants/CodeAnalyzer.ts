@@ -2,9 +2,7 @@ import { CODEFILES_PLACEHOLDER } from "@/constants";
 import { PromptBuilder } from "../support/PromptBuilder";
 import { ResponseParser } from "../support/ResponseParser";
 import { TokenLimiter } from "../support/TokenLimiter";
-import { CodebaseAssistant } from "./CodebaseAssistant";
 import { CodebaseChunksAssistant } from "./CodebaseChunksAssistant";
-import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
 export class CodeAnalyzer extends CodebaseChunksAssistant<string> {
     private responseParser: ResponseParser<string>;
@@ -95,6 +93,10 @@ Now, analyze the provided chunk and respond using this format, focusing on pract
 <chunk_analysis>`;
     }
 
+    process(request: CodingTaskRequest): Promise<AIAssistantResponse<string> | null> {
+        throw new Error("Method not implemented.");
+    }
+
     protected handleResponse(request: CodingTaskRequest, response: string): string {
         // extract the chunk_analysis block
         const match = response.match(/<chunk_analysis>[\s\S]*<\/chunk_analysis>/);
@@ -102,9 +104,6 @@ Now, analyze the provided chunk and respond using this format, focusing on pract
 
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(matchedBlock) as any;
-
-        // Save the run info after parsing
-        saveRunInfo(request, this.constructor.name, "ai_response", parsedData, "xml");
 
         return response;
     }

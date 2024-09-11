@@ -26,6 +26,7 @@ export async function POST(req: Request) {
                         task: description,
                         model: selectedModel,
                         files: [],
+                        params: {},
                     };
 
                     // prepare codebase

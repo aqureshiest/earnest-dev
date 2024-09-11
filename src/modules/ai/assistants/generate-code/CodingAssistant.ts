@@ -3,7 +3,6 @@ import { CodebaseAssistant } from "../CodebaseAssistant";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
 export class CodingAssistant extends CodebaseAssistant<CodeChanges> {
     private responseParser: ResponseParser<CodeChanges>;
@@ -128,9 +127,6 @@ Now, using the task description, existing code files, and implementation plan ge
 
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(codeChangesBlock, options) as any;
-
-        // Save the run info after parsing
-        saveRunInfo(request, this.constructor.name, "ai_response", parsedData, "xml");
 
         try {
             // Normalize the parsed data

@@ -38,6 +38,10 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
             cost,
         };
     }
+
+    protected responseType(): string {
+        return "xml"; // default response type
+    }
 }
 
 export { BaseAssistant };

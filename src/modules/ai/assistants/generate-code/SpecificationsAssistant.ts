@@ -3,7 +3,6 @@ import { CodebaseAssistant } from "../CodebaseAssistant";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 
 export class SpecificationsAssistant extends CodebaseAssistant<Specifications> {
     private responseParser: ResponseParser<Specifications>;
@@ -99,9 +98,6 @@ Now, using the task description and the existing code files, provide detailed sp
 
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(matchedBlock, options) as any;
-
-        // Save the run info after parsing
-        saveRunInfo(request, this.constructor.name, "ai_response", parsedData, "xml");
 
         try {
             // Flatten the data into the final format
