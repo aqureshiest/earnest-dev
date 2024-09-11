@@ -12,54 +12,50 @@ export async function POST(req: Request) {
 
         const prepareCodebase = new PrepareCodebase();
 
-        const { readable, writable } = new TransformStream();
+        const stream = new ReadableStream({
+            async start(controller) {
+                try {
+                    setClient(taskId, controller);
+                    req.signal.addEventListener("abort", () => deleteClient(taskId));
 
-        // Setting up the writer for TransformStream
-        const writer = writable.getWriter();
+                    const taskRequest: CodingTaskRequest = {
+                        taskId,
+                        owner,
+                        repo,
+                        branch,
+                        task: description,
+                        model: selectedModel,
+                        files: [],
+                        params: {},
+                    };
 
-        // Initiating the streaming process
-        (async () => {
-            try {
-                setClient(taskId, writer);
-                req.signal.addEventListener("abort", () => {
-                    writer.close();
+                    // prepare codebase
+                    const filesToUse = await prepareCodebase.prepare(taskRequest);
+                    taskRequest.files = filesToUse;
+
+                    sendTaskUpdate(taskId, "progress", "Starting AI Assistants...");
+
+                    // run the assistants to generate code
+                    const codeGenerator = new GenerateCode();
+                    await codeGenerator.runWorkflow(taskRequest);
+
+                    // send final response
+                    sendTaskUpdate(taskId, "final", "Code generation completed.");
+                } catch (error: any) {
+                    console.error("Error within generate code stream:", error);
+                    sendTaskUpdate(taskId, "error", `Code generation failed. ${error.message}`);
+                } finally {
+                    // close the stream
                     deleteClient(taskId);
-                });
-
-                const taskRequest: CodingTaskRequest = {
-                    taskId,
-                    owner,
-                    repo,
-                    branch,
-                    task: description,
-                    model: selectedModel,
-                    files: [],
-                    params: {},
-                };
-
-                // prepare codebase
-                const filesToUse = await prepareCodebase.prepare(taskRequest);
-                taskRequest.files = filesToUse;
-
-                sendTaskUpdate(taskId, "progress", "Starting AI Assistants...");
-
-                // run the assistants to generate code
-                const codeGenerator = new GenerateCode();
-                await codeGenerator.runWorkflow(taskRequest);
-
-                // send final response
-                sendTaskUpdate(taskId, "final", "Code generation completed.");
-            } catch (error: any) {
-                console.error("Error within generate code stream:", error);
-                sendTaskUpdate(taskId, "error", `Code generation failed. ${error.message}`);
-            } finally {
-                // close the stream
-                writer.close();
+                    controller.close();
+                }
+            },
+            cancel() {
                 deleteClient(taskId);
-            }
-        })();
+            },
+        });
 
-        return new NextResponse(readable, {
+        return new NextResponse(stream, {
             headers: {
                 "Content-Type": "text/event-stream",
                 "Cache-Control": "no-cache",
@@ -74,5 +70,3 @@ export async function POST(req: Request) {
         });
     }
 }
-
-export const runtime = "edge";
