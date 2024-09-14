@@ -1,4 +1,4 @@
-import { CodeAnalyzer } from "@/modules/ai/assistants/CodeAnalyzer";
+import { CodeAnalyzerAssistant } from "@/modules/ai/assistants/CodeAnalyzerAssistant";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { loadEnvConfig } from "@next/env";
@@ -9,7 +9,7 @@ async function main() {
     // const files = ["src/integration-tests/test-utils/test-data/upload-files/doc.txt", "abc.xml"];
     // console.log(RepositoryService.shouldExclude(files[0]));
 
-    const codeAnalyzer = new CodeAnalyzer();
+    const codeAnalyzer = new CodeAnalyzerAssistant();
     const prepareCodebase = new PrepareCodebase();
 
     const request: CodingTaskRequest = {

@@ -2,7 +2,7 @@ import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 import { BaseAssistant } from "./BaseAssistant";
 
 abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskRequest, R> {
-    async processInChunks(request: CodingTaskRequest): Promise<AIAssistantResponse<R>[] | null> {
+    async process(request: CodingTaskRequest): Promise<AIAssistantResponse<R> | null> {
         const { model, task, files, params } = request;
 
         console.log(
@@ -23,10 +23,9 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
         // Split files into chunks
         const chunks = this.tokenLimiter.splitInChunks(model, systemPrompt + userPrompt, files);
 
-        // Helper to introduce a delay between requests
         const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-        const responses = [];
+        const responses: AIAssistantResponse<R>[] = [];
         // Process chunks sequentially with a delay between them
         for (let index = 0; index < chunks.length; index++) {
             const chunk = chunks[index];
@@ -66,7 +65,9 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
                 responses.push({
                     ...aiResponse,
                     response: parsed,
-                    responseStr: aiResponse.response,
+                    responseStr: `<chunk_response><num>${index + 1}</num><response>${
+                        aiResponse.response
+                    }</response></chunk_response>`,
                     calculatedTokens: chunk.tokens,
                 });
 
@@ -82,8 +83,23 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
             await delay(delayDuration);
         }
 
-        return responses;
+        // Aggregate all responses
+        const finalResponse: AIAssistantResponse<R> = {
+            response: this.aggregateResponses(responses.map((r) => r.response)),
+            responseStr:
+                "<chunk_responses>\n" +
+                responses.map((r) => r.responseStr).join("\n") +
+                "</chunk_responses>\n",
+            calculatedTokens: responses.reduce((acc, val) => acc + val.calculatedTokens, 0),
+            inputTokens: responses.reduce((acc, val) => acc + val.inputTokens, 0),
+            outputTokens: responses.reduce((acc, val) => acc + val.outputTokens, 0),
+            cost: responses.reduce((acc, val) => acc + val.cost, 0),
+        };
+
+        return finalResponse;
     }
+
+    protected abstract aggregateResponses(responses: (R | null)[]): R;
 }
 
 export { CodebaseChunksAssistant };

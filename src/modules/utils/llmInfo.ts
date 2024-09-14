@@ -26,14 +26,14 @@ export const LLMS = [
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         inputCost: 3,
         outputCost: 15,
-        maxInputTokens: 20000, //200000,
+        maxInputTokens: 80000, //200000,
         maxOutputTokens: 8192,
     },
     {
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
         inputCost: 0.25,
         outputCost: 1.25,
-        maxInputTokens: 50000, //200000,
+        maxInputTokens: 80000, //200000,
         maxOutputTokens: 4096,
     },
 ];

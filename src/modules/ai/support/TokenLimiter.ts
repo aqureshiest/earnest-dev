@@ -1,4 +1,4 @@
-import { encode } from "gpt-tokenizer";
+import { encode, decode } from "gpt-tokenizer";
 import { LLMS } from "../../utils/llmInfo";
 import { formatFiles } from "@/modules/utils/formatFiles";
 
@@ -22,6 +22,25 @@ export class TokenLimiter {
                 };
             })
             .filter((file) => file.tokenCount > 0);
+    }
+
+    applyTokenLimitToPrompt(model: string, prompt: string) {
+        // get LLM info
+        const LLM: any = LLMS.find((m) => m.model === model);
+
+        // TODO: might have to apply the 70/30 IO ratio here
+        const allowedTokens = LLM.maxInputTokens - this.BUFFER;
+
+        // encode the prompt and slice it to the allowed tokens
+        const encodedPrompt = encode(prompt);
+        const totalTokens = encodedPrompt.length * this.PADDING;
+        const updatedPrompt =
+            totalTokens > allowedTokens ? decode(encodedPrompt.slice(0, allowedTokens)) : prompt;
+
+        return {
+            totalTokens,
+            prompt: updatedPrompt,
+        };
     }
 
     applyTokenLimit(model: string, prompt: string, files: FileDetails[]) {

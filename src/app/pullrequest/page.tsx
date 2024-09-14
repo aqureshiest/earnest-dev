@@ -509,7 +509,11 @@ const PullRequest: React.FC = () => {
                                             <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                                         )}
                                     </div>
-                                    <Select value={repo} onValueChange={(value) => setRepo(value)}>
+                                    <Select
+                                        value={repo}
+                                        onValueChange={(value) => setRepo(value)}
+                                        disabled={isCreating}
+                                    >
                                         <SelectTrigger id="repo">
                                             <SelectValue placeholder="Select a repository" />
                                         </SelectTrigger>
@@ -533,6 +537,7 @@ const PullRequest: React.FC = () => {
                                     <Select
                                         value={branch}
                                         onValueChange={(value) => setBranch(value)}
+                                        disabled={isCreating}
                                     >
                                         <SelectTrigger id="branch">
                                             <SelectValue placeholder="Select a branch" />

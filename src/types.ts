@@ -16,6 +16,7 @@ interface TaskRequest {
     taskId: string;
     task: string;
     model: string;
+    params?: any;
 }
 
 interface CodingTaskRequest extends TaskRequest {
@@ -23,7 +24,6 @@ interface CodingTaskRequest extends TaskRequest {
     repo: string;
     branch: string;
     files: FileDetails[];
-    params?: any;
 }
 
 // specifications types
@@ -80,13 +80,4 @@ interface ModifiedFile {
 
 interface DeletedFile {
     path: string;
-}
-
-// ai response
-
-interface AIResponse {
-    response: string;
-    inputTokens: number;
-    outputTokens: number;
-    cost: number;
 }

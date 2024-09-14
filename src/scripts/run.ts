@@ -1,4 +1,4 @@
-import { CodeAnalyzer } from "@/modules/ai/assistants/CodeAnalyzer";
+import { CodeAnalyzerAssistant } from "@/modules/ai/assistants/CodeAnalyzerAssistant";
 import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { GitHubService } from "@/modules/github/GitHubService";

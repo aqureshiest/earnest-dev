@@ -4,7 +4,7 @@ import { ResponseParser } from "../support/ResponseParser";
 import { TokenLimiter } from "../support/TokenLimiter";
 import { CodebaseChunksAssistant } from "./CodebaseChunksAssistant";
 
-export class CodeAnalyzer extends CodebaseChunksAssistant<string> {
+export class CodeAnalyzerAssistant extends CodebaseChunksAssistant<string> {
     private responseParser: ResponseParser<string>;
 
     constructor() {
@@ -93,8 +93,8 @@ Now, analyze the provided chunk and respond using this format, focusing on pract
 <chunk_analysis>`;
     }
 
-    process(request: CodingTaskRequest): Promise<AIAssistantResponse<string> | null> {
-        throw new Error("Method not implemented.");
+    protected aggregateResponses(responses: (string | null)[]): string {
+        return responses.join("\n");
     }
 
     protected handleResponse(response: string): string {
