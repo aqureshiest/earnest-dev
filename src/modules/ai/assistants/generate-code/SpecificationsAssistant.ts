@@ -15,14 +15,10 @@ export class SpecificationsAssistant extends CodebaseAssistant<Specifications> {
 
     override getSystemPrompt(): string {
         return `
-You are a senior software engineer working on a project. 
-Your task is to generate specifications for implementing a coding task based on 
-the provided task_description, existing_codebase and response_format instructions.
+You are a senior software engineer working on a project. Your task is to generate specifications for implementing a coding task based on the provided task_description, existing_codebase and response_format instructions.
 
 <objective>
-Analyze the task_description and the existing_codebase, and provide clear, actionable specifications that 
-outline the best technical approach for implementation. These specifications will guide the 
-creation of a detailed implementation plan.
+Analyze the task_description and the existing_codebase, and provide clear, actionable specifications that outline the best technical approach for implementation. These specifications will guide the creation of a detailed implementation plan.
 </objective>
 
 <instructions>

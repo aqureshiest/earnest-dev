@@ -7,6 +7,8 @@ import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 export class WriterAssistant extends CodebaseAssistant<string> {
     private responseParser: ResponseParser<string>;
 
+    responseType = "markdown";
+
     constructor() {
         super(new PromptBuilder(), new TokenLimiter());
 
@@ -16,12 +18,10 @@ export class WriterAssistant extends CodebaseAssistant<string> {
     getSystemPrompt(): string {
         return `
 You are a senior software engineer working on a project.
-Your task is to write a clear and concise pull request (PR) description in markdown format, based on the 
-provided task_description, implementation_plan, and generated_code.
+Your task is to write a clear and concise pull request (PR) description in markdown format, based on the provided task_description, implementation_plan, and generated_code.
 
 <objective>
-Analyze the task, the implementation plan, and the newly generated code to craft a comprehensive PR description. 
-This description should provide context, outline the changes made, and explain the reasoning behind the implementation.
+Analyze the task, the implementation plan, and the newly generated code to craft a comprehensive PR description. This description should provide context, outline the changes made, and explain the reasoning behind the implementation.
 </objective>
 
 <instructions>
@@ -76,9 +76,5 @@ Please go ahead and generate the PR description based on the provided informatio
         const description = this.responseParser.parse(response) as any;
 
         return description;
-    }
-
-    protected override responseType(): string {
-        return "markdown";
     }
 }

@@ -1,4 +1,4 @@
-import { CodeAnalyzerAssistant } from "@/modules/ai/assistants/CodeAnalyzerAssistant";
+import { RepoAnalyzerAssistant } from "@/modules/ai/assistants/repo-analyzer/ChunksAnalyzerAssistant";
 import { DescribeImageAssistant } from "@/modules/ai/assistants/DescribeImageAssistant";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";

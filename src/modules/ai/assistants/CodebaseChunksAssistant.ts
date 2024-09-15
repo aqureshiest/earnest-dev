@@ -58,16 +58,22 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
                     continue;
                 }
 
+                saveRunInfo(request, caller, `ai_response_chunk_${index + 1}`, aiResponse.response);
                 // Parse the response
                 const parsed = this.handleResponse(aiResponse.response);
+                saveRunInfo(
+                    request,
+                    caller,
+                    `ai_response_parsed_chunk_${index + 1}`,
+                    parsed,
+                    this.responseType
+                );
 
                 // Save result data
                 responses.push({
                     ...aiResponse,
                     response: parsed,
-                    responseStr: `<chunk_response><num>${index + 1}</num><response>${
-                        aiResponse.response
-                    }</response></chunk_response>`,
+                    responseStr: aiResponse.response,
                     calculatedTokens: chunk.tokens,
                 });
 
@@ -77,19 +83,18 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
                 // Continue processing other chunks even if one fails
             }
 
-            // Introduce a delay between chunk processing to avoid overloading API
-            const delayDuration = 30000;
-            console.log(`Delaying for ${delayDuration}ms before processing next chunk`);
-            await delay(delayDuration);
+            // Introduce a delay between chunk processing
+            // if (index < chunks.length - 1) {
+            //     const delayDuration = 30000;
+            //     console.log(`Delaying for ${delayDuration}ms before processing next chunk`);
+            //     await delay(delayDuration);
+            // }
         }
 
         // Aggregate all responses
         const finalResponse: AIAssistantResponse<R> = {
             response: this.aggregateResponses(responses.map((r) => r.response)),
-            responseStr:
-                "<chunk_responses>\n" +
-                responses.map((r) => r.responseStr).join("\n") +
-                "</chunk_responses>\n",
+            responseStr: responses.map((r) => r.responseStr).join("\n"),
             calculatedTokens: responses.reduce((acc, val) => acc + val.calculatedTokens, 0),
             inputTokens: responses.reduce((acc, val) => acc + val.inputTokens, 0),
             outputTokens: responses.reduce((acc, val) => acc + val.outputTokens, 0),

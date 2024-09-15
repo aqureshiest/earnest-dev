@@ -23,7 +23,8 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
         // apply token limit
         const { totalTokens, prompt: finalizedPrompt } = this.tokenLimiter.applyTokenLimitToPrompt(
             model,
-            systemPrompt + userPrompt
+            systemPrompt,
+            userPrompt
         );
 
         const caller = this.constructor.name;
@@ -37,7 +38,7 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
         // parse the response
         saveRunInfo(request, caller, "ai_response", aiResponse.response);
         const parsed = this.handleResponse(aiResponse.response);
-        saveRunInfo(request, caller, "ai_response_parsed", parsed, this.responseType());
+        saveRunInfo(request, caller, "ai_response_parsed", parsed, this.responseType);
 
         return {
             ...aiResponse,

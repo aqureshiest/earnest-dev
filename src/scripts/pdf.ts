@@ -4,7 +4,7 @@ import fs from "fs";
 import { loadEnvConfig } from "@next/env";
 const axios = require("axios");
 import FormData from "form-data";
-import { ClaudeTaskMakerAssistant } from "@/modules/ai/assistants/ClaudeTaskMakerAssistant";
+import { ClaudeTaskMakerAssistant } from "@/modules/ai/assistants/tasks/ClaudeTaskMakerAssistant";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 import { TECHNICAL_DESIGN_DOC_PLACEHOLDER } from "@/constants";
 

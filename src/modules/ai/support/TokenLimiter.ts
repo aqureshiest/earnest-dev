@@ -24,18 +24,28 @@ export class TokenLimiter {
             .filter((file) => file.tokenCount > 0);
     }
 
-    applyTokenLimitToPrompt(model: string, prompt: string) {
+    applyTokenLimitToPrompt(model: string, systemPrompt: string, userPrompt: string) {
         // get LLM info
         const LLM: any = LLMS.find((m) => m.model === model);
 
         // TODO: might have to apply the 70/30 IO ratio here
         const allowedTokens = LLM.maxInputTokens - this.BUFFER;
 
+        // remove system prompt tokens space
+        const systemPromptTokens = encode(systemPrompt).length * this.PADDING;
+
+        // remove user prompt tokens space
+        const userPromptTokens = encode(userPrompt).length * this.PADDING;
+
+        // total tokens
+        const totalTokens = systemPromptTokens + userPromptTokens;
+
         // encode the prompt and slice it to the allowed tokens
-        const encodedPrompt = encode(prompt);
-        const totalTokens = encodedPrompt.length * this.PADDING;
+        const encodedPrompt = encode(userPrompt);
         const updatedPrompt =
-            totalTokens > allowedTokens ? decode(encodedPrompt.slice(0, allowedTokens)) : prompt;
+            totalTokens > allowedTokens
+                ? decode(encodedPrompt.slice(0, allowedTokens - systemPromptTokens))
+                : userPrompt;
 
         return {
             totalTokens,

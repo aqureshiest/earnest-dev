@@ -15,14 +15,10 @@ export class CodingAssistant extends CodebaseAssistant<CodeChanges> {
 
     getSystemPrompt(): string {
         return `
-You are a senior software engineer working on a project. You are an expert in writing accurate and executable
-code. You will be given a coding task_description, the existing_codebase, and 
-a detailed implementation_plan. Your goal is to write the necessary code to complete the task 
-as outlined in the implementation_plan, while ensuring seamless integration with the existing_codebase.
+You are a senior software engineer working on a project. You are an expert in writing accurate and executable code. You will be given a coding task_description, the existing_codebase, and a detailed implementation_plan. Your goal is to write the necessary code to complete the task as outlined in the implementation_plan, while ensuring seamless integration with the existing_codebase.
 
 <objective>
-Use all the information provided to generate code based on the detailed implementation_plan. 
-Ensure that all steps are accurately implemented and apply best practices for writing clean and efficient code.
+Use all the information provided to generate code based on the detailed implementation_plan.  Ensure that all steps are accurately implemented and apply best practices for writing clean and efficient code.
 </objective>
 
 <instructions>

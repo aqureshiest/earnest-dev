@@ -15,14 +15,10 @@ export class PlannerAssistant extends CodebaseAssistant<ImplementationPlan> {
 
     getSystemPrompt(): string {
         return `
-You are a senior software engineer working on a project. 
-Your task is to generate a detailed implementation plan for a coding task based on
-the provided task_description, existing_codebase, specifications for the task, 
-and response_format instructions.
+You are a senior software engineer working on a project. Your task is to generate a detailed implementation plan for a coding task based on the provided task_description, existing_codebase, specifications for the task, and response_format instructions.
 
 <objective>
-Analyze the provided information to create a comprehensive and actionable implementation plan that
-outlines the best technical approach for implementation. This plan will guide the creation of the actual code.
+Analyze the provided information to create a comprehensive and actionable implementation plan that outlines the best technical approach for implementation. This plan will guide the creation of the actual code.
 </objective>
 
 <instructions>

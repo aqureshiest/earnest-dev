@@ -1,10 +1,10 @@
 import { CODEFILES_PLACEHOLDER } from "@/constants";
-import { PromptBuilder } from "../support/PromptBuilder";
-import { ResponseParser } from "../support/ResponseParser";
-import { TokenLimiter } from "../support/TokenLimiter";
-import { CodebaseChunksAssistant } from "./CodebaseChunksAssistant";
+import { PromptBuilder } from "../../support/PromptBuilder";
+import { ResponseParser } from "../../support/ResponseParser";
+import { TokenLimiter } from "../../support/TokenLimiter";
+import { CodebaseChunksAssistant } from "../CodebaseChunksAssistant";
 
-export class CodeAnalyzerAssistant extends CodebaseChunksAssistant<string> {
+export class ChunksAnalyzerAssistant extends CodebaseChunksAssistant<string> {
     private responseParser: ResponseParser<string>;
 
     constructor() {
@@ -25,7 +25,7 @@ how it might be used in a product, and how developers could potentially utilize 
 </objective>
 
 <instructions>
-Focus on:
+**Focus on**:
 - The main functionality or features implemented in this chunk
 - How this code contributes to the overall application or product
 - Potential use cases or scenarios where this code would be relevant
@@ -33,7 +33,7 @@ Focus on:
 - How a developer might interact with or extend this code
 - Any notable technical decisions or patterns used
 
-Avoid:
+**Avoid**:
 - Detailed descriptions of file structures or configurations unless critically important
 - Listing every component or function unless they represent core functionality
 - Implementation specifics unless they significantly impact usage or extensibility
@@ -103,8 +103,8 @@ Now, analyze the provided chunk and respond using this format, focusing on pract
         const matchedBlock = match ? match[0] : "";
 
         // Parse the response into an intermediate format
-        const parsedData = this.responseParser.parse(matchedBlock) as any;
+        const parsedData = this.responseParser.parse(matchedBlock) as string;
 
-        return response;
+        return parsedData;
     }
 }

@@ -1,19 +1,23 @@
 import { calculateLLMCost } from "@/modules/utils/llmCost";
 import { LLM_MODELS, LLMS } from "@/modules/utils/llmInfo";
 import Anthropic from "@anthropic-ai/sdk";
-import { encode } from "gpt-tokenizer";
-import { headers } from "next/headers";
+import { BaseAIService } from "./BaseAIService";
 
-export class ClaudeAIService {
+export class ClaudeAIService extends BaseAIService {
     private anthropic: Anthropic;
-    private model: string;
 
     constructor(model: string = LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU) {
+        super(model);
         this.anthropic = new Anthropic();
-        this.model = model;
     }
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
+        const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
+        const cachedResponse = await this.getCachedResponse(cacheKey);
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+
         try {
             console.log(this.constructor.name, "Generating response for model", this.model);
 
@@ -44,19 +48,21 @@ export class ClaudeAIService {
             }
 
             console.log("response usage", completion.usage);
-            // print LLM call cost
             const { inputCost, outputCost } = calculateLLMCost(
                 this.model,
                 completion.usage?.input_tokens,
                 completion.usage?.output_tokens
             );
 
-            return {
+            const result: AIResponse = {
                 response,
                 inputTokens: completion.usage?.input_tokens || 0,
                 outputTokens: completion.usage?.output_tokens || 0,
                 cost: inputCost + outputCost,
             };
+
+            await this.cacheResponse(cacheKey, result);
+            return result;
         } catch (error) {
             console.error("Error generating AI response:", error);
             throw error;

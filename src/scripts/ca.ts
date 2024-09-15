@@ -1,4 +1,5 @@
-import { CodeAnalyzerAssistant } from "@/modules/ai/assistants/CodeAnalyzerAssistant";
+import { AggregatorAssistant } from "@/modules/ai/assistants/repo-analyzer/AggregatorAssistant";
+import { ChunksAnalyzerAssistant } from "@/modules/ai/assistants/repo-analyzer/ChunksAnalyzerAssistant";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { loadEnvConfig } from "@next/env";
@@ -9,23 +10,43 @@ async function main() {
     // const files = ["src/integration-tests/test-utils/test-data/upload-files/doc.txt", "abc.xml"];
     // console.log(RepositoryService.shouldExclude(files[0]));
 
-    const codeAnalyzer = new CodeAnalyzerAssistant();
-    const prepareCodebase = new PrepareCodebase();
+    const repo = "bookstore";
 
-    const request: CodingTaskRequest = {
-        taskId: "aqureshiest",
-        owner: "sds",
-        repo: "main",
-        branch: "analyze sds code in full",
-        task: "analyze sds code in full",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
+    const codeAnalyzer = new ChunksAnalyzerAssistant();
+
+    const analyze: CodingTaskRequest = {
+        taskId: Date.now().toString(),
+        owner: "aqureshiest",
+        repo: repo,
+        branch: "main",
+        task: `analyze ${repo} code in full`,
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         files: [],
     };
+    console.log("analyze task id", analyze.taskId);
 
-    const files = await prepareCodebase.prepare(request);
+    const prepareCodebase = new PrepareCodebase();
+    const files = await prepareCodebase.prepare(analyze);
     console.log("files length", files.length);
+    analyze.files = files;
 
-    await codeAnalyzer.processInChunks(request);
+    const analyses = await codeAnalyzer.process(analyze);
+
+    // --
+
+    const aggregator = new AggregatorAssistant();
+    const aggregate: TaskRequest = {
+        taskId: Date.now().toString(),
+        task: `analyze ${repo} chunks analysis`,
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+        params: {
+            chunkAnalyses: analyses?.responseStr,
+        },
+    };
+    console.log("aggregate task id", aggregate.taskId);
+
+    const aggregated = await aggregator.process(aggregate);
+    console.log("aggregated", aggregated);
 
     // const request = {
     //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,

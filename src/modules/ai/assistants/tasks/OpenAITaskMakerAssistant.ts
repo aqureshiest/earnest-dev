@@ -1,10 +1,14 @@
 import { CODEFILES_PLACEHOLDER } from "@/constants";
-import { PromptBuilder } from "../support/PromptBuilder";
-import { ResponseParser } from "../support/ResponseParser";
-import { TokenLimiter } from "../support/TokenLimiter";
-import { CodebaseChunksAssistant } from "./CodebaseChunksAssistant";
+import { PromptBuilder } from "../../support/PromptBuilder";
+import { ResponseParser } from "../../support/ResponseParser";
+import { TokenLimiter } from "../../support/TokenLimiter";
+import { CodebaseChunksAssistant } from "../CodebaseChunksAssistant";
 
-export class CodeAnalyzer extends CodebaseChunksAssistant<string> {
+export class OpenAITaskMakerAssistant extends CodebaseChunksAssistant<string> {
+    protected aggregateResponses(responses: (string | null)[]): string {
+        throw new Error("Method not implemented.");
+    }
+
     private responseParser: ResponseParser<string>;
 
     constructor() {

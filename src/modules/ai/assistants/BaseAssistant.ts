@@ -1,11 +1,11 @@
-import { LLM_MODELS } from "@/modules/utils/llmInfo";
-import { ClaudeAIService } from "../clients/ClaudeAIService";
-import { OpenAIService } from "../clients/OpenAIService";
 import { PromptBuilder } from "../support/PromptBuilder";
 import { TokenLimiter } from "../support/TokenLimiter";
+import { AIServiceFactory } from "../clients/AIServiceFactory";
 
 abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T, R> {
     constructor(protected promptBuilder: PromptBuilder, protected tokenLimiter: TokenLimiter) {}
+
+    responseType: string = "xml";
 
     abstract getSystemPrompt(): string;
     abstract getPrompt(params?: any): string;
@@ -20,10 +20,7 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
         prompt: string
     ): Promise<AIResponse | null> {
         // pick the ai model
-        const aiService =
-            model === LLM_MODELS.OPENAI_GPT_4O_MINI || model === LLM_MODELS.OPENAI_GPT_4O
-                ? new OpenAIService(model)
-                : new ClaudeAIService(model);
+        const aiService = AIServiceFactory.createAIService(model);
 
         // generate code
         const { response, inputTokens, outputTokens, cost } = await aiService.generateResponse(
@@ -37,10 +34,6 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
             outputTokens,
             cost,
         };
-    }
-
-    protected responseType(): string {
-        return "xml"; // default response type
     }
 }
 

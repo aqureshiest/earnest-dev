@@ -1,18 +1,23 @@
 import OpenAI from "openai";
 import { calculateLLMCost } from "../../utils/llmCost";
 import { LLM_MODELS } from "../../utils/llmInfo";
-import { encode } from "gpt-tokenizer";
+import { BaseAIService } from "./BaseAIService";
 
-export class OpenAIService {
+export class OpenAIService extends BaseAIService {
     private openai: OpenAI;
-    private model: any;
 
     constructor(model: string = LLM_MODELS.OPENAI_GPT_4O_MINI) {
+        super(model);
         this.openai = new OpenAI();
-        this.model = model;
     }
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
+        const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
+        const cachedResponse = await this.getCachedResponse(cacheKey);
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+
         try {
             console.log(this.constructor.name, "Generating response for model", this.model);
 
@@ -45,12 +50,15 @@ export class OpenAIService {
                 completion.usage?.completion_tokens || 0
             );
 
-            return {
+            const result: AIResponse = {
                 response,
                 inputTokens: completion.usage?.prompt_tokens || 0,
                 outputTokens: completion.usage?.completion_tokens || 0,
                 cost: inputCost + outputCost,
             };
+
+            await this.cacheResponse(cacheKey, result);
+            return result;
         } catch (error) {
             console.error("Error generating AI response:", error);
             throw error;
