@@ -60,9 +60,12 @@ export class PrepareCodebase {
             await this.repositoryService.syncBranch(owner, repo, branch, filesWithEmbeddings);
         }
 
-        // look up files similar to the description
-        const filesToUse = await this.dataService.findSimilar(description, owner, repo, branch);
-
-        return filesToUse;
+        if (description) {
+            // look up files similar to the description
+            return await this.dataService.findSimilar(description, owner, repo, branch);
+        } else {
+            // return all files
+            return await this.repositoryService.getRepositoryFiles(owner, repo, branch);
+        }
     }
 }

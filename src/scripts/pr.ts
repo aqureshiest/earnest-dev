@@ -4,7 +4,7 @@ import { loadEnvConfig } from "@next/env";
 import { encode } from "gpt-tokenizer";
 
 loadEnvConfig("");
-async function main() {
+export const pr = async () => {
     const fs = require("fs");
     const yaml = require("js-yaml");
     const path = require("path");
@@ -26,6 +26,4 @@ async function main() {
     const prLink = await prService.createPullRequest(codeChanges, codeChanges.title, "Test PR");
 
     console.log(prLink);
-}
-
-main().catch(console.error);
+};

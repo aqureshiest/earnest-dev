@@ -6,11 +6,11 @@ import { loadEnvConfig } from "@next/env";
 
 loadEnvConfig("");
 
-async function main() {
+export const CA = async () => {
     // const files = ["src/integration-tests/test-utils/test-data/upload-files/doc.txt", "abc.xml"];
     // console.log(RepositoryService.shouldExclude(files[0]));
 
-    const repo = "bookstore";
+    const repo = "laps-snapshot";
 
     const codeAnalyzer = new ChunksAnalyzerAssistant();
 
@@ -19,7 +19,7 @@ async function main() {
         owner: "aqureshiest",
         repo: repo,
         branch: "main",
-        task: `analyze ${repo} code in full`,
+        task: "",
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         files: [],
     };
@@ -37,7 +37,7 @@ async function main() {
     const aggregator = new AggregatorAssistant();
     const aggregate: TaskRequest = {
         taskId: Date.now().toString(),
-        task: `analyze ${repo} chunks analysis`,
+        task: "",
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         params: {
             chunkAnalyses: analyses?.responseStr,
@@ -46,7 +46,7 @@ async function main() {
     console.log("aggregate task id", aggregate.taskId);
 
     const aggregated = await aggregator.process(aggregate);
-    console.log("aggregated", aggregated);
+    // console.log("aggregated", aggregated);
 
     // const request = {
     //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
@@ -95,5 +95,4 @@ async function main() {
     //     // const codeAnalyzer = new CodeAnalyzer();
     //     // await codeAnalyzer.process(request);
     // }
-}
-main();
+};

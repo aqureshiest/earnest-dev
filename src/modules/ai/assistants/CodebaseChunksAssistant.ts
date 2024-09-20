@@ -85,7 +85,7 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
 
             // Introduce a delay between chunk processing
             // if (index < chunks.length - 1) {
-            //     const delayDuration = 30000;
+            //     const delayDuration = 15000;
             //     console.log(`Delaying for ${delayDuration}ms before processing next chunk`);
             //     await delay(delayDuration);
             // }

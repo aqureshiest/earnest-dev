@@ -1,4 +1,3 @@
-import { RepoAnalyzerAssistant } from "@/modules/ai/assistants/repo-analyzer/ChunksAnalyzerAssistant";
 import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { GitHubService } from "@/modules/github/GitHubService";
@@ -10,7 +9,7 @@ import { encode } from "gpt-tokenizer";
 
 loadEnvConfig("");
 
-async function main() {
+export const run = async () => {
     // const dbService = new DatabaseService();
 
     const text = `const Book = require("../models/Book");
@@ -157,7 +156,7 @@ module.exports = {
         console.log("-------------------");
         sleep(1000);
     }
-}
+};
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -167,5 +166,3 @@ const runWithTime = async (label: string, fn: () => Promise<any>) => {
     console.timeEnd(label);
     return result;
 };
-
-main();

@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { calculateLLMCost } from "../../utils/llmCost";
 import { LLM_MODELS } from "../../utils/llmInfo";
 import { BaseAIService } from "./BaseAIService";
+import chalk from "chalk";
 
 export class OpenAIService extends BaseAIService {
     private openai: OpenAI;
@@ -15,6 +16,9 @@ export class OpenAIService extends BaseAIService {
         const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
         const cachedResponse = await this.getCachedResponse(cacheKey);
         if (cachedResponse) {
+            console.log(
+                chalk.green(this.constructor.name, "Using cached response for model", this.model)
+            );
             return cachedResponse;
         }
 

@@ -2,6 +2,13 @@ import { encode, decode } from "gpt-tokenizer";
 import { LLMS } from "../../utils/llmInfo";
 import { formatFiles } from "@/modules/utils/formatFiles";
 
+// TODO might have to do something about 70/30 IO ratio
+// for now padding is helping
+
+// dynamic buffer
+// const bufferPercentage = 0.05; // 5% buffer
+// const allowedTokens = Math.floor(llmInfo.maxInputTokens * (1 - bufferPercentage));
+
 export class TokenLimiter {
     BUFFER = 500;
     PADDING = 1.4;
@@ -28,16 +35,10 @@ export class TokenLimiter {
         // get LLM info
         const LLM: any = LLMS.find((m) => m.model === model);
 
-        // TODO: might have to apply the 70/30 IO ratio here
         const allowedTokens = LLM.maxInputTokens - this.BUFFER;
 
-        // remove system prompt tokens space
-        const systemPromptTokens = encode(systemPrompt).length * this.PADDING;
-
-        // remove user prompt tokens space
-        const userPromptTokens = encode(userPrompt).length * this.PADDING;
-
-        // total tokens
+        const systemPromptTokens = this.getTokenCount(systemPrompt);
+        const userPromptTokens = this.getTokenCount(userPrompt);
         const totalTokens = systemPromptTokens + userPromptTokens;
 
         // encode the prompt and slice it to the allowed tokens
@@ -57,19 +58,14 @@ export class TokenLimiter {
         // get LLM info
         const LLM: any = LLMS.find((m) => m.model === model);
 
-        // TODO: might have to apply the 70/30 IO ratio here
         const allowedTokens = LLM.maxInputTokens - this.BUFFER;
-
-        // start with token length of the prompt
-        let totalTokens = encode(prompt).length * this.PADDING;
+        let totalTokens = this.getTokenCount(prompt);
 
         const allowedFiles = [];
         let index = 0;
         // add files to the prompt
         for (const file of files) {
-            const contents = formatFiles([file]);
-            let fileTokens = (file.tokenCount || encode(contents).length) * this.PADDING; // TODO: IO ratio
-            // console.log(`File: ${file.path}, Tokens: ${fileTokens}`);
+            const fileTokens = this.getFileTokens(file);
 
             // keep adding to token length
             if (totalTokens + fileTokens < allowedTokens) {
@@ -91,34 +87,42 @@ export class TokenLimiter {
     }
 
     splitInChunks(model: string, prompt: string, files: FileDetails[]) {
+        // get LLM info
+        const LLM: any = LLMS.find((m) => m.model === model);
+
+        const promptTokens = this.getTokenCount(prompt);
+        const allowedTokens = LLM.maxInputTokens - this.BUFFER - promptTokens;
+
+        // for balanced chunking
+        const totalTokens = files.reduce((sum, file) => sum + this.getFileTokens(file), 0);
+        const optimalChunkCount = Math.ceil(totalTokens / allowedTokens);
+        const tokensPerChunk = Math.ceil(totalTokens / optimalChunkCount);
+
         const chunks: { files: FileDetails[]; tokens: number }[] = [];
         let chunk: FileDetails[] = [];
         let chunkTokens = 0;
 
-        // get LLM info
-        const LLM: any = LLMS.find((m) => m.model === model);
-
-        // remove prompt tokens space
-        let promptTokens = encode(prompt).length * this.PADDING;
-
-        // TODO: might have to apply the 70/30 IO ratio here
-        const allowedTokens = LLM.maxInputTokens - this.BUFFER - promptTokens;
-
         for (const file of files) {
-            const contents = formatFiles([file]);
-            let fileTokens = (file.tokenCount || encode(contents).length) * this.PADDING; //TODO: IO ratio
+            const fileTokens = this.getFileTokens(file);
 
-            // keep adding to token length
-            if (chunkTokens + fileTokens < allowedTokens) {
-                chunkTokens += fileTokens;
-                chunk.push(file);
+            if (chunkTokens + fileTokens > tokensPerChunk && chunk.length > 0) {
+                const diffIfAdded = Math.abs(chunkTokens + fileTokens - tokensPerChunk);
+                const diffIfNotAdded = Math.abs(chunkTokens - tokensPerChunk);
+
+                if (diffIfAdded <= diffIfNotAdded && chunkTokens + fileTokens <= allowedTokens) {
+                    // add to current chunk
+                    chunk.push(file);
+                    chunkTokens += fileTokens;
+                } else {
+                    // start new chunk
+                    chunks.push({ files: chunk, tokens: chunkTokens });
+                    chunk = [file];
+                    chunkTokens = fileTokens;
+                }
             } else {
-                chunks.push({
-                    files: chunk,
-                    tokens: chunkTokens,
-                });
-                chunk = [file];
-                chunkTokens = fileTokens;
+                // add to current chunk
+                chunk.push(file);
+                chunkTokens += fileTokens;
             }
         }
 
@@ -130,5 +134,15 @@ export class TokenLimiter {
         }
 
         return chunks;
+    }
+
+    private getFileTokens(file: FileDetails): number {
+        if (file.tokenCount !== undefined) return file.tokenCount * this.PADDING;
+        const contents = formatFiles([file]);
+        return this.getTokenCount(contents) * this.PADDING;
+    }
+
+    private getTokenCount(text: string): number {
+        return encode(text).length * this.PADDING;
     }
 }

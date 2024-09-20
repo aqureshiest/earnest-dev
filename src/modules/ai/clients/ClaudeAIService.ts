@@ -2,6 +2,7 @@ import { calculateLLMCost } from "@/modules/utils/llmCost";
 import { LLM_MODELS, LLMS } from "@/modules/utils/llmInfo";
 import Anthropic from "@anthropic-ai/sdk";
 import { BaseAIService } from "./BaseAIService";
+import chalk from "chalk";
 
 export class ClaudeAIService extends BaseAIService {
     private anthropic: Anthropic;
@@ -15,6 +16,9 @@ export class ClaudeAIService extends BaseAIService {
         const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
         const cachedResponse = await this.getCachedResponse(cacheKey);
         if (cachedResponse) {
+            console.log(
+                chalk.green(this.constructor.name, "Using cached response for model", this.model)
+            );
             return cachedResponse;
         }
 

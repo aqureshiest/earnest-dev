@@ -8,12 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "run": "tsx src/scripts/run.ts",
-    "eval": "tsx src/scripts/eval.ts",
-    "pr": "tsx src/scripts/pr.ts",
-    "jira": "tsx src/scripts/jira.ts",
-    "ca": "tsx src/scripts/ca.ts",
-    "workbench": "tsx src/scripts/workbench.ts",
-    "pdf": "tsx src/scripts/pdf.ts"
+    "dev-script": "tsx src/scripts/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",
@@ -32,6 +27,7 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@supabase/supabase-js": "^2.45.0",
     "axios": "^1.7.7",
+    "chalk": "^5.3.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "diff": "^6.0.0-beta",
@@ -62,6 +58,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/react-modal": "^3.16.3",
+    "commander": "^12.1.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.16.2",

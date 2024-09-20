@@ -1,12 +1,15 @@
 import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 import { BaseAssistant } from "./BaseAssistant";
+import chalk from "chalk";
 
 abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant<T, R> {
     async process(request: T): Promise<AIAssistantResponse<R> | null> {
         const { taskId, model, task, params } = request;
 
         console.log(
-            `[${this.constructor.name}] Processing task:\n>>${task}\n>>with model: ${model}`
+            `\n[${chalk.yellow(
+                this.constructor.name
+            )}] Processing task:\n>>${task}\n>>with model: ${model}`
         );
 
         const systemPrompt = this.getSystemPrompt();

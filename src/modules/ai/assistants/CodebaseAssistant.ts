@@ -1,12 +1,15 @@
 import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 import { BaseAssistant } from "./BaseAssistant";
+import chalk from "chalk";
 
 abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> {
     async process(request: CodingTaskRequest): Promise<AIAssistantResponse<R> | null> {
         const { model, task, taskId, files, params } = request;
 
         console.log(
-            `[${this.constructor.name}] Processing task:\n>>${task}\n>>with model: ${model}`
+            `[${chalk.yellow(
+                this.constructor.name
+            )}] Processing task:\n>>${task}\n>>with model: ${model}`
         );
 
         const systemPrompt = this.getSystemPrompt();

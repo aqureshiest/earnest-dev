@@ -1,14 +1,11 @@
 import { CODEFILES_PLACEHOLDER } from "@/constants";
-import { PromptBuilder } from "../../support/PromptBuilder";
-import { ResponseParser } from "../../support/ResponseParser";
-import { TokenLimiter } from "../../support/TokenLimiter";
-import { CodebaseChunksAssistant } from "../CodebaseChunksAssistant";
+import { PromptBuilder } from "../../../support/PromptBuilder";
+import { ResponseParser } from "../../../support/ResponseParser";
+import { TokenLimiter } from "../../../support/TokenLimiter";
+import { CodebaseChunksAssistant } from "../../CodebaseChunksAssistant";
+import { CodebaseAssistant } from "../../CodebaseAssistant";
 
-export class OpenAITaskMakerAssistant extends CodebaseChunksAssistant<string> {
-    protected aggregateResponses(responses: (string | null)[]): string {
-        throw new Error("Method not implemented.");
-    }
-
+export class OpenAITaskMakerAssistant extends CodebaseAssistant<string> {
     private responseParser: ResponseParser<string>;
 
     constructor() {
@@ -119,10 +116,6 @@ Respond in the following format:
 Now, using the codebase and the technical design document, break down the project into a set of specific tasks that align with the existing structure and needs of the project.
 
 `;
-    }
-
-    process(request: CodingTaskRequest): Promise<AIAssistantResponse<string> | null> {
-        throw new Error("Method not implemented.");
     }
 
     protected handleResponse(response: string): string {

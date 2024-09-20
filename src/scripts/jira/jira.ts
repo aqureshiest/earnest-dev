@@ -101,7 +101,7 @@ const jiraConfig: JiraConfig = {
 
 const jiraService = new JiraService(jiraConfig);
 
-async function main() {
+export const jira = async () => {
     try {
         const ticket = await jiraService.getTicket("LC-646");
         console.log("Ticket:", ticket);
@@ -114,6 +114,4 @@ async function main() {
     } catch (error) {
         console.error("Error:", error);
     }
-}
-
-main();
+};
