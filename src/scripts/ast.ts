@@ -1,5 +1,5 @@
 import { parse } from "@babel/parser";
-import traverse from "@babel/traverse";
+// import traverse from "@babel/traverse";
 import fs from "fs";
 
 export const ast = () => {
@@ -11,32 +11,32 @@ export const ast = () => {
 
         const codeBlocks: { type: string; code: string }[] = [];
 
-        traverse(ast, {
-            FunctionDeclaration(path: any) {
-                codeBlocks.push({
-                    type: "function",
-                    code: code.slice(path.node.start, path.node.end),
-                });
-            },
-            ClassDeclaration(path: any) {
-                codeBlocks.push({
-                    type: "class",
-                    code: code.slice(path.node.start, path.node.end),
-                });
-            },
-            ImportDeclaration(path: any) {
-                codeBlocks.push({
-                    type: "import",
-                    code: code.slice(path.node.start, path.node.end),
-                });
-            },
-            ExportDefaultDeclaration(path: any) {
-                codeBlocks.push({
-                    type: "export",
-                    code: code.slice(path.node.start, path.node.end),
-                });
-            },
-        });
+        // traverse(ast, {
+        //     FunctionDeclaration(path: any) {
+        //         codeBlocks.push({
+        //             type: "function",
+        //             code: code.slice(path.node.start, path.node.end),
+        //         });
+        //     },
+        //     ClassDeclaration(path: any) {
+        //         codeBlocks.push({
+        //             type: "class",
+        //             code: code.slice(path.node.start, path.node.end),
+        //         });
+        //     },
+        //     ImportDeclaration(path: any) {
+        //         codeBlocks.push({
+        //             type: "import",
+        //             code: code.slice(path.node.start, path.node.end),
+        //         });
+        //     },
+        //     ExportDefaultDeclaration(path: any) {
+        //         codeBlocks.push({
+        //             type: "export",
+        //             code: code.slice(path.node.start, path.node.end),
+        //         });
+        //     },
+        // });
 
         return codeBlocks;
     }

@@ -1,8 +1,8 @@
 import { CODEFILES_PLACEHOLDER } from "@/constants";
-import { PromptBuilder } from "../../support/PromptBuilder";
-import { ResponseParser } from "../../support/ResponseParser";
-import { TokenLimiter } from "../../support/TokenLimiter";
-import { CodebaseChunksAssistant } from "../CodebaseChunksAssistant";
+import { PromptBuilder } from "../../../support/PromptBuilder";
+import { ResponseParser } from "../../../support/ResponseParser";
+import { TokenLimiter } from "../../../support/TokenLimiter";
+import { CodebaseChunksAssistant } from "../../CodebaseChunksAssistant";
 
 export class ChunksAnalyzerAssistant extends CodebaseChunksAssistant<string> {
     private responseParser: ResponseParser<string>;

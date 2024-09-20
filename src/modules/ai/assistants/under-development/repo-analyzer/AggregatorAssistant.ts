@@ -1,8 +1,8 @@
 import { CHUNK_ANALYSES_PLACEHOLDER } from "@/constants";
-import { PromptBuilder } from "../../support/PromptBuilder";
-import { ResponseParser } from "../../support/ResponseParser";
-import { TokenLimiter } from "../../support/TokenLimiter";
-import { StandardAssistant } from "../StandardAssistant";
+import { PromptBuilder } from "../../../support/PromptBuilder";
+import { ResponseParser } from "../../../support/ResponseParser";
+import { TokenLimiter } from "../../../support/TokenLimiter";
+import { StandardAssistant } from "../../StandardAssistant";
 
 export class AggregatorAssistant extends StandardAssistant<TaskRequest, string> {
     private responseParser: ResponseParser<string>;

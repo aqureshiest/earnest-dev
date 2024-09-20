@@ -1,5 +1,5 @@
-import { AggregatorAssistant } from "@/modules/ai/assistants/repo-analyzer/AggregatorAssistant";
-import { ChunksAnalyzerAssistant } from "@/modules/ai/assistants/repo-analyzer/ChunksAnalyzerAssistant";
+import { AggregatorAssistant } from "@/modules/ai/assistants/under-development/repo-analyzer/AggregatorAssistant";
+import { ChunksAnalyzerAssistant } from "@/modules/ai/assistants/under-development/repo-analyzer/ChunksAnalyzerAssistant";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { loadEnvConfig } from "@next/env";
