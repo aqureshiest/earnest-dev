@@ -9,19 +9,30 @@ export class GitHubService {
         });
     }
 
-    async listRepos() {
-        const { data: repos } = await this.octokit.repos.listForAuthenticatedUser({
-            visibility: "all",
-        });
-
-        // check if we are in an env where access to repos is limited
-        const limitedAccessRepos = process.env.NEXT_PUBLIC_LIMIT_TO_REPOS;
-        if (limitedAccessRepos) {
-            const limitedRepos = limitedAccessRepos.split(",");
-            return repos.filter((repo) => limitedRepos.includes(repo.name));
+    async listRepos(owner?: string) {
+        try {
+            if (owner) {
+                const { data: repos } = await this.octokit.repos.listForUser({
+                    username: owner,
+                    sort: 'updated',
+                    direction: 'desc'
+                });
+                return repos;
+            } else {
+                const { data: repos } = await this.octokit.repos.listForAuthenticatedUser({
+                    visibility: "all",
+                });
+                return repos;
+            }
+        } catch (error: any) {
+            if (error.status === 404) {
+                throw new Error(`User ${owner} not found or you don't have access to their repositories.`);
+            } else if (error.status === 403) {
+                throw new Error("API rate limit exceeded or insufficient permissions.");
+            } else {
+                throw new Error(`Failed to fetch repositories: ${error.message}`);
+            }
         }
-
-        return repos;
     }
 
     async listBranches(owner: string, repo: string) {

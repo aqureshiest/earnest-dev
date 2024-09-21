@@ -1,41 +1,26 @@
 import { GitHubService } from "@/modules/github/GitHubService";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
+    const ghService = new GitHubService();
+    const { action, owner, repo, branch } = await req.json();
+
     try {
-        const body = await req.json();
-        const { action } = body;
-
-        const ghService = new GitHubService();
-
-        // fetch repositories
-        if (action == "list-repos") {
-            const repositories = await ghService.listRepos();
-
-            return new Response(JSON.stringify(repositories), {
-                status: 200,
-                headers: { "Content-Type": "application/json" },
-            });
+        switch (action) {
+            case "list-repos":
+                const repos = await ghService.listRepos(owner);
+                return NextResponse.json(repos);
+            case "list-branches":
+                if (!owner || !repo) {
+                    return NextResponse.json({ error: "Owner and repo are required" }, { status: 400 });
+                }
+                const branches = await ghService.listBranches(owner, repo);
+                return NextResponse.json(branches);
+            default:
+                return NextResponse.json({ error: "Invalid action" }, { status: 400 });
         }
-        // fetch branches
-        else if (action == "list-branches") {
-            const { owner, repo } = body;
-            const branches = await ghService.listBranches(owner, repo);
-
-            return new Response(JSON.stringify(branches), {
-                status: 200,
-                headers: { "Content-Type": "application/json" },
-            });
-        }
-
-        return new Response(JSON.stringify({ error: "Invalid action" }), {
-            status: 404,
-            headers: { "Content-Type": "application/json" },
-        });
-    } catch (e) {
-        console.log(e);
-        return new Response(JSON.stringify({ error: (e as any).message }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-        });
+    } catch (error: any) {
+        console.error("Error in GitHub API route:", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

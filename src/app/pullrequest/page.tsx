@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 import {
     Check,
@@ -55,6 +56,7 @@ const PullRequest: React.FC = () => {
 
     const [taskId, setTaskId] = useState("");
 
+    const [owner, setOwner] = useState(process.env.NEXT_PUBLIC_GITHUB_OWNER || "");
     const [repo, setRepo] = useState<string>("");
     const [branch, setBranch] = useState<string>("");
     const [description, setDescription] = useState("");
@@ -98,10 +100,8 @@ const PullRequest: React.FC = () => {
 
     const { assistantStates, resetAssistantStates, updateAssistantState } = useAssistantStates();
 
-    const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
-
     const fetchBranches = async () => {
-        if (!repo) return;
+        if (!owner || !repo) return;
 
         try {
             setLoadingBranches(true);
@@ -124,21 +124,24 @@ const PullRequest: React.FC = () => {
             setBranch(mainBranch ? mainBranch.name : data[0].name);
         } catch (error) {
             console.error("Error fetching branches:", error);
+            setProgress((prev) => [...prev, `Error fetching branches: ${error}`]);
         } finally {
             setLoadingBranches(false);
         }
     };
 
-    // Fetch repositories on page load
+    // Fetch repositories when owner changes
     useEffect(() => {
         async function fetchRepos() {
+            if (!owner) return;
+
             try {
                 setLoadingRepos(true);
 
                 const response = await fetch("/api/gh", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "list-repos" }),
+                    body: JSON.stringify({ action: "list-repos", owner }),
                 });
 
                 if (!response.ok) throw new Error("Failed to fetch repositories");
@@ -147,20 +150,21 @@ const PullRequest: React.FC = () => {
                 setRepos(data.map((repo: any) => ({ name: repo.name })));
             } catch (error) {
                 console.error("Error fetching repositories:", error);
+                setProgress((prev) => [...prev, `Error fetching repositories: ${error}`]);
             } finally {
                 setLoadingRepos(false);
             }
         }
 
         fetchRepos();
-    }, []);
+    }, [owner]);
 
     // Fetch branches when a repository is selected
     useEffect(() => {
-        if (!repo) return;
+        if (!owner || !repo) return;
 
         fetchBranches();
-    }, [repo]);
+    }, [owner, repo]);
 
     // Create a pull request
     const createPullRequest = async (
@@ -397,10 +401,10 @@ const PullRequest: React.FC = () => {
     };
 
     useEffect(() => {
-        // focus on selected repo element
-        const selectedRepoElement = document.getElementById("repo");
-        if (selectedRepoElement) {
-            selectedRepoElement.focus();
+        // focus on owner input element
+        const ownerInputElement = document.getElementById("owner");
+        if (ownerInputElement) {
+            ownerInputElement.focus();
         }
     }, []);
 
@@ -501,6 +505,18 @@ const PullRequest: React.FC = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
+                                {/* Repository Owner Input */}
+                                <div>
+                                    <Label htmlFor="owner">Repository Owner</Label>
+                                    <Input
+                                        id="owner"
+                                        value={owner}
+                                        onChange={(e) => setOwner(e.target.value)}
+                                        placeholder="Enter repository owner"
+                                        disabled={isCreating}
+                                    />
+                                </div>
+
                                 {/* Selected Repository and Branch */}
                                 <div>
                                     <div className="flex items-center mb-2">
@@ -591,7 +607,7 @@ const PullRequest: React.FC = () => {
                                     <Button
                                         onClick={handleCreatePullRequest}
                                         className="w-full"
-                                        disabled={isCreating || !repo || !branch || !description}
+                                        disabled={isCreating || !owner || !repo || !branch || !description}
                                     >
                                         <Code className="mr-2 h-4 w-4" />
                                         {isCreating ? "Processing..." : "Generate Code"}
