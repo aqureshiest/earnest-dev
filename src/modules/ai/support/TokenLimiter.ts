@@ -48,6 +48,12 @@ export class TokenLimiter {
                 ? decode(encodedPrompt.slice(0, allowedTokens - systemPromptTokens))
                 : userPrompt;
 
+        // indicate if prompt was truncated
+        if (totalTokens > allowedTokens) {
+            console.log(`Truncated prompt due to token limit`);
+            console.log(`Total tokens: ${totalTokens}, Allowed tokens: ${allowedTokens}`);
+        }
+
         return {
             totalTokens,
             prompt: updatedPrompt,

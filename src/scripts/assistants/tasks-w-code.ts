@@ -4,7 +4,7 @@ import { loadEnvConfig } from "@next/env";
 import axios from "axios";
 import FormData from "form-data";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
-import { TasksForCodebaseAssistant } from "@/modules/ai/assistants/under-development/tasks/TasksForCodebaseAssistant";
+import { TasksForCodebaseAssistant } from "@/modules/ai/assistants/archive/TasksForCodebaseAssistant";
 
 loadEnvConfig("");
 

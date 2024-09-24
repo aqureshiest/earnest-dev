@@ -1,8 +1,8 @@
 import { CODEFILES_PLACEHOLDER, TECHNICAL_DESIGN_DOC_PLACEHOLDER } from "@/constants";
-import { PromptBuilder } from "../../../support/PromptBuilder";
-import { ResponseParser } from "../../../support/ResponseParser";
-import { TokenLimiter } from "../../../support/TokenLimiter";
-import { CodebaseAssistant } from "../../CodebaseAssistant";
+import { PromptBuilder } from "../../support/PromptBuilder";
+import { ResponseParser } from "../../support/ResponseParser";
+import { TokenLimiter } from "../../support/TokenLimiter";
+import { CodebaseAssistant } from "../CodebaseAssistant";
 
 export class TasksForCodebaseAssistant extends CodebaseAssistant<string> {
     private responseParser: ResponseParser<string>;

@@ -7,6 +7,9 @@ import { ast } from "./ast";
 import { tasksWGap } from "./assistants/tasks-w-gap";
 import { tasksWCode } from "./assistants/tasks-w-code";
 import { trimPrompt } from "./trim-prompt";
+import { codeMetadata } from "./codeMetadata";
+import { CA } from "./assistants/ca";
+import { pdf } from "./assistants/pdf";
 
 const program = new Command();
 
@@ -18,5 +21,8 @@ program.command("pr").action(pr);
 program.command("chunks").action(chunks);
 program.command("ast").action(ast);
 program.command("trim-prompt").action(trimPrompt);
+program.command("code-metadata").action(codeMetadata);
+program.command("ca").action(CA);
+program.command("pdf").action(pdf);
 
 program.parse(process.argv);

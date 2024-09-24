@@ -26,7 +26,7 @@ export const LLMS = [
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         inputCost: 3,
         outputCost: 15,
-        maxInputTokens: 40000, //200000,
+        maxInputTokens: 80000, //200000,
         maxOutputTokens: 8192,
     },
     {

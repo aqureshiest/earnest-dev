@@ -3,10 +3,10 @@ import {
     REPO_ANALYSIS_PLACEHOLDER,
     TECHNICAL_DESIGN_DOC_PLACEHOLDER,
 } from "@/constants";
-import { PromptBuilder } from "../../../support/PromptBuilder";
-import { ResponseParser } from "../../../support/ResponseParser";
-import { TokenLimiter } from "../../../support/TokenLimiter";
-import { StandardAssistant } from "../../StandardAssistant";
+import { PromptBuilder } from "../../support/PromptBuilder";
+import { ResponseParser } from "../../support/ResponseParser";
+import { TokenLimiter } from "../../support/TokenLimiter";
+import { StandardAssistant } from "../StandardAssistant";
 
 export class GapAnalysisAssistant extends StandardAssistant<TaskRequest, string> {
     private responseParser: ResponseParser<string>;

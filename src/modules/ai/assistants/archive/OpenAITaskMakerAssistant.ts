@@ -1,9 +1,8 @@
 import { CODEFILES_PLACEHOLDER } from "@/constants";
-import { PromptBuilder } from "../../../support/PromptBuilder";
-import { ResponseParser } from "../../../support/ResponseParser";
-import { TokenLimiter } from "../../../support/TokenLimiter";
-import { CodebaseChunksAssistant } from "../../CodebaseChunksAssistant";
-import { CodebaseAssistant } from "../../CodebaseAssistant";
+import { PromptBuilder } from "../../support/PromptBuilder";
+import { ResponseParser } from "../../support/ResponseParser";
+import { TokenLimiter } from "../../support/TokenLimiter";
+import { CodebaseAssistant } from "../CodebaseAssistant";
 
 export class OpenAITaskMakerAssistant extends CodebaseAssistant<string> {
     private responseParser: ResponseParser<string>;

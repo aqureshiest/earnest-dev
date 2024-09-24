@@ -4,10 +4,9 @@ import { loadEnvConfig } from "@next/env";
 import axios from "axios";
 import FormData from "form-data";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
-import { AggregatorAssistant } from "@/modules/ai/assistants/under-development/repo-analyzer/AggregatorAssistant";
-import { ChunksAnalyzerAssistant } from "@/modules/ai/assistants/under-development/repo-analyzer/ChunksAnalyzerAssistant";
-import { GapAnalysisAssistant } from "@/modules/ai/assistants/under-development/tasks/GapAnalysisAssistant";
-import { TasksForGapsAssistant } from "@/modules/ai/assistants/under-development/tasks/TasksForGapsAssistant";
+import { AggregatorAssistant } from "@/modules/ai/assistants/archive/repo-analyzer/AggregatorAssistant";
+import { ChunksAnalyzerAssistant } from "@/modules/ai/assistants/archive/repo-analyzer/ChunksAnalyzerAssistant";
+import { TDDAnalystAssistant } from "@/modules/ai/assistants/under-development/tasks/TDDAnalystAssistant";
 
 loadEnvConfig("");
 
@@ -81,7 +80,6 @@ ${pdfResponse.images
     analyze.files = files;
 
     const analyses = await codeAnalyzer.process(analyze);
-    const analysesResponse = analyses?.response as string;
 
     // --
 
@@ -91,7 +89,7 @@ ${pdfResponse.images
         task: "",
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         params: {
-            chunkAnalyses: analysesResponse,
+            chunkAnalyses: analyses?.responseStr,
         },
     };
     console.log("aggregate task id", aggregate.taskId);
@@ -99,36 +97,35 @@ ${pdfResponse.images
 
     // --
 
-    const gapAnalyst = new GapAnalysisAssistant();
-    const gapAnalysis: TaskRequest = {
+    const tddAnalyst = new TDDAnalystAssistant();
+    const tddAnalysis: TaskRequest = {
         taskId: Date.now().toString(),
         task: "",
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         params: {
-            repoAnalysis: aggregated?.response,
             technicalDesignDoc: pdfXml,
         },
     };
-    console.log("gapAnalysis task id", gapAnalysis.taskId);
-    const gapAnalysisResponse = await gapAnalyst.process(gapAnalysis);
+    console.log("tddAnalysis task id", tddAnalysis.taskId);
+    const gapAnalysisResponse = await tddAnalyst.process(tddAnalysis);
 
     // --
 
-    const taskMaker = new TasksForGapsAssistant();
-    const tasksForGaps: CodingTaskRequest = {
-        taskId: Date.now().toString(),
-        task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
-        owner: "aqureshiest",
-        repo: repo,
-        branch: "main",
-        files,
-        params: {
-            gapAnalysis: gapAnalysisResponse?.response,
-            technicalDesignDoc: pdfXml,
-            repoAnalysis: aggregated?.response,
-        },
-    };
-    console.log("tasksForGaps task id", tasksForGaps.taskId);
-    await taskMaker.process(tasksForGaps);
+    // const taskMaker = new TasksForGapsAssistant();
+    // const tasksForGaps: CodingTaskRequest = {
+    //     taskId: Date.now().toString(),
+    //     task: "",
+    //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+    //     owner: "aqureshiest",
+    //     repo: repo,
+    //     branch: "main",
+    //     files,
+    //     params: {
+    //         gapAnalysis: gapAnalysisResponse?.response,
+    //         technicalDesignDoc: pdfXml,
+    //         repoAnalysis: aggregated?.response,
+    //     },
+    // };
+    // console.log("tasksForGaps task id", tasksForGaps.taskId);
+    // await taskMaker.process(tasksForGaps);
 };

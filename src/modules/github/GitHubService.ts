@@ -113,4 +113,15 @@ export class GitHubService {
             console.error("Error fetching repository languages:", error);
         }
     }
+
+    async listCommits(owner: string, repo: string, branch: string = "main", path: string) {
+        const { data: commits } = await this.octokit.repos.listCommits({
+            owner,
+            repo,
+            sha: branch,
+            path,
+        });
+
+        return commits;
+    }
 }
