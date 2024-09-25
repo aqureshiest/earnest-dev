@@ -33,7 +33,7 @@ export const LLMS = [
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
         inputCost: 0.25,
         outputCost: 1.25,
-        maxInputTokens: 80000, //200000,
+        maxInputTokens: 40000, //200000,
         maxOutputTokens: 4096,
     },
 ];

@@ -1,16 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
 
 interface ProgressFeedProps {
-    taskId: string;
     progress: string[];
-    currentFile?: string;
 }
 
-const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile, taskId }) => {
+const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress }) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -22,7 +19,7 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile, task
                 scrollElement.scrollTop = scrollElement.scrollHeight;
             }
         }
-    }, [progress, currentFile]);
+    }, [progress]);
 
     return (
         <Card>
@@ -57,7 +54,7 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile, task
                         ))}
                     </AnimatePresence>
 
-                    {currentFile && (
+                    {/* {currentFile && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -69,17 +66,8 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, currentFile, task
                                 Processing: {currentFile}
                             </span>
                         </motion.div>
-                    )}
+                    )} */}
                 </ScrollArea>
-
-                {/* <Button
-                    variant="outline"
-                    className="mt-2 w-full"
-                    onClick={() => setIsLogModalOpen(true)}
-                >
-                    <Logs className="h-4 w-4 mr-2" />
-                    View Logs
-                </Button> */}
             </CardContent>
         </Card>
     );

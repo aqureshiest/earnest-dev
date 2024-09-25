@@ -26,6 +26,10 @@ interface CodingTaskRequest extends TaskRequest {
     files: FileDetails[];
 }
 
+interface JiraTicketsRequest extends CodingTaskRequest {
+    tddProcessed: string;
+}
+
 // specifications types
 
 interface Specifications {
@@ -132,3 +136,31 @@ type JiraItems = {
         effort: string;
     }>;
 };
+
+// Jira ticket types
+
+interface Ticket {
+    title: string;
+    description: string;
+    technicalDetails: string;
+    affectedFiles: string[];
+    steps: string[];
+    dependencies: string;
+    risksAndChallenges: string;
+    estimatedComplexity: "Low" | "Medium" | "High";
+    priority: "Low" | "Medium" | "High";
+    effort: string;
+}
+
+interface Epic {
+    title: string;
+    description: string;
+    technicalDetails: string;
+    estimatedComplexity: "Low" | "Medium" | "High";
+    affectedComponents: string[];
+}
+
+interface EpicWithTickets {
+    epic: Epic;
+    tickets: Ticket[];
+}

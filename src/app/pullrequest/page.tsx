@@ -60,7 +60,6 @@ const PullRequest: React.FC = () => {
     const [description, setDescription] = useState("");
 
     const [progress, setProgress] = useState<string[]>([]);
-    const [currentFile, setCurrentFile] = useState<string>();
     const [isCreating, setIsCreating] = useState(false);
     const [acceptedChanges, setAcceptedChanges] = useState(false);
     const [showDiff, setShowDiff] = useState(false);
@@ -332,11 +331,7 @@ const PullRequest: React.FC = () => {
     };
 
     const handleProgress = (data: any) => {
-        if (data.message.startsWith("file:")) {
-            setCurrentFile(data.message.slice(5));
-        } else {
-            setProgress((prev) => [...prev, data.message]);
-        }
+        setProgress((prev) => [...prev, data.message]);
     };
 
     const handleComplete = (data: any, assistant: keyof AssistantStates) => {
@@ -372,7 +367,6 @@ const PullRequest: React.FC = () => {
 
     const resetState = () => {
         setProgress([]);
-        setCurrentFile("");
         setGeneratedPRLink(null);
         setAcceptedChanges(false);
         setSpecifications(null);
@@ -396,17 +390,25 @@ const PullRequest: React.FC = () => {
         setDescription(e.target.value);
     };
 
-    useEffect(() => {
-        // focus on selected repo element
-        const selectedRepoElement = document.getElementById("repo");
-        if (selectedRepoElement) {
-            selectedRepoElement.focus();
-        }
-    }, []);
+    // useEffect(() => {
+    //     // focus on selected repo element
+    //     const selectedRepoElement = document.getElementById("repo");
+    //     if (selectedRepoElement) {
+    //         selectedRepoElement.focus();
+    //     }
+    // }, []);
 
     return (
         <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
+                <motion.h1
+                    className="text-3xl font-semibold text-center mb-8 text-gray-800 dark:text-gray-100"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    Pull Request Generator
+                </motion.h1>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Code Viewer Modal */}
                     <AnimatePresence>
@@ -495,164 +497,174 @@ const PullRequest: React.FC = () => {
                     </AnimatePresence>
 
                     {/* Left column: Form */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Create Pull Request</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {/* Selected Repository and Branch */}
-                                <div>
-                                    <div className="flex items-center mb-2">
-                                        <Label htmlFor="repo">Selected Repository</Label>
-                                        {loadingRepos && (
-                                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                        )}
-                                    </div>
-                                    <Select
-                                        value={repo}
-                                        onValueChange={(value) => setRepo(value)}
-                                        disabled={isCreating}
-                                    >
-                                        <SelectTrigger id="repo">
-                                            <SelectValue placeholder="Select a repository" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {repos.map((repo) => (
-                                                <SelectItem key={repo.name} value={repo.name}>
-                                                    {repo.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div>
-                                    <div className="flex items-center mb-2">
-                                        <Label htmlFor="branch">Selected Branch</Label>
-                                        {loadingBranches && (
-                                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                        )}
-                                    </div>
-                                    <Select
-                                        value={branch}
-                                        onValueChange={(value) => setBranch(value)}
-                                        disabled={isCreating}
-                                    >
-                                        <SelectTrigger id="branch">
-                                            <SelectValue placeholder="Select a branch" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {branches.map((branch) => (
-                                                <SelectItem key={branch} value={branch}>
-                                                    {branch}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Task Description */}
-                                <div>
-                                    <Label htmlFor="description">Task Description</Label>
-                                    <Textarea
-                                        className="mt-1"
-                                        rows={8}
-                                        placeholder="Describe the task..."
-                                        value={description}
-                                        onChange={handleDescriptionChange}
-                                        disabled={isCreating}
-                                    />
-                                </div>
-
-                                {/* AI Model Selection */}
-                                <div>
-                                    <Label htmlFor="aiModel">AI Model</Label>
-                                    <Select
-                                        value={selectedModel}
-                                        onValueChange={(value) => setSelectedModel(value)}
-                                        disabled={isCreating}
-                                    >
-                                        <SelectTrigger id="aiModel">
-                                            <SelectValue placeholder="Select an AI model" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableModels.map((model) => (
-                                                <SelectItem key={model} value={model}>
-                                                    {model.replace(/_/g, " ")}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Action Buttons */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Create Pull Request</CardTitle>
+                            </CardHeader>
+                            <CardContent>
                                 <div className="space-y-4">
-                                    <Button
-                                        onClick={handleCreatePullRequest}
-                                        className="w-full"
-                                        disabled={isCreating || !repo || !branch || !description}
-                                    >
-                                        <Code className="mr-2 h-4 w-4" />
-                                        {isCreating ? "Processing..." : "Generate Code"}
-                                    </Button>
-
-                                    {generatedCode && !acceptedChanges && (
-                                        <div className="mt-6 border-t pt-4">
-                                            {/* add a spacer */}
-                                            <span className="text-sm">
-                                                The code has been generated successfully
-                                            </span>
-                                            <Button
-                                                onClick={toggleCodeViewer}
-                                                className="w-full mt-2"
-                                            >
-                                                <SearchCheck className="mr-2 h-4 w-4" />
-                                                Review Generated Code
-                                            </Button>
+                                    {/* Selected Repository and Branch */}
+                                    <div>
+                                        <div className="flex items-center mb-2">
+                                            <Label htmlFor="repo">Selected Repository</Label>
+                                            {loadingRepos && (
+                                                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                                            )}
                                         </div>
-                                    )}
+                                        <Select
+                                            value={repo}
+                                            onValueChange={(value) => setRepo(value)}
+                                            disabled={isCreating}
+                                        >
+                                            <SelectTrigger id="repo">
+                                                <SelectValue placeholder="Select a repository" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {repos.map((repo) => (
+                                                    <SelectItem key={repo.name} value={repo.name}>
+                                                        {repo.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                                    {generatedPRLink && (
-                                        <div className="mt-6 border-t pt-4">
-                                            {/* add a spacer */}
-                                            <span className="text-sm">
-                                                The PR has been created successfully
-                                            </span>
-                                            <Button asChild className="w-full mt-2">
-                                                <a
-                                                    href={generatedPRLink}
-                                                    target="_blank"
-                                                    rel="noreferrer"
+                                    <div>
+                                        <div className="flex items-center mb-2">
+                                            <Label htmlFor="branch">Selected Branch</Label>
+                                            {loadingBranches && (
+                                                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                                            )}
+                                        </div>
+                                        <Select
+                                            value={branch}
+                                            onValueChange={(value) => setBranch(value)}
+                                            disabled={isCreating}
+                                        >
+                                            <SelectTrigger id="branch">
+                                                <SelectValue placeholder="Select a branch" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {branches.map((branch) => (
+                                                    <SelectItem key={branch} value={branch}>
+                                                        {branch}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {/* Task Description */}
+                                    <div>
+                                        <Label htmlFor="description">Task Description</Label>
+                                        <Textarea
+                                            className="mt-1"
+                                            rows={8}
+                                            placeholder="Describe the task..."
+                                            value={description}
+                                            onChange={handleDescriptionChange}
+                                            disabled={isCreating}
+                                        />
+                                    </div>
+
+                                    {/* AI Model Selection */}
+                                    <div>
+                                        <Label htmlFor="aiModel">AI Model</Label>
+                                        <Select
+                                            value={selectedModel}
+                                            onValueChange={(value) => setSelectedModel(value)}
+                                            disabled={isCreating}
+                                        >
+                                            <SelectTrigger id="aiModel">
+                                                <SelectValue placeholder="Select an AI model" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableModels.map((model) => (
+                                                    <SelectItem key={model} value={model}>
+                                                        {model.replace(/_/g, " ")}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="space-y-4">
+                                        <Button
+                                            onClick={handleCreatePullRequest}
+                                            className="w-full"
+                                            disabled={
+                                                isCreating || !repo || !branch || !description
+                                            }
+                                        >
+                                            <Code className="mr-2 h-4 w-4" />
+                                            {isCreating ? "Processing..." : "Generate Code"}
+                                        </Button>
+
+                                        {generatedCode && !acceptedChanges && (
+                                            <div className="mt-6 border-t pt-4">
+                                                {/* add a spacer */}
+                                                <span className="text-sm">
+                                                    The code has been generated successfully
+                                                </span>
+                                                <Button
+                                                    onClick={toggleCodeViewer}
+                                                    className="w-full mt-2"
                                                 >
-                                                    <GitPullRequestArrow className="mr-2 h-4 w-4" />
-                                                    View Pull Request
-                                                </a>
-                                            </Button>
-                                        </div>
-                                    )}
+                                                    <SearchCheck className="mr-2 h-4 w-4" />
+                                                    Review Generated Code
+                                                </Button>
+                                            </div>
+                                        )}
+
+                                        {generatedPRLink && (
+                                            <div className="mt-6 border-t pt-4">
+                                                {/* add a spacer */}
+                                                <span className="text-sm">
+                                                    The PR has been created successfully
+                                                </span>
+                                                <Button asChild className="w-full mt-2">
+                                                    <a
+                                                        href={generatedPRLink}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                    >
+                                                        <GitPullRequestArrow className="mr-2 h-4 w-4" />
+                                                        View Pull Request
+                                                    </a>
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
 
                     {/* Right column: Assistant Progress and Output */}
-                    <div className="space-y-6">
-                        <AssistantWorkspace
-                            assistants={assistants}
-                            assistantStates={assistantStates}
-                        />
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                    >
+                        <div className="space-y-6">
+                            <AssistantWorkspace
+                                assistants={assistants}
+                                assistantStates={assistantStates}
+                            />
 
-                        <ProgressFeed
-                            taskId={taskId}
-                            progress={progress}
-                            currentFile={currentFile}
-                        />
+                            <ProgressFeed progress={progress} />
 
-                        <SpecificationsCard specifications={specifications} />
+                            <SpecificationsCard specifications={specifications} />
 
-                        <ImplementationPlanCard implementationPlan={implementationPlan} />
-                    </div>
+                            <ImplementationPlanCard implementationPlan={implementationPlan} />
+                        </div>
+                    </motion.div>
                 </div>
             </div>
         </div>
