@@ -127,7 +127,7 @@ const JiraTicketGenerator: React.FC = () => {
             return;
         }
 
-        setProgress((prev) => [...prev, "Uploading and processing Technical Design document..."]);
+        setProgress((prev) => [...prev, "Uploading Technical Design document..."]);
 
         const form = new FormData();
         form.append("file", designDoc, designDoc.name);
@@ -147,7 +147,7 @@ const JiraTicketGenerator: React.FC = () => {
         }
 
         const uploadResult = await uploadResponse.json();
-        setProgress((prev) => [...prev, "Technical Design document processed successfully"]);
+        setProgress((prev) => [...prev, "Upload processed successfully"]);
         return uploadResult;
     };
 
@@ -242,7 +242,7 @@ const JiraTicketGenerator: React.FC = () => {
     const handleComplete = (data: any) => {
         console.log("Task complete:", data.message);
         setEpics((prevEpics) => [...prevEpics, data.message]);
-        setProgress((prev) => [...prev, `Received epic: ${data.message.title}`]);
+        setProgress((prev) => [...prev, `Received epic: ${data.message.epic.title}`]);
     };
 
     const handleTasksProgress = (data: { current: number; numberOfTasks: number }) => {

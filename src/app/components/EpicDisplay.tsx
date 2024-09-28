@@ -9,6 +9,7 @@ import {
     ChevronUp,
     Grid,
     List,
+    X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,14 @@ import {
 import { calculateTotalEffort } from "@/modules/utils/calculateEffort";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@radix-ui/react-tooltip";
+import TechnicalDetailsRenderer from "./TechnicalDetailsRenderer";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
 
 const priorityColors: Record<Ticket["priority"], string> = {
     High: "bg-red-500",
@@ -34,136 +43,103 @@ const complexityColors: Record<Ticket["estimatedComplexity"], string> = {
     Low: "bg-cyan-500",
 };
 
-const convertToList = (text: string): string[] => {
-    return text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.startsWith("-"))
-        .map((line) => line.slice(1).trim());
-};
-
-interface TicketCardProps {
+interface TicketModalProps {
     ticket: Ticket;
+    isOpen: boolean;
+    onClose: () => void;
 }
 
-const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const technicalDetailsList = convertToList(ticket.technicalDetails);
-    const risksAndChallengesList = convertToList(ticket.risksAndChallenges);
-
+const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClose }) => {
     return (
-        <Card className="mb-4 border border-gray-300 overflow-hidden">
-            <CardHeader
-                className="bg-gray-50 dark:bg-gray-800 cursor-pointer"
-                onClick={() => setIsExpanded(!isExpanded)}
-            >
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                        <Badge
-                            variant="outline"
-                            className="text-gray-700 border-gray-700 dark:text-gray-300 dark:border-gray-300"
-                        >
-                            TICKET
-                        </Badge>
-                        <CardTitle className="text-lg text-gray-800 dark:text-gray-200">
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>
+                        <div className="flex items-center gap-x-2">
+                            <Badge
+                                variant="outline"
+                                className="text-gray-700 border-gray-700 dark:text-gray-300 dark:border-gray-300"
+                            >
+                                Ticket
+                            </Badge>{" "}
                             {ticket.title}
-                        </CardTitle>
-                    </div>
-                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                        </div>
+                    </DialogTitle>
+                    <DialogDescription>
+                        <div className="mt-2">{ticket.description}</div>
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="mt-2">
+                    <h4 className="font-semibold mb-2">Technical Details:</h4>
+                    <TechnicalDetailsRenderer details={ticket.technicalDetails} />
                 </div>
-                <CardDescription className="mt-2">{ticket.description}</CardDescription>
-            </CardHeader>
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <CardContent className="pt-4">
-                            <div className="mb-4">
-                                <h4 className="font-semibold mb-2">Technical Details:</h4>
-                                <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
-                                    {technicalDetailsList.map((detail, index) => (
-                                        <li key={index}>{detail}</li>
-                                    ))}
-                                </ul>
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="affected-files">
+                        <AccordionTrigger>
+                            <div className="flex items-center">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Affected Files
                             </div>
-                            <Accordion type="single" collapsible className="w-full">
-                                <AccordionItem value="affected-files">
-                                    <AccordionTrigger>
-                                        <div className="flex items-center">
-                                            <FileText className="w-4 h-4 mr-2" />
-                                            Affected Files
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent>
-                                        <ul className="list-disc list-inside text-sm">
-                                            {ticket.affectedFiles.map((file, index) => (
-                                                <li key={index}>{file}</li>
-                                            ))}
-                                        </ul>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="steps">
-                                    <AccordionTrigger>
-                                        <div className="flex items-center">
-                                            <ListTodo className="w-4 h-4 mr-2" />
-                                            Steps
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent>
-                                        <ol className="list-decimal list-inside text-sm">
-                                            {ticket.steps.map((step, index) => (
-                                                <li key={index}>{step}</li>
-                                            ))}
-                                        </ol>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <AccordionItem value="risks-challenges">
-                                    <AccordionTrigger>
-                                        <div className="flex items-center">
-                                            <AlertTriangle className="w-4 h-4 mr-2" />
-                                            Risks and Challenges
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent>
-                                        <ul className="list-disc list-inside text-sm">
-                                            {risksAndChallengesList.map((item, index) => (
-                                                <li key={index}>{item}</li>
-                                            ))}
-                                        </ul>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Accordion>
-                            <div className="text-xs text-gray-500 mt-4 flex flex-wrap justify-between items-center">
-                                <p className="mb-2 sm:mb-0">Effort: {ticket.effort}</p>
-                                <p className="mb-2 sm:mb-0">
-                                    Dependencies: {ticket.dependencies || "None"}
-                                </p>
-                                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                                    <div className="flex items-center">
-                                        <span className="mr-2">Priority:</span>
-                                        <Badge className={priorityColors[ticket.priority]}>
-                                            {ticket.priority}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="mr-2">Complexity:</span>
-                                        <Badge
-                                            className={complexityColors[ticket.estimatedComplexity]}
-                                        >
-                                            {ticket.estimatedComplexity}
-                                        </Badge>
-                                    </div>
-                                </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <ul className="list-disc list-inside text-sm">
+                                {ticket.affectedFiles.map((file, index) => (
+                                    <li key={index}>{file}</li>
+                                ))}
+                            </ul>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="steps">
+                        <AccordionTrigger>
+                            <div className="flex items-center">
+                                <ListTodo className="w-4 h-4 mr-2" />
+                                Steps
                             </div>
-                        </CardContent>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </Card>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <ol className="list-decimal list-inside text-sm">
+                                {ticket.steps.map((step, index) => (
+                                    <li key={index}>{step}</li>
+                                ))}
+                            </ol>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="risks-challenges">
+                        <AccordionTrigger>
+                            <div className="flex items-center">
+                                <AlertTriangle className="w-4 h-4 mr-2" />
+                                Risks and Challenges
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <ul className="list-disc list-inside text-sm">
+                                <TechnicalDetailsRenderer details={ticket.risksAndChallenges} />
+                            </ul>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+                <p className="text-xs text-gray-500 mb-2 sm:mb-0">
+                    Dependencies: {ticket.dependencies || "None"}
+                </p>
+                <div className="text-xs text-gray-500 mt-4 flex flex-wrap justify-between items-center">
+                    <p className="mb-2 sm:mb-0">Effort: {ticket.effort}</p>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        <div className="flex items-center">
+                            <span className="mr-2">Priority:</span>
+                            <Badge className={priorityColors[ticket.priority]}>
+                                {ticket.priority}
+                            </Badge>
+                        </div>
+                        <div className="flex items-center">
+                            <span className="mr-2">Complexity:</span>
+                            <Badge className={complexityColors[ticket.estimatedComplexity]}>
+                                {ticket.estimatedComplexity}
+                            </Badge>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 };
 
@@ -175,7 +151,7 @@ interface EpicCardProps {
 }
 
 const EpicCard: React.FC<EpicCardProps> = ({ epic, tickets, isExpanded, onToggle }) => {
-    const technicalDetailsList = convertToList(epic.technicalDetails);
+    const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const { total: totalEffort, metric: effortMetric } = calculateTotalEffort(tickets);
 
     return (
@@ -221,39 +197,67 @@ const EpicCard: React.FC<EpicCardProps> = ({ epic, tickets, isExpanded, onToggle
                             <div className="mb-2">
                                 <h4 className="font-semibold mb-2 mt-4">Technical Details:</h4>
                                 <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
-                                    {technicalDetailsList.map((detail, index) => (
-                                        <li key={index}>{detail}</li>
-                                    ))}
+                                    <TechnicalDetailsRenderer details={epic.technicalDetails} />
                                 </ul>
                             </div>
-                            <Accordion type="single" collapsible className="w-full">
-                                <AccordionItem value="tickets">
-                                    <AccordionTrigger>Tickets ({tickets.length})</AccordionTrigger>
-                                    <AccordionContent>
-                                        <div className="space-y-4">
-                                            {tickets.map((ticket, i) => (
-                                                <TicketCard key={i} ticket={ticket} />
-                                            ))}
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                                <div className="mt-4">
-                                    <div className="font-semibold mb-2 text-xs">
-                                        Affected Components:
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {epic.affectedComponents?.map((component, i) => (
-                                            <Badge key={i} variant="outline">
-                                                {component}
-                                            </Badge>
+                            <div className="mt-4">
+                                <h4 className="font-semibold mb-2">
+                                    <Badge
+                                        variant="outline"
+                                        className="text-gray-700 border-gray-700 dark:text-gray-300 dark:border-gray-300"
+                                    >
+                                        Tickets ({tickets.length})
+                                    </Badge>
+                                </h4>
+                                <table className="w-full">
+                                    <tbody>
+                                        {tickets.map((ticket, i) => (
+                                            <tr key={i} className="border-t">
+                                                <td className="py-2">
+                                                    <div className="font-medium">
+                                                        {i + 1}. {ticket.title}
+                                                    </div>
+                                                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                        {ticket.description}
+                                                    </div>
+                                                </td>
+                                                <td className="text-right">
+                                                    <Button
+                                                        onClick={() => setSelectedTicket(ticket)}
+                                                        variant="outline"
+                                                        size="sm"
+                                                    >
+                                                        View Details
+                                                    </Button>
+                                                </td>
+                                            </tr>
                                         ))}
-                                    </div>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="mt-4">
+                                <div className="font-semibold mb-2 text-xs">
+                                    Affected Components:
                                 </div>
-                            </Accordion>
+                                <div className="flex flex-wrap gap-2">
+                                    {epic.affectedComponents?.map((component, i) => (
+                                        <Badge key={i} variant="outline">
+                                            {component}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
                         </CardContent>
                     </motion.div>
                 )}
             </AnimatePresence>
+            {selectedTicket && (
+                <TicketModal
+                    ticket={selectedTicket}
+                    isOpen={!!selectedTicket}
+                    onClose={() => setSelectedTicket(null)}
+                />
+            )}
         </Card>
     );
 };

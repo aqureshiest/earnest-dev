@@ -55,7 +55,7 @@ export class GeneateJiraTickets {
 
             // generate ticket for each detailed task
             const ticketRequest: CodingTaskRequest = {
-                taskId,
+                taskId: `${taskId}-${current + 1}`,
                 owner,
                 repo,
                 branch,
@@ -89,7 +89,6 @@ export class GeneateJiraTickets {
                 throw new Error("Something went wrong in generating Jira tickets.");
             }
 
-            sendTaskUpdate(taskId, "progress", "Tickets generated.");
             sendTaskUpdate(taskId, "complete", tickets.response);
             this.emitMetrics(taskId, tickets);
             totalCost += tickets.cost;

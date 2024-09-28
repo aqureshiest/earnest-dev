@@ -19,7 +19,7 @@ const TasksProgressBar: React.FC<ProgressBarProps> = ({ current, total }) => {
                     {percentage}%
                 </span>
             </div>
-            <Progress value={percentage} className="w-full" />
+            <Progress value={percentage} className="w-full"  />
             <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 {current} of {total} tasks completed
             </div>

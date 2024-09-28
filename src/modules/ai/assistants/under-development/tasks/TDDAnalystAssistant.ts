@@ -118,12 +118,17 @@ Now, using the provided TDD, analyze the project, extract key information, and d
 `;
     }
     protected handleResponse(response: string): TDDAnalysis {
+        const options = {
+            ignoreAttributes: false,
+            isArray: (name: any, jpath: any) => name === "Task",
+        };
+
         // extract the TDDAnalysis block
         const match = response.match(/<TDDAnalysis>[\s\S]*<\/TDDAnalysis>/);
         const matchedBlock = match ? match[0] : "";
 
         // Parse the response into an intermediate format
-        const parsedData = this.responseParser.parse(matchedBlock) as any;
+        const parsedData = this.responseParser.parse(matchedBlock, options) as any;
 
         const result = parsedData.TDDAnalysis;
         return {

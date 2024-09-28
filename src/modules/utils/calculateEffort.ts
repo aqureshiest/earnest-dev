@@ -10,8 +10,8 @@ const calculateTotalEffort = (tickets: Ticket[]): EffortResult => {
     let hasPoints = false;
 
     tickets.forEach((ticket) => {
-        const effortString = ticket.effort.toLowerCase();
-        const effortValue = parseFloat(effortString);
+        const effortString = (ticket.effort + "").toLowerCase() || "";
+        const effortValue = parseFloat(effortString) || 0;
 
         if (effortString.includes("hour") || effortString.includes("hr")) {
             totalHours += isNaN(effortValue) ? 0 : effortValue;

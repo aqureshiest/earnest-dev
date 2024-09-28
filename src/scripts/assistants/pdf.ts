@@ -57,57 +57,58 @@ ${pdfResponse.images
     .join("\n")}
 </images>`;
     console.log("PDF xml ready");
+    console.log(pdfXml);
 
-    const request: TaskRequest = {
-        taskId: Date.now().toString(),
-        task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
-        params: {
-            technicalDesignDoc: pdfXml,
-        },
-    };
-    console.log("pdf task id", request.taskId);
+    // const request: TaskRequest = {
+    //     taskId: Date.now().toString(),
+    //     task: "",
+    //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+    //     params: {
+    //         technicalDesignDoc: pdfXml,
+    //     },
+    // };
+    // console.log("pdf task id", request.taskId);
 
-    const task = new TDDAnalystAssistant();
-    const TDDAnalysisRepsonse = await task.process(request);
-    const TDDAnalysis = TDDAnalysisRepsonse!.response;
+    // const task = new TDDAnalystAssistant();
+    // const TDDAnalysisRepsonse = await task.process(request);
+    // const TDDAnalysis = TDDAnalysisRepsonse!.response;
 
-    // copy TDDAnalysis to a second object
-    const TDDAnalysisCopy = { ...TDDAnalysis };
-    // remove detailed tasks
-    delete TDDAnalysisCopy.detailedTasks;
-    // create tdd context
-    const tddContext = formatXml(TDDAnalysisCopy);
+    // // copy TDDAnalysis to a second object
+    // const TDDAnalysisCopy = { ...TDDAnalysis };
+    // // remove detailed tasks
+    // delete TDDAnalysisCopy.detailedTasks;
+    // // create tdd context
+    // const tddContext = formatXml(TDDAnalysisCopy);
 
-    // get first detailed task
-    const detailedTask = TDDAnalysis!.detailedTasks[0];
-    const detailedTaskXml = formatXml(detailedTask);
-    // get second last detailed task
-    const secondLastDetailedTask =
-        TDDAnalysis!.detailedTasks[TDDAnalysis!.detailedTasks.length - 2];
-    const secondLastDetailedTaskXml = formatXml(secondLastDetailedTask);
+    // // get first detailed task
+    // const detailedTask = TDDAnalysis!.detailedTasks[0];
+    // const detailedTaskXml = formatXml(detailedTask);
+    // // get second last detailed task
+    // const secondLastDetailedTask =
+    //     TDDAnalysis!.detailedTasks[TDDAnalysis!.detailedTasks.length - 2];
+    // const secondLastDetailedTaskXml = formatXml(secondLastDetailedTask);
 
-    const codebase = new PrepareCodebase();
+    // const codebase = new PrepareCodebase();
 
-    const request2: CodingTaskRequest = {
-        taskId: Date.now().toString(),
-        owner: "aqureshiest",
-        repo: "laps-snapshot",
-        branch: "main",
-        task: secondLastDetailedTaskXml,
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
-        files: [],
-        params: {
-            tddContext,
-            detailedTask: secondLastDetailedTaskXml,
-        },
-    };
+    // const request2: CodingTaskRequest = {
+    //     taskId: Date.now().toString(),
+    //     owner: "aqureshiest",
+    //     repo: "laps-snapshot",
+    //     branch: "main",
+    //     task: secondLastDetailedTaskXml,
+    //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+    //     files: [],
+    //     params: {
+    //         tddContext,
+    //         detailedTask: secondLastDetailedTaskXml,
+    //     },
+    // };
 
-    const files = await codebase.prepare(request2);
-    console.log("Files prepared");
-    request2.files = files;
+    // const files = await codebase.prepare(request2);
+    // console.log("Files prepared");
+    // request2.files = files;
 
-    const jiraTickets = new JiraTicketsAssistant();
-    const result = await jiraTickets.process(request2);
-    console.log("Jira tickets generated", result);
+    // const jiraTickets = new JiraTicketsAssistant();
+    // const result = await jiraTickets.process(request2);
+    // console.log("Jira tickets generated", result);
 };

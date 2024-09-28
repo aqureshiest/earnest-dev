@@ -34,7 +34,7 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
         saveRunInfo(request, caller, "system_prompt", systemPrompt);
         saveRunInfo(request, caller, "user_prompt", finalizedPrompt);
 
-        // generate response
+        // generate responsex
         const aiResponse = await this.generateResponse(model, systemPrompt, finalizedPrompt);
         if (!aiResponse) return null;
 
