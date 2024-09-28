@@ -1,4 +1,5 @@
 import { loadEnvConfig } from "@next/env";
+import axios from "axios";
 
 loadEnvConfig("");
 
@@ -55,6 +56,28 @@ class JiraService {
         }
     }
 
+    async listJiraProjects() {
+        const url = `${this.config.baseUrl}/rest/api/3/project/search`;
+
+        try {
+            const response = await axios.get(url, {
+                auth: {
+                    username: this.config.username,
+                    password: this.config.apiToken,
+                },
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            const projects = response.data.values;
+            console.log("Projects:", projects);
+            return projects;
+        } catch (error) {
+            console.error("Error fetching Jira projects:", error);
+        }
+    }
+
     async getTicket(ticketKey: string): Promise<JiraTicket> {
         const data = await this.makeRequest(`/issue/${ticketKey}`);
 
@@ -94,7 +117,7 @@ class JiraService {
 
 // Example usage
 const jiraConfig: JiraConfig = {
-    baseUrl: "https://meetearnest.atlassian.net",
+    baseUrl: "https://earnest-team-cfewjq8f.atlassian.net",
     username: "adeel.qureshi@earnest.com",
     apiToken: process.env.JIRA_API_TOKEN!,
 };
@@ -103,14 +126,8 @@ const jiraService = new JiraService(jiraConfig);
 
 export const jira = async () => {
     try {
-        const ticket = await jiraService.getTicket("LC-646");
-        console.log("Ticket:", ticket);
-
-        const epic = await jiraService.getEpic("LC-1573");
-        console.log("Epic:", epic);
-
-        const ticketsInEpic = await jiraService.getTicketsInEpic("LC-1573");
-        console.log("Tickets in Epic:", ticketsInEpic);
+        // List Jira projects
+        const projects = await jiraService.listJiraProjects();
     } catch (error) {
         console.error("Error:", error);
     }

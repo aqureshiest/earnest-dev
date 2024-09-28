@@ -5,7 +5,7 @@ const TechnicalDetailsRenderer: React.FC<{ details: string }> = ({ details }) =>
 
     const renderList = (list: any) => {
         return (
-            <div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
                 {/* <ul> */}
                 {list.map((line: string, index: number) => (
                     <div key={index}>{line}</div>
@@ -15,7 +15,7 @@ const TechnicalDetailsRenderer: React.FC<{ details: string }> = ({ details }) =>
         );
     };
 
-    return <div className="text-sm text-gray-600 dark:text-gray-400">{renderList(lines)}</div>;
+    return renderList(lines);
 };
 
 export default TechnicalDetailsRenderer;
