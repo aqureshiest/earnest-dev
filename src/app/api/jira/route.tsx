@@ -4,7 +4,7 @@ import { GeneateJiraTickets } from "@/modules/ai/GenerateJiraTickets";
 
 export async function POST(req: Request) {
     try {
-        const { taskId, owner, repo, branch, selectedModel, tddProcessed } = await req.json();
+        const { taskId, owner, repo, branch, selectedModel, tddContent } = await req.json();
         if (!taskId) {
             return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
         }
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
                         repo,
                         branch,
                         model: selectedModel,
-                        tddProcessed,
+                        tddContent,
                         files: [],
                         params: {},
                     };

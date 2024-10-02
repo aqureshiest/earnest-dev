@@ -27,7 +27,7 @@ interface CodingTaskRequest extends TaskRequest {
 }
 
 interface JiraTicketsRequest extends CodingTaskRequest {
-    tddProcessed: string;
+    tddContent: string;
 }
 
 // specifications types
@@ -86,81 +86,84 @@ interface DeletedFile {
     path: string;
 }
 
-// TDD to Jira types
+// TDD to Feature breakdown types
 
-type TDDAnalysis = {
-    overview: {
-        projectSummary: string;
-        mainObjectives: string[];
-    };
-    keyComponents: Array<{
-        name: string;
-        description: string;
-    }>;
-    detailedTasks: Array<{
-        name: string;
-        description: string;
-        tasks: Array<{
-            name: string;
-            description: string;
-            technicalDetails: string[];
-            dependencies: string;
-            estimatedComplexity: "Low" | "Medium" | "High";
-        }>;
-    }>;
-    potentialChallengesAndRisks: Array<{
-        description: string;
-        mitigation: string;
-    }>;
-    additionalConsiderations: string[];
-};
+interface FeatureBreakdown {
+    feature: Feature[];
+}
 
-type JiraItems = {
-    epic: {
-        title: string;
-        description: string;
-        technicalDetails: string;
-        estimatedComplexity: "Low" | "Medium" | "High";
-        affectedComponents: string[];
-    };
-    tickets: Array<{
-        title: string;
-        description: string;
-        technicalDetails: string;
-        affectedFiles: string[];
-        steps: string[];
-        dependencies: string;
-        risksAndChallenges: string;
-        estimatedComplexity: "Low" | "Medium" | "High";
-        priority: "High" | "Medium" | "Low";
-        effort: string;
-    }>;
-};
-
-// Jira ticket types
-
-interface Ticket {
-    title: string;
+interface Feature {
+    name: string;
     description: string;
-    technicalDetails: string;
-    affectedFiles: string[];
-    steps: string[];
-    dependencies: string;
-    risksAndChallenges: string;
-    estimatedComplexity: "Low" | "Medium" | "High";
-    priority: "Low" | "Medium" | "High";
-    effort: string;
+    tasks: Task[];
+}
+
+interface Task {
+    name: string;
+    description: string;
+    technicalDetails: Detail[];
+    subtasks: Subtask[];
+    dependencies?: string;
+    complexity: "Low" | "Medium" | "High";
+}
+
+interface Detail {
+    detail: string;
+}
+
+interface Subtask {
+    name: string;
+    description: string;
+    technicalDetails: Detail[];
+}
+
+// Jira items types
+
+interface JiraItems {
+    epic: Epic;
+    tickets: Ticket[];
 }
 
 interface Epic {
     title: string;
+    user_story: string;
     description: string;
-    technicalDetails: string;
-    estimatedComplexity: "Low" | "Medium" | "High";
-    affectedComponents: string[];
+    technical_details: string;
+    affected_components: Component[];
 }
 
-interface EpicWithTickets {
-    epic: Epic;
-    tickets: Ticket[];
+interface Component {
+    component: string;
+}
+
+interface Ticket {
+    title: string;
+    user_story: string;
+    acceptance_criteria: Criterion[];
+    description: string;
+    technical_details: Detail[];
+    affected_files: File[];
+    steps: Step[];
+    dependencies?: string;
+    risks_and_challenges?: string;
+    estimated_complexity: string;
+    priority: "High" | "Medium" | "Low";
+    effort: string;
+    effortIn: "story points" | "hours";
+}
+
+interface Criterion {
+    criterion: string;
+}
+
+interface Detail {
+    detail: string;
+}
+
+interface File {
+    file: string;
+}
+
+interface Step {
+    step: string;
 }

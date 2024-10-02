@@ -3,12 +3,12 @@ import fs from "fs";
 import { loadEnvConfig } from "@next/env";
 import axios from "axios";
 import FormData from "form-data";
-import { TDDAnalystAssistant } from "@/modules/ai/assistants/under-development/tasks/TDDAnalystAssistant";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { XMLBuilder } from "fast-xml-parser";
 import { formatXml } from "@/modules/utils/formatXml";
-import { JiraTicketsAssistant } from "@/modules/ai/assistants/under-development/tasks/JiraTicketsAssistant";
+import { JiraTicketsAssistant } from "@/modules/ai/assistants/under-development/jira/JiraTicketsAssistant";
+import { FeatureBreakdownAssistant } from "@/modules/ai/assistants/under-development/jira/FeatureBreakdownAssistant";
 
 loadEnvConfig("");
 
@@ -38,77 +38,50 @@ export const pdf = async () => {
 
     console.log("Processing PDF:", imagePath);
     const pdfResponse = await sendPdfToApi(imagePath);
-    console.log("PDF processed");
+    console.log("PDF response ready");
 
-    const pdfXml = `<content>
-${pdfResponse.text_content}
-</content>
-<images>
-${pdfResponse.images
-    .map(
-        (image: any) =>
-            `<image>
-      <reference>${image.reference}</reference>
-      <page_number>${image.page_number}</page_number>
-      <media_type>${image.media_type}</media_type>
-      <description>${image.description}</description>
-    </image>`
-    )
-    .join("\n")}
-</images>`;
-    console.log("PDF xml ready");
-    console.log(pdfXml);
+    const request: TaskRequest = {
+        taskId: Date.now().toString(),
+        task: "",
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+        params: {
+            technicalDesignDoc: pdfResponse.content,
+        },
+    };
+    console.log("pdf task id", request.taskId);
 
-    // const request: TaskRequest = {
-    //     taskId: Date.now().toString(),
-    //     task: "",
-    //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
-    //     params: {
-    //         technicalDesignDoc: pdfXml,
-    //     },
-    // };
-    // console.log("pdf task id", request.taskId);
+    const assistant = new FeatureBreakdownAssistant();
+    const featuresResponse = await assistant.process(request);
+    console.log("Features response ready");
 
-    // const task = new TDDAnalystAssistant();
-    // const TDDAnalysisRepsonse = await task.process(request);
-    // const TDDAnalysis = TDDAnalysisRepsonse!.response;
+    const features = featuresResponse!.response;
+    console.log("Features", JSON.stringify(features, null, 2));
 
-    // // copy TDDAnalysis to a second object
-    // const TDDAnalysisCopy = { ...TDDAnalysis };
-    // // remove detailed tasks
-    // delete TDDAnalysisCopy.detailedTasks;
-    // // create tdd context
-    // const tddContext = formatXml(TDDAnalysisCopy);
+    // get the first feature
+    const firstFeature = features?.feature[0];
+    console.log("First feature", firstFeature);
 
-    // // get first detailed task
-    // const detailedTask = TDDAnalysis!.detailedTasks[0];
-    // const detailedTaskXml = formatXml(detailedTask);
-    // // get second last detailed task
-    // const secondLastDetailedTask =
-    //     TDDAnalysis!.detailedTasks[TDDAnalysis!.detailedTasks.length - 2];
-    // const secondLastDetailedTaskXml = formatXml(secondLastDetailedTask);
+    const codebase = new PrepareCodebase();
 
-    // const codebase = new PrepareCodebase();
+    const request2: CodingTaskRequest = {
+        taskId: Date.now().toString(),
+        owner: "aqureshiest",
+        repo: "laps-snapshot",
+        branch: "main",
+        task: firstFeature?.description || "",
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+        files: [],
+        params: {
+            technicalDesignDoc: pdfResponse.content,
+            featureForJira: formatXml(firstFeature),
+        },
+    };
 
-    // const request2: CodingTaskRequest = {
-    //     taskId: Date.now().toString(),
-    //     owner: "aqureshiest",
-    //     repo: "laps-snapshot",
-    //     branch: "main",
-    //     task: secondLastDetailedTaskXml,
-    //     model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
-    //     files: [],
-    //     params: {
-    //         tddContext,
-    //         detailedTask: secondLastDetailedTaskXml,
-    //     },
-    // };
+    const files = await codebase.prepare(request2);
+    console.log("Files prepared");
+    request2.files = files;
 
-    // const files = await codebase.prepare(request2);
-    // console.log("Files prepared");
-    // request2.files = files;
-
-    // const jiraTickets = new JiraTicketsAssistant();
-    // const result = await jiraTickets.process(request2);
-    // console.log("Jira tickets generated", result);
+    const jiraTickets = new JiraTicketsAssistant();
+    const result = await jiraTickets.process(request2);
+    console.log("Jira tickets generated", result);
 };

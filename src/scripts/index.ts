@@ -10,6 +10,7 @@ import { trimPrompt } from "./trim-prompt";
 import { codeMetadata } from "./codeMetadata";
 import { CA } from "./assistants/ca";
 import { pdf } from "./assistants/pdf";
+import { cacheTest } from "./cache-test";
 
 const program = new Command();
 
@@ -24,5 +25,6 @@ program.command("trim-prompt").action(trimPrompt);
 program.command("code-metadata").action(codeMetadata);
 program.command("ca").action(CA);
 program.command("pdf").action(pdf);
+program.command("cache-test").action(cacheTest);
 
 program.parse(process.argv);

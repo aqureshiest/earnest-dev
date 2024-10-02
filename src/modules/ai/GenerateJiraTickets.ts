@@ -1,77 +1,75 @@
 import { displayTime } from "../utils/displayTime";
 import { formatXml } from "../utils/formatXml";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
-import { JiraTicketsAssistant } from "./assistants/under-development/tasks/JiraTicketsAssistant";
-import { TDDAnalystAssistant } from "./assistants/under-development/tasks/TDDAnalystAssistant";
+import { FeatureBreakdownAssistant } from "./assistants/under-development/jira/FeatureBreakdownAssistant";
+import { JiraTicketsAssistant } from "./assistants/under-development/jira/JiraTicketsAssistant";
 import { PrepareCodebase } from "./PrepareCodebase";
 
 export class GeneateJiraTickets {
     constructor() {}
 
     async runWorkflow(taskRequest: JiraTicketsRequest) {
-        const { taskId, owner, repo, branch, model, tddProcessed } = taskRequest;
+        const { taskId, owner, repo, branch, model, tddContent } = taskRequest;
 
         // track start time
         const startTime = new Date().getTime();
         let totalCost = 0;
 
-        sendTaskUpdate(taskId, "progress", "Analyzing Technical Design document...");
+        sendTaskUpdate(taskId, "progress", "Generating Features...");
 
-        // analyze tdd request
-        const analyzeTdd: TaskRequest = {
+        // generate features
+        const breakdownFeatures: TaskRequest = {
             taskId,
             task: "",
             model,
             params: {
-                technicalDesignDoc: this.prepareTddXml(tddProcessed),
+                technicalDesignDoc: tddContent,
             },
         };
 
         // run the assistant to analyze the tdd
-        const tddAnalyst = new TDDAnalystAssistant();
-        const tddAnalysis = await tddAnalyst.process(analyzeTdd);
+        const featuresAssistant = new FeatureBreakdownAssistant();
+        const featuresBreakdown = await featuresAssistant.process(breakdownFeatures);
 
-        if (!tddAnalysis || !tddAnalysis.response || !tddAnalysis.response.detailedTasks) {
-            throw new Error("Something went wrong in the TDD analysis.");
+        if (!featuresBreakdown || !featuresBreakdown.response) {
+            throw new Error("Something went wrong in generating features.");
         }
 
-        sendTaskUpdate(taskId, "progress", "Analysis completed.");
-        this.emitMetrics(taskId, tddAnalysis);
-        totalCost += tddAnalysis.cost;
-
-        // prepare input for generating Jira tickets
-        const tddContext = this.prepareTddContext(tddAnalysis.response);
+        sendTaskUpdate(taskId, "progress", "Features generated.");
+        this.emitMetrics(taskId, featuresBreakdown);
+        totalCost += featuresBreakdown.cost;
 
         // send update for how many tasks
         let current = 0;
+        const numberOfTasks = featuresBreakdown.response.feature.length;
         sendTaskUpdate(taskId, "tasks-progress", {
             current,
-            numberOfTasks: tddAnalysis.response.detailedTasks.length,
+            numberOfTasks,
         });
 
-        // for each detailed task listed in the TDD analysis, we need to generate tickets
-        for (const detailedTask of tddAnalysis.response.detailedTasks) {
-            const detailedTaskXml = formatXml(detailedTask);
+        // for each feature, we need to generate tickets
+        for (const feature of featuresBreakdown.response.feature) {
+            const featureXml = formatXml(feature);
 
-            // generate ticket for each detailed task
+            // generate ticket for each feature
             const ticketRequest: CodingTaskRequest = {
                 taskId: `${taskId}-${current + 1}`,
                 owner,
                 repo,
                 branch,
-                task: "",
+                task: feature.description,
                 model,
                 files: [],
                 params: {
-                    tddContext,
-                    detailedTask: detailedTaskXml,
+                    technicalDesignDoc: tddContent,
+                    featureForJira: featureXml,
                 },
             };
 
             sendTaskUpdate(
                 taskId,
                 "progress",
-                `Generating Jira tickets for task: ${detailedTask.name}...`
+                `Generating Jira tickets for Feature: ${feature.name}...`
             );
 
             sendTaskUpdate(taskId, "progress", "Finding relevant code snippets...");
@@ -95,7 +93,7 @@ export class GeneateJiraTickets {
 
             sendTaskUpdate(taskId, "tasks-progress", {
                 current: ++current,
-                numberOfTasks: tddAnalysis.response.detailedTasks.length,
+                numberOfTasks,
             });
         }
 
@@ -104,40 +102,6 @@ export class GeneateJiraTickets {
         const endTime = new Date().getTime();
         sendTaskUpdate(taskId, "progress", `Time taken: ${displayTime(startTime, endTime)}`);
     }
-
-    // helper function to prepare TDD XML
-    private prepareTddXml = (processedTdd: any) => {
-        const pdfXml = `<content>
-${processedTdd.text_content}
-</content>
-<images>
-${processedTdd.images
-    .map(
-        (image: any) =>
-            `<image>
-      <reference>${image.reference}</reference>
-      <page_number>${image.page_number}</page_number>
-      <media_type>${image.media_type}</media_type>
-      <description>${image.description}</description>
-    </image>`
-    )
-    .join("\n")}
-</images>`;
-        return pdfXml;
-    };
-
-    // helper function to prepare TDD context
-    private prepareTddContext = (tddAnalysis: any) => {
-        // copy TDDAnalysis to a second object
-        const tddAnalysisCopy = { ...tddAnalysis };
-
-        // remove detailed tasks
-        delete tddAnalysisCopy.detailedTasks;
-
-        // create tdd context
-        const tddContext = formatXml(tddAnalysisCopy);
-        return tddContext;
-    };
 
     private async emitMetrics(taskId: string, result: AIAssistantResponse<any>) {
         sendTaskUpdate(

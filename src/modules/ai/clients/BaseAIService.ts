@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { createHash } from "crypto";
 import fs from "fs/promises";
 import path from "path";
@@ -32,7 +33,10 @@ abstract class BaseAIService {
 
     protected getCacheKey(model: string, systemPrompt: string, prompt: string): string {
         const combined = `${model}${systemPrompt}${prompt}`;
-        return createHash("md5").update(combined).digest("hex");
+        const key = createHash("md5").update(combined).digest("hex");
+        // console.log(chalk.blue("cache key", key));
+        // console.log(chalk.red("TEXT>", combined));
+        return key;
     }
 }
 

@@ -6,7 +6,7 @@ import FormData from "form-data";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 import { AggregatorAssistant } from "@/modules/ai/assistants/archive/repo-analyzer/AggregatorAssistant";
 import { ChunksAnalyzerAssistant } from "@/modules/ai/assistants/archive/repo-analyzer/ChunksAnalyzerAssistant";
-import { TDDAnalystAssistant } from "@/modules/ai/assistants/under-development/tasks/TDDAnalystAssistant";
+import { TDDAnalystAssistant } from "@/modules/ai/assistants/under-development/jira/FeatureBreakdownAssistant";
 
 loadEnvConfig("");
 

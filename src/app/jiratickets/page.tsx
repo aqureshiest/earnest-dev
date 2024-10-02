@@ -13,10 +13,19 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Loader2, Ticket } from "lucide-react";
+import { FolderOpen, Loader2, Save, Ticket } from "lucide-react";
 import { motion } from "framer-motion";
-import EpicDisplay from "../components/EpicDisplay";
 import TasksProgressBar from "../components/TasksProgressBar";
+import JiraItemsDisplay from "../components/JiraItemsDisplay";
+import {
+    DialogHeader,
+    DialogFooter,
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface Repo {
     name: string;
@@ -35,7 +44,7 @@ const JiraTicketGenerator: React.FC = () => {
     const [designDoc, setDesignDoc] = useState<File | null>(null);
     const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
 
-    const [epics, setEpics] = useState<EpicWithTickets[]>([]);
+    const [jiraItems, setJiraItems] = useState<JiraItems[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
 
@@ -161,7 +170,7 @@ const JiraTicketGenerator: React.FC = () => {
             setProgress((prev) => [...prev, `Task ${newTaskId} started`]);
 
             // Step 1: Upload and process the file
-            const tddProcessed = await uploadAndProcessDesignDoc();
+            const tddContent = await uploadAndProcessDesignDoc();
 
             // Step 2: Generate tickets
             const request = {
@@ -170,7 +179,7 @@ const JiraTicketGenerator: React.FC = () => {
                 repo,
                 branch,
                 selectedModel,
-                tddProcessed,
+                tddContent: tddContent.content,
             };
 
             const response = await fetch("/api/jira", {
@@ -241,7 +250,7 @@ const JiraTicketGenerator: React.FC = () => {
 
     const handleComplete = (data: any) => {
         console.log("Task complete:", data.message);
-        setEpics((prevEpics) => [...prevEpics, data.message]);
+        setJiraItems((prevItems) => [...prevItems, data.message]);
         setProgress((prev) => [...prev, `Received epic: ${data.message.epic.title}`]);
     };
 
@@ -261,7 +270,7 @@ const JiraTicketGenerator: React.FC = () => {
 
     const resetState = () => {
         setProgress([]);
-        setEpics([]);
+        setJiraItems([]);
         setIsComplete(false);
         setTaskProgress(null);
     };
@@ -277,6 +286,73 @@ const JiraTicketGenerator: React.FC = () => {
                 >
                     Jira Tickets Generator
                 </motion.h1>
+
+                {/* New: Save/Load Project Buttons 
+                <motion.div
+                    className="flex justify-end mb-4 space-x-2"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">
+                                <Save className="w-4 h-4 mr-2" />
+                                Save Project
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Save Project</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="projectName" className="text-right">
+                                        Project Name
+                                    </Label>
+                                    <Input id="projectName" className="col-span-3" />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="submit">Save</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">
+                                <FolderOpen className="w-4 h-4 mr-2" />
+                                Load Project
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Load Project</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="loadProject" className="text-right">
+                                        Select Project
+                                    </Label>
+                                    <Select>
+                                        <SelectTrigger id="loadProject" className="col-span-3">
+                                            <SelectValue placeholder="Choose a project" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="project1">Project 1</SelectItem>
+                                            <SelectItem value="project2">Project 2</SelectItem>                                            
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="submit">Load</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </motion.div>*/}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left column: Form */}
                     <motion.div
@@ -429,14 +505,14 @@ const JiraTicketGenerator: React.FC = () => {
                 </div>
 
                 {/* Epics and Tickets Display */}
-                {epics.length > 0 && (
+                {jiraItems.length > 0 && (
                     <motion.div
                         className="mt-12"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.6 }}
                     >
-                        <EpicDisplay epics={epics} />
+                        <JiraItemsDisplay jiraItems={jiraItems} />
                     </motion.div>
                 )}
 
