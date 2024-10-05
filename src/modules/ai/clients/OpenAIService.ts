@@ -40,8 +40,6 @@ export class OpenAIService extends BaseAIService {
                 temperature: 0,
             });
 
-            console.log(">>>", completion);
-
             const response = completion.choices[0]?.message?.content?.trim();
             if (!response) {
                 throw new Error("No response generated.");

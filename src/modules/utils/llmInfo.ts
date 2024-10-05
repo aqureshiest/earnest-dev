@@ -3,6 +3,7 @@ export const LLM_MODELS = {
     OPENAI_GPT_4O_MINI: "gpt-4o-mini",
     ANTHROPIC_CLAUDE_3_5_SONNET: "claude-3-5-sonnet-20240620",
     ANTHROPIC_CLAUDE_3_HAIKU: "claude-3-haiku-20240307",
+    GEMINI_1_5_FLASH: "gemini-1.5-flash",
 };
 
 export const LLMS = [
@@ -34,6 +35,14 @@ export const LLMS = [
         inputCost: 0.25,
         outputCost: 1.25,
         maxInputTokens: 50000, //200000,
+        maxOutputTokens: 4096,
+    },
+    // Gemini
+    {
+        model: LLM_MODELS.GEMINI_1_5_FLASH,
+        inputCost: 0,
+        outputCost: 0,
+        maxInputTokens: 200000, //200000,
         maxOutputTokens: 4096,
     },
 ];

@@ -99,7 +99,7 @@ Now, analyze the TDD and provide a breakdown of features, tasks, and subtasks ba
             ignoreAttributes: false,
             attributeNamePrefix: "",
             isArray: (name: string, jpath: string) => {
-                return ["Feature", "Task", "Subtask", "Detail"].includes(name);
+                return ["feature", "task", "subtask", "detail"].includes(name);
             },
         };
 

@@ -123,6 +123,7 @@ Now, using the task description, existing code files, and implementation plan ge
 
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(codeChangesBlock, options) as any;
+        console.log(parsedData);
 
         try {
             // Normalize the parsed data

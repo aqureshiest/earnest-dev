@@ -48,6 +48,7 @@ export class GeneateJiraTickets {
         });
 
         // for each feature, we need to generate tickets
+        console.log(featuresBreakdown.response);
         for (const feature of featuresBreakdown.response.feature) {
             const featureXml = formatXml(feature);
 

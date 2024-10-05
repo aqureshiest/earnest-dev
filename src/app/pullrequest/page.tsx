@@ -86,6 +86,7 @@ const PullRequest: React.FC = () => {
         LLM_MODELS.OPENAI_GPT_4O_MINI,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
+        LLM_MODELS.GEMINI_1_5_FLASH,
     ];
 
     const assistants = [

@@ -16,16 +16,7 @@ import { Label } from "@/components/ui/label";
 import { FolderOpen, Loader2, Save, Ticket } from "lucide-react";
 import { motion } from "framer-motion";
 import TasksProgressBar from "../components/TasksProgressBar";
-import JiraItemsDisplay from "../components/JiraItemsDisplay";
-import {
-    DialogHeader,
-    DialogFooter,
-    Dialog,
-    DialogTrigger,
-    DialogContent,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import JiraEpicsDisplay from "../components/jira/JiraEpicsDisplay";
 
 interface Repo {
     name: string;
@@ -48,6 +39,8 @@ const JiraTicketGenerator: React.FC = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
 
+    const [tddContent, setTddContent] = useState("");
+
     const [progress, setProgress] = useState<string[]>([]);
     const [taskProgress, setTaskProgress] = useState<{ current: number; total: number } | null>(
         null
@@ -58,6 +51,7 @@ const JiraTicketGenerator: React.FC = () => {
         LLM_MODELS.OPENAI_GPT_4O_MINI,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
         LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
+        // LLM_MODELS.GEMINI_1_5_FLASH,
     ];
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
@@ -171,6 +165,7 @@ const JiraTicketGenerator: React.FC = () => {
 
             // Step 1: Upload and process the file
             const tddContent = await uploadAndProcessDesignDoc();
+            setTddContent(tddContent);
 
             // Step 2: Generate tickets
             const request = {
@@ -275,6 +270,20 @@ const JiraTicketGenerator: React.FC = () => {
         setTaskProgress(null);
     };
 
+    const handleUpdateTicket = (updatedTicket: Ticket) => {
+        setJiraItems((prevItems) =>
+            prevItems.map((item) => ({
+                ...item,
+                tickets: {
+                    ...item.tickets,
+                    ticket: item.tickets.ticket.map((t) =>
+                        t.title === updatedTicket.title ? updatedTicket : t
+                    ),
+                },
+            }))
+        );
+    };
+
     return (
         <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
@@ -286,72 +295,6 @@ const JiraTicketGenerator: React.FC = () => {
                 >
                     Jira Tickets Generator
                 </motion.h1>
-
-                {/* New: Save/Load Project Buttons 
-                <motion.div
-                    className="flex justify-end mb-4 space-x-2"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                >
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline">
-                                <Save className="w-4 h-4 mr-2" />
-                                Save Project
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Save Project</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="projectName" className="text-right">
-                                        Project Name
-                                    </Label>
-                                    <Input id="projectName" className="col-span-3" />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button type="submit">Save</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline">
-                                <FolderOpen className="w-4 h-4 mr-2" />
-                                Load Project
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Load Project</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="loadProject" className="text-right">
-                                        Select Project
-                                    </Label>
-                                    <Select>
-                                        <SelectTrigger id="loadProject" className="col-span-3">
-                                            <SelectValue placeholder="Choose a project" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="project1">Project 1</SelectItem>
-                                            <SelectItem value="project2">Project 2</SelectItem>                                            
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button type="submit">Load</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </motion.div>*/}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left column: Form */}
@@ -512,7 +455,12 @@ const JiraTicketGenerator: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.6 }}
                     >
-                        <JiraItemsDisplay jiraItems={jiraItems} />
+                        <JiraEpicsDisplay
+                            jiraItems={jiraItems}
+                            setJiraItems={setJiraItems}
+                            tddContent={tddContent}
+                            model={selectedModel}
+                        />
                     </motion.div>
                 )}
 
