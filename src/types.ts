@@ -141,7 +141,7 @@ interface Ticket {
     user_story: string;
     acceptance_criteria: Criterion[];
     description: string;
-    technical_details: Detail[];
+    technical_details: string;
     affected_files: File[];
     steps: Step[];
     dependencies?: string;
@@ -154,10 +154,6 @@ interface Ticket {
 
 interface Criterion {
     criterion: string;
-}
-
-interface Detail {
-    detail: string;
 }
 
 interface File {

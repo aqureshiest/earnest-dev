@@ -33,52 +33,32 @@ Produce:
 1. A Jira Epic for the Feature
 2. Detailed Jira tickets for each Task within the Feature
 
-Epic description:
-- User story for the overall feature
-- Concise summary of the feature
-- Main objectives
-- High-level technical considerations or challenges
-
-Each Jira ticket:
-- Clear, concise title
-- User story
-- Acceptance criteria
-- Detailed description of work to be done
-- Specific technical details, including but not limited to:
-  * Exact database changes (table names, column names, data types, constraints), if applicable
-  * API endpoint details (exact request/response payloads, HTTP methods, headers), if applicable
-  * Any architectural changes or new components to be added
-  * File paths and specific code sections to be modified, if applicable
-- Dependencies on other tickets or components
-- Potential risks or challenges
-- Estimated complexity (Low/Medium/High)
-- Estimated effort (story points or hours)
+Epic and ticket details should follow the structure outlined in the <response_format> section.
 </output>
 
 <instructions>
-1. Analyze the Feature and the TDD.
-2. Examine provided code snippets.
-3. Create the Jira Epic based on the Feature, including a high-level user story.
-4. Generate detailed Jira tickets for each Task, each with a specific user story.
-5. Ensure tickets cover the entire scope of the Epic.
-6. Provide highly specific technical details for each ticket.
-7. Consider dependencies and suggest implementation order.
-8. Include testing and documentation considerations in acceptance criteria.
-9. Use consistent naming conventions.
+- Analyze the Feature and the TDD.
+- Examine provided code snippets.
+- Create the Jira Epic based on the Feature, including a high-level user story.
+- Generate detailed Jira tickets for each Task, each with a specific user story.
+- Ensure tickets cover the entire scope of the Epic.
+- Provide specific technical details for each ticket as outlined in the <response_format>. Focus on high-level explanations of what needs to be done rather than full code implementations. Use pseudo-code or short snippets only when necessary to illustrate complex logic.
+- Consider dependencies and suggest implementation order.
+- Include testing and documentation considerations in acceptance criteria.
+- Use consistent naming conventions.
 </instructions>
 
 <considerations>
-- Frame all tasks in terms of user value, even for backend or database work.
-- Provide actionable, detailed technical specifications for immediate development.
-- Clearly state assumptions due to limited codebase access.
-- Address potential risks and challenges for each task.
-- Ensure acceptance criteria are specific and testable.
+Frame all tasks in terms of user value, even for backend or database work.
+Provide actionable, detailed technical specifications for immediate development.
+Clearly state assumptions due to limited codebase access.
+Ensure acceptance criteria are specific and testable.
 </considerations>
 
 <constraints>
-- Work with provided code snippets only. Clearly state assumptions.
-- Base suggestions on static analysis and expertise, not code execution.
-- Stick to the scope of the given Feature.
+Work with provided code snippets only. Clearly state assumptions.
+Base suggestions on static analysis and expertise, not code execution.
+Stick to the scope of the given Feature.
 </constraints>
 
 `;
@@ -120,9 +100,18 @@ ${FEATURE_PLACEHOLDER}
             </acceptance_criteria>
             <description>[Detailed task description]</description>
             <technical_details>
-                <detail>[Detailed technical information, including any necessary code snippets]</detail>
+<![CDATA[
+[Provide a detailed, high-level explanation of the technical implementation without including full code snippets. Focus on:
+- Architectural changes or new components
+- Database modifications (table/column names, data types, constraints)
+- API endpoint details (request/response structures, HTTP methods)
+- Key algorithms or logic to be implemented
+- Integration points with existing systems
+- Performance considerations
+- Security implications
+Only include short code snippets if absolutely necessary to illustrate a critical point.]
+]]>
             </technical_details>
-            <!-- Add more details as needed -->
             <affected_files>
                 <file>[Affected file path]</file>
                 <!-- Add more files as needed -->
@@ -151,9 +140,7 @@ Now, Generate Jira epic and tickets in the specified XML format using the provid
             ignoreAttributes: false,
             attributeNamePrefix: "",
             isArray: (name: string, jpath: string) => {
-                return ["ticket", "component", "criterion", "detail", "file", "step"].includes(
-                    name
-                );
+                return ["ticket", "component", "criterion", "file", "step"].includes(name);
             },
         };
 
@@ -163,6 +150,7 @@ Now, Generate Jira epic and tickets in the specified XML format using the provid
 
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(matchedBlock, options) as any;
+
         return parsedData.jira_items as JiraItems;
     }
 }

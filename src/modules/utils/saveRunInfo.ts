@@ -8,6 +8,7 @@ export enum EXTS {
     YAML = "yaml",
     MD = "md",
     XML = "xml",
+    JSON = "json",
 }
 
 export function saveRunInfo<R extends TaskRequest, T>(
@@ -39,6 +40,8 @@ export function saveRunInfo<R extends TaskRequest, T>(
             indentBy: "  ",
         });
         infoString = builder.build(info) as string;
+    } else if (infoExtension === EXTS.JSON) {
+        infoString = JSON.stringify(info, null, 2);
     } else {
         infoString = info as string;
     }

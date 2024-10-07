@@ -19,6 +19,15 @@ export class ResponseParser<T> {
                 (trimmedResponse.startsWith("<") && trimmedResponse.endsWith(">"))
             ) {
                 return parseXml(trimmedResponse, options) as T;
+            } else if (trimmedResponse.startsWith("```json") || trimmedResponse.startsWith("{")) {
+                if (trimmedResponse.startsWith("```json")) {
+                    const match = trimmedResponse.match(/```json([\s\S]*)```/);
+                    if (!match) {
+                        throw new Error("Invalid JSON block");
+                    }
+                    return JSON.parse(match[1]) as T;
+                }
+                return JSON.parse(trimmedResponse) as T;
             } else {
                 return trimmedResponse as T;
             }

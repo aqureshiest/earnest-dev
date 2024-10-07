@@ -55,11 +55,11 @@ export const pdf = async () => {
     console.log("Features response ready");
 
     const features = featuresResponse!.response;
-    console.log("Features", JSON.stringify(features, null, 2));
+    // console.log("Features", JSON.stringify(features, null, 2));
 
     // get the first feature
     const firstFeature = features?.feature[0];
-    console.log("First feature", firstFeature);
+    // console.log("First feature", firstFeature);
 
     const codebase = new PrepareCodebase();
 

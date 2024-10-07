@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FileText,
@@ -16,6 +16,8 @@ import {
     GitBranch,
     Tag,
     Sparkles,
+    Minimize,
+    Maximize,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,9 +112,38 @@ const TicketModal: React.FC<TicketModalProps> = ({
 
     const ticketToDisplay = proposedTicket || currentTicket;
 
+    // full sreen functionality
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const dialogRef = useRef<HTMLDivElement>(null);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            dialogRef.current?.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener("fullscreenchange", handleFullscreenChange);
+        };
+    }, []);
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-[80vw] w-full max-h-[80vh] p-0 overflow-y-auto">
+            <DialogContent
+                className="max-w-[80vw] w-full max-h-[80vh] p-0 overflow-y-auto"
+                ref={dialogRef}
+            >
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -128,9 +159,18 @@ const TicketModal: React.FC<TicketModalProps> = ({
                                 </DialogTitle>
                                 <Badge variant="outline">Ticket</Badge>
                             </div>
-                            <Button variant="outline" onClick={onClose}>
-                                Close
-                            </Button>
+                            <div className="flex items-center space-x-2">
+                                <Button variant="outline" onClick={toggleFullscreen}>
+                                    {isFullscreen ? (
+                                        <Minimize className="w-4 h-4" />
+                                    ) : (
+                                        <Maximize className="w-4 h-4" />
+                                    )}
+                                </Button>
+                                <Button variant="outline" onClick={onClose}>
+                                    Close
+                                </Button>
+                            </div>
                         </div>
                     </DialogHeader>
 
@@ -245,9 +285,7 @@ const TicketModal: React.FC<TicketModalProps> = ({
                                     <CardContent>
                                         <Textarea
                                             className="text-base"
-                                            value={ticketToDisplay.technical_details.detail.join(
-                                                "\n---\n"
-                                            )}
+                                            value={ticketToDisplay.technical_details.trim()}
                                             rows={20}
                                             readOnly
                                         />

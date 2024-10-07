@@ -11,6 +11,7 @@ import {
     CardFooter,
 } from "@/components/ui/card";
 import { ArrowRight, Code, Coffee, Ticket } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const HomePage: React.FC = () => {
     return (
@@ -22,52 +23,59 @@ const HomePage: React.FC = () => {
                 </p>
             </section>
 
-            <section className="grid md:grid-cols-2 gap-8">
-                <Card className="max-w-2xl w-full">
-                    <CardHeader>
-                        <CardTitle className="text-2xl flex items-center gap-2">
-                            <Code className="h-6 w-6" />
-                            AI Pull Requests
-                        </CardTitle>
-                        <CardDescription>Let AI create PRs for you</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <p>
-                            Let this tool write the code for you. It connects with our GitHub repos
-                            to automagically generate code and create pull requests.
-                        </p>
-                    </CardContent>
-                    <CardFooter>
-                        <Button asChild>
-                            <Link href="/pullrequest">
-                                Create a Pull Request <ArrowRight className="ml-2 h-4 w-4" />
-                            </Link>
-                        </Button>
-                    </CardFooter>
-                </Card>
+            <section className="flex justify-center">
+                <div className="grid md:grid-cols-2 gap-8 max-w-6xl">
+                    <Card className="w-full">
+                        <CardHeader>
+                            <CardTitle className="text-2xl flex items-center gap-2">
+                                <Code className="h-6 w-6" />
+                                AI Pull Requests
+                            </CardTitle>
+                            <CardDescription>Let AI create PRs for you</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p>
+                                Let this tool write the code for you. It connects with our GitHub
+                                repos to automagically generate code and create pull requests.
+                            </p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button asChild>
+                                <Link href="/pullrequest">
+                                    Create a Pull Request <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </CardFooter>
+                    </Card>
 
-                <Card className="max-w-2xl w-full">
-                    <CardHeader>
-                        <CardTitle className="text-2xl flex items-center gap-2">
-                            <Ticket className="h-6 w-6" />
-                            AI Jira Tickets
-                        </CardTitle>
-                        <CardDescription>Let AI do the project planning for you</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <p>
-                            Give this tool a technical design document and it will create Jira epics
-                            and tickets for you.
-                        </p>
-                    </CardContent>
-                    <CardFooter>
-                        <Button asChild>
-                            <Link href="/jiratickets">
-                                Geneate Jira Tickets <ArrowRight className="ml-2 h-4 w-4" />
-                            </Link>
-                        </Button>
-                    </CardFooter>
-                </Card>
+                    <Card className="w-full">
+                        <CardHeader>
+                            <CardTitle className="text-2xl flex items-center gap-2">
+                                <Ticket className="h-6 w-6" />
+                                AI Jira Tickets
+                                <Badge variant="secondary" className="ml-2 text-blue-700">
+                                    Not ready yet
+                                </Badge>
+                            </CardTitle>
+                            <CardDescription>
+                                Let AI do the project planning for you
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p>
+                                Give this tool a technical design document and it will create Jira
+                                epics and tickets for you.
+                            </p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button asChild>
+                                <Link href="/jiratickets">
+                                    Generate Jira Tickets <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
             </section>
         </div>
     );
