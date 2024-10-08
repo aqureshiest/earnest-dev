@@ -148,6 +148,10 @@ Now, Generate Jira epic and tickets in the specified XML format using the provid
         const match = response.match(/<jira_items>[\s\S]*<\/jira_items>/);
         const matchedBlock = match ? match[0] : "";
 
+        if (!matchedBlock) {
+            throw new Error("Invalid response format");
+        }
+
         // Parse the response into an intermediate format
         const parsedData = this.responseParser.parse(matchedBlock, options) as any;
 

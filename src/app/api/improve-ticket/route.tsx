@@ -60,11 +60,9 @@ Ensure that the "updatedTicket" object maintains the original structure of the t
         // Extract the JSON block from the response
         const responseText = response.response;
         console.log("Response text:", responseText);
-        // const match = responseText.match(/{[\s\S]*<\/}/);
-        // const matchedBlock = match ? match[0] : "";
 
         // Parse the response
-        const json = JSON.parse(responseText);
+        const json = parseJSONResponse(responseText);
         const improvedTicket = json.updatedTicket;
         const explanation = json.explanation;
 
@@ -73,5 +71,26 @@ Ensure that the "updatedTicket" object maintains the original structure of the t
     } catch (error) {
         console.error("Error improving ticket:", error);
         return NextResponse.json({ error: "Failed to improve ticket" }, { status: 500 });
+    }
+}
+
+function parseJSONResponse(response: string) {
+    let jsonString = response;
+
+    // Check if the response is wrapped in ```json and ``` markers
+    const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
+    const match = response.match(jsonRegex);
+
+    if (match) {
+        // If wrapped, extract the JSON string
+        jsonString = match[1];
+    }
+
+    try {
+        // Attempt to parse the JSON string
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.error("Error parsing JSON:", error);
+        return null;
     }
 }

@@ -11,6 +11,7 @@ import { codeMetadata } from "./codeMetadata";
 import { CA } from "./assistants/ca";
 import { pdf } from "./assistants/pdf";
 import { cacheTest } from "./cache-test";
+import { misc } from "./misc";
 
 const program = new Command();
 
@@ -26,5 +27,6 @@ program.command("code-metadata").action(codeMetadata);
 program.command("ca").action(CA);
 program.command("pdf").action(pdf);
 program.command("cache-test").action(cacheTest);
+program.command("misc").action(misc);
 
 program.parse(process.argv);
