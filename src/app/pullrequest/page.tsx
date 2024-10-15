@@ -592,6 +592,10 @@ const PullRequest: React.FC = () => {
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        <p className="text-xs mt-2 text-gray-700 dark:text-gray-200">
+                                            * Works best with{" "}
+                                            {LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET}
+                                        </p>
                                     </div>
 
                                     {/* Action Buttons */}

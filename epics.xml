@@ -1,0 +1,1169 @@
+<epics>
+<epic_and_tickets>
+<epic>
+  <title>Artifact Type Management</title>
+  <user_story>As a developer, I want to manage artifact types through a RESTful API so that I can dynamically configure and update artifact processing in the LAPS system.</user_story>
+  <description>Implement CRUD operations for artifact types, allowing for the creation, retrieval, updating, and deletion of artifact types. This feature will enable dynamic configuration of artifact processing, improving system flexibility and reducing the need for code changes when new artifact types are introduced.</description>
+  <technical_details>This epic involves creating new API endpoints for artifact type management, integrating with the Alloy client for validation, implementing caching using Redis, and persisting data in the LAPS database. Key considerations include:
+            - Implementing proper authentication and authorization using S2S tokens
+            - Ensuring data consistency between cache and database
+            - Handling potential race conditions in concurrent operations
+            - Optimizing database queries for performance
+            - Implementing proper error handling and logging</technical_details>
+  <affected_components>
+    <component>LAPS API</component>
+    <component>Cache Layer</component>
+    <component>Database Layer</component>
+    <component>Alloy Integration</component>
+  </affected_components>
+</epic>
+<tickets>
+  <ticket>
+    <title>Create Artifact Type API</title>
+    <user_story>As a developer, I want to create new artifact types through an API so that I can dynamically add new types of artifacts to be processed by the system.</user_story>
+    <acceptance_criteria>
+      <criterion>The API endpoint POST {LAPS_BASE_URL}/artifact-type is implemented and accessible</criterion>
+      <criterion>The endpoint requires valid S2S Bearer token authentication</criterion>
+      <criterion>The endpoint accepts all required fields in the request payload</criterion>
+      <criterion>The artifact type is validated against the Alloy response</criterion>
+      <criterion>The new artifact type is added to the Redis cache</criterion>
+      <criterion>The new artifact type is persisted in the LAPS database</criterion>
+      <criterion>Appropriate success and error responses are returned</criterion>
+    </acceptance_criteria>
+    <description>Implement a new API endpoint for creating artifact types. This endpoint will validate the artifact type against the Alloy response, add it to the cache, and persist it in the database.</description>
+    <technical_details>
+1. Create a new route handler for POST {LAPS_BASE_URL}/artifact-type
+2. Implement request payload validation using a schema validator
+3. Integrate with Alloy client to fetch and validate the artifact type:
+   - Create a new method in the Alloy client to fetch the response
+   - Implement a validation function to check if the artifact type exists in the Alloy response
+4. Implement caching logic:
+   - Use the existing Redis cache implementation
+   - Create a new method to add the artifact type to the cache, following the cache-aside strategy
+   - Structure the cached data as shown in the TDD&apos;s &quot;Artifact types cache example&quot;
+5. Database persistence:
+   - Create a new method in the ArtifactTypeRepository to insert a new artifact type
+   - Use Objection.js to insert data into the artifact_types table and related tables (artifact_groups_artifacts_types, workflows_artifact_types)
+6. Implement error handling and logging
+7. Return appropriate responses:
+   - 201 Created with the created artifact type details on success
+   - 400 Bad Request for validation errors
+   - 404 Not Found if the artifact type is not found in Alloy response
+   - 500 Internal Server Error for other errors
+
+Key considerations:
+- Ensure proper error handling and logging throughout the process
+- Implement database transactions to ensure data consistency across related tables
+- Consider implementing a retry mechanism for cache operations
+</technical_details>
+    <affected_files>
+      <file>src/routes/artifact-types/create-artifact-type/handler.ts</file>
+      <file>src/services/artifact-type/service.ts</file>
+      <file>src/orm/repositories/artifact-type/repository.ts</file>
+      <file>src/clients/alloy/client.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create a new route handler file for the create artifact type endpoint</step>
+      <step>Implement request payload validation</step>
+      <step>Create a new method in the Alloy client for fetching and validating artifact types</step>
+      <step>Implement caching logic for new artifact types</step>
+      <step>Create a new method in the ArtifactTypeRepository for database persistence</step>
+      <step>Implement error handling and logging</step>
+      <step>Write unit tests for the new endpoint and related functions</step>
+      <step>Update API documentation</step>
+    </steps>
+    <dependencies>Cache implementation, Database schema update</dependencies>
+    <risks_and_challenges>Ensuring data consistency between cache and database, handling potential high concurrency</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>13</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Update Artifact Type API</title>
+    <user_story>As a developer, I want to update existing artifact types through an API so that I can modify artifact type configurations as requirements change.</user_story>
+    <acceptance_criteria>
+      <criterion>The API endpoint PUT {LAPS_BASE_URL}/artifact-type is implemented and accessible</criterion>
+      <criterion>The endpoint requires valid S2S Bearer token authentication</criterion>
+      <criterion>The endpoint accepts the artifactTypeId and fields to update in the request payload</criterion>
+      <criterion>The updated artifact type is validated against the Alloy response</criterion>
+      <criterion>The artifact type is updated in the Redis cache</criterion>
+      <criterion>The artifact type is updated in the LAPS database</criterion>
+      <criterion>Appropriate success and error responses are returned</criterion>
+    </acceptance_criteria>
+    <description>Implement a new API endpoint for updating artifact types. This endpoint will validate the updated artifact type against the Alloy response, update it in the cache, and persist the changes in the database.</description>
+    <technical_details>
+1. Create a new route handler for PUT {LAPS_BASE_URL}/artifact-type
+2. Implement request payload validation using a schema validator
+3. Integrate with Alloy client to fetch and validate the updated artifact type:
+   - Use the existing Alloy client method to fetch the response
+   - Implement a validation function to check if the updated artifact type exists in the Alloy response
+4. Implement cache update logic:
+   - Create a new method to update the artifact type in the Redis cache
+   - Ensure atomic updates to prevent race conditions
+5. Database update:
+   - Create a new method in the ArtifactTypeRepository to update an existing artifact type
+   - Use Objection.js to update data in the artifact_types table and related tables
+   - Implement database transactions to ensure data consistency across related tables
+6. Implement error handling and logging
+7. Return appropriate responses:
+   - 200 OK with the updated artifact type details on success
+   - 400 Bad Request for validation errors
+   - 404 Not Found if the artifact type is not found in the database or Alloy response
+   - 500 Internal Server Error for other errors
+
+Key considerations:
+- Implement optimistic locking or version control to handle concurrent updates
+- Consider the impact of updates on existing artifacts and implement necessary data migration logic
+- Ensure proper error handling and logging throughout the process
+</technical_details>
+    <affected_files>
+      <file>src/routes/artifact-types/update-artifact-type/handler.ts</file>
+      <file>src/services/artifact-type/service.ts</file>
+      <file>src/orm/repositories/artifact-type/repository.ts</file>
+      <file>src/clients/alloy/client.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create a new route handler file for the update artifact type endpoint</step>
+      <step>Implement request payload validation</step>
+      <step>Create a new method in the ArtifactTypeService for updating artifact types</step>
+      <step>Implement cache update logic</step>
+      <step>Create a new method in the ArtifactTypeRepository for database updates</step>
+      <step>Implement error handling and logging</step>
+      <step>Write unit tests for the new endpoint and related functions</step>
+      <step>Update API documentation</step>
+    </steps>
+    <dependencies>Create Artifact Type API</dependencies>
+    <risks_and_challenges>Handling concurrent updates, ensuring data consistency across cache and database</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>8</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Delete Artifact Type API</title>
+    <user_story>As a developer, I want to delete artifact types through an API so that I can remove obsolete or unnecessary artifact types from the system.</user_story>
+    <acceptance_criteria>
+      <criterion>The API endpoint DEL {LAPS_BASE_URL}/artifact-type is implemented and accessible</criterion>
+      <criterion>The endpoint requires valid S2S Bearer token authentication</criterion>
+      <criterion>The endpoint accepts the artifactTypeId in the request payload</criterion>
+      <criterion>The artifact type is removed from the Redis cache</criterion>
+      <criterion>The artifact type is soft deleted in the LAPS database</criterion>
+      <criterion>Appropriate success and error responses are returned</criterion>
+    </acceptance_criteria>
+    <description>Implement a new API endpoint for deleting artifact types. This endpoint will remove the artifact type from the cache and perform a soft delete in the database.</description>
+    <technical_details>
+1. Create a new route handler for DEL {LAPS_BASE_URL}/artifact-type
+2. Implement request payload validation using a schema validator
+3. Implement cache removal logic:
+   - Create a new method to remove the artifact type from the Redis cache
+   - Ensure atomic removal to prevent race conditions
+4. Database soft delete:
+   - Create a new method in the ArtifactTypeRepository to soft delete an existing artifact type
+   - Use Objection.js to update the deleted_at column in the artifact_types table and related tables
+   - Implement database transactions to ensure data consistency across related tables
+5. Implement error handling and logging
+6. Return appropriate responses:
+   - 200 OK on successful deletion
+   - 400 Bad Request for validation errors
+   - 404 Not Found if the artifact type is not found in the database
+   - 500 Internal Server Error for other errors
+
+Key considerations:
+- Implement checks to ensure that no active artifacts are using the artifact type before deletion
+- Consider implementing a background job to clean up any orphaned data related to the deleted artifact type
+- Ensure proper error handling and logging throughout the process
+</technical_details>
+    <affected_files>
+      <file>src/routes/artifact-types/delete-artifact-type/handler.ts</file>
+      <file>src/services/artifact-type/service.ts</file>
+      <file>src/orm/repositories/artifact-type/repository.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create a new route handler file for the delete artifact type endpoint</step>
+      <step>Implement request payload validation</step>
+      <step>Create a new method in the ArtifactTypeService for deleting artifact types</step>
+      <step>Implement cache removal logic</step>
+      <step>Create a new method in the ArtifactTypeRepository for database soft deletes</step>
+      <step>Implement error handling and logging</step>
+      <step>Write unit tests for the new endpoint and related functions</step>
+      <step>Update API documentation</step>
+    </steps>
+    <dependencies>Create Artifact Type API</dependencies>
+    <risks_and_challenges>Ensuring no data inconsistencies are introduced by deleting artifact types, handling potential cascading deletes</risks_and_challenges>
+    <estimated_complexity>Low</estimated_complexity>
+    <priority>Medium</priority>
+    <effort>5</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Retrieve Artifact Types API</title>
+    <user_story>As a developer, I want to retrieve artifact types through an API so that I can view and manage the existing artifact types in the system.</user_story>
+    <acceptance_criteria>
+      <criterion>The API endpoint GET {LAPS_BASE_URL}/artifact-type is implemented and accessible</criterion>
+      <criterion>The endpoint requires valid S2S Bearer token authentication</criterion>
+      <criterion>The endpoint returns a list of all non-deleted artifact types with their related data</criterion>
+      <criterion>The response includes all relevant details for each artifact type</criterion>
+      <criterion>Appropriate success and error responses are returned</criterion>
+    </acceptance_criteria>
+    <description>Implement a new API endpoint for retrieving artifact types. This endpoint will fetch all non-deleted artifact types from the database and return them with their related data.</description>
+    <technical_details>
+1. Create a new route handler for GET {LAPS_BASE_URL}/artifact-type
+2. Implement database query:
+   - Create a new method in the ArtifactTypeRepository to retrieve all non-deleted artifact types
+   - Use Objection.js to query the artifact_types table and related tables (artifact_groups, workflows, journeys)
+   - Implement eager loading to fetch related data efficiently
+3. Implement data aggregation logic:
+   - Create a method to transform the database results into the desired response format
+   - Include all relevant details for each artifact type (id, name, description, applicant_type, journeys, artifact_groups, workflow_names, source)
+4. Implement error handling and logging
+5. Return appropriate responses:
+   - 200 OK with the list of artifact types on success
+   - 500 Internal Server Error for other errors
+
+Key considerations:
+- Optimize the database query to handle a potentially large number of artifact types
+- Consider implementing pagination if the number of artifact types could be very large
+- Ensure proper error handling and logging throughout the process
+- Consider implementing caching for this endpoint to improve performance for frequent requests
+</technical_details>
+    <affected_files>
+      <file>src/routes/artifact-types/get-artifact-types/handler.ts</file>
+      <file>src/services/artifact-type/service.ts</file>
+      <file>src/orm/repositories/artifact-type/repository.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create a new route handler file for the get artifact types endpoint</step>
+      <step>Create a new method in the ArtifactTypeService for retrieving artifact types</step>
+      <step>Create a new method in the ArtifactTypeRepository for querying the database</step>
+      <step>Implement data aggregation and transformation logic</step>
+      <step>Implement error handling and logging</step>
+      <step>Write unit tests for the new endpoint and related functions</step>
+      <step>Update API documentation</step>
+    </steps>
+    <dependencies>Database schema update</dependencies>
+    <risks_and_challenges>Handling potentially large datasets, optimizing query performance</risks_and_challenges>
+    <estimated_complexity>Low</estimated_complexity>
+    <priority>Medium</priority>
+    <effort>5</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+</tickets>
+</epic_and_tickets>
+<epic_and_tickets>
+<epic>
+  <title>Catalog Management</title>
+  <user_story>As a developer, I want to manage catalog components (workflow_names, artifact_groups, journeys) through CRUD operations so that I can maintain and update the artifact processing system efficiently.</user_story>
+  <description>Implement a set of RESTful APIs to create, read, update, and delete catalog components in the LAPS (Lending Artifact Processing Service) system. This feature will enable efficient management of workflow names, artifact groups, and journeys, which are essential for artifact type processing and organization.</description>
+  <technical_details>The implementation will involve creating new API endpoints for each CRUD operation, updating the database schema to support the new catalog components, and ensuring proper authentication and error handling. The feature will use the existing microservice-chassis framework and follow RESTful conventions. All endpoints will be secured with S2S authentication using bearer tokens.</technical_details>
+  <affected_components>
+    <component>LAPS API</component>
+    <component>LAPS Database</component>
+    <component>Authentication System</component>
+  </affected_components>
+</epic>
+<tickets>
+  <ticket>
+    <title>Create Catalog Component API</title>
+    <user_story>As a developer, I want to create new catalog components via an API so that I can add new workflow names, artifact groups, or journeys to the system.</user_story>
+    <acceptance_criteria>
+      <criterion>The API should accept POST requests to create new catalog components</criterion>
+      <criterion>The endpoint should be secured with S2S authentication using bearer tokens</criterion>
+      <criterion>The API should validate input data and return appropriate error messages for invalid requests</criterion>
+      <criterion>Successfully created components should be persisted in the database</criterion>
+      <criterion>The API should return a success message with the created component details</criterion>
+    </acceptance_criteria>
+    <description>Implement a POST endpoint that allows creation of new catalog components (workflow_names, artifact_groups, journeys). The API should validate input, persist the new component in the database, and return appropriate responses.</description>
+    <technical_details>
+1. Create a new route handler for POST requests to /catalog/{component}
+2. Implement input validation for the request body (name and description)
+3. Add a new method in the appropriate repository (e.g., WorkflowRepository, ArtifactGroupRepository, JourneyRepository) to insert the new component
+4. Update the database schema:
+   - Add new tables if not existing: workflows_names, artifact_groups, journeys
+   - Each table should have columns: id (uuid), name (string), description (string), created_at (timestamp), updated_at (timestamp), deleted_at (timestamp)
+5. Implement error handling for database operations
+6. Return a structured JSON response with status, error (if any), and message
+
+API Contract:
+POST {LAPS_BASE_URL}/catalog/{component}
+Headers: Authorization: Bearer {S2S token}
+URL param: component (workflow_names | artifact_groups | journeys)
+Request body: { &quot;name&quot;: string, &quot;description&quot;: string }
+Response: { &quot;status&quot;: &quot;success&quot;, &quot;error&quot;: {}, &quot;message&quot;: &quot;{component} is created.&quot; }
+
+Security considerations:
+- Validate and sanitize all input to prevent SQL injection and other attacks
+- Ensure proper error handling to avoid exposing sensitive information in error messages
+</technical_details>
+    <affected_files>
+      <file>src/routes/catalog/create-component/handler.ts</file>
+      <file>src/routes/catalog/create-component/chassis-plugin.ts</file>
+      <file>src/orm/repositories/workflow/repository.ts</file>
+      <file>src/orm/repositories/artifact-group/repository.ts</file>
+      <file>src/orm/repositories/journey/repository.ts</file>
+      <file>schema/sql/V2024_07_01__add_catalog_component_tables.sql</file>
+    </affected_files>
+    <steps>
+      <step>Create new route handler for POST /catalog/{component}</step>
+      <step>Implement input validation logic</step>
+      <step>Create new repository methods for inserting components</step>
+      <step>Update database schema with new tables</step>
+      <step>Implement error handling and response formatting</step>
+      <step>Add unit tests for the new endpoint and repository methods</step>
+      <step>Update API documentation</step>
+    </steps>
+    <dependencies>Database schema update</dependencies>
+    <risks_and_challenges>Ensuring consistency across different component types, handling potential conflicts with existing data</risks_and_challenges>
+    <estimated_complexity>Low</estimated_complexity>
+    <priority>High</priority>
+    <effort>13</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Update Catalog Component API</title>
+    <user_story>As a developer, I want to update existing catalog components via an API so that I can modify workflow names, artifact groups, or journeys in the system.</user_story>
+    <acceptance_criteria>
+      <criterion>The API should accept PUT requests to update existing catalog components</criterion>
+      <criterion>The endpoint should be secured with S2S authentication using bearer tokens</criterion>
+      <criterion>The API should validate input data and return appropriate error messages for invalid requests</criterion>
+      <criterion>Successfully updated components should be persisted in the database</criterion>
+      <criterion>The API should return a success message with the updated component details</criterion>
+    </acceptance_criteria>
+    <description>Implement a PUT endpoint that allows updating of existing catalog components (workflow_names, artifact_groups, journeys). The API should validate input, update the component in the database, and return appropriate responses.</description>
+    <technical_details>
+1. Create a new route handler for PUT requests to /catalog/{component}
+2. Implement input validation for the request body (component_id, name, and description)
+3. Add a new method in the appropriate repository to update the existing component
+4. Implement error handling for database operations, including checks for non-existent components
+5. Return a structured JSON response with status, error (if any), and message
+
+API Contract:
+PUT {LAPS_BASE_URL}/catalog/{component}
+Headers: Authorization: Bearer {S2S token}
+URL param: component (workflow_names | artifact_groups | journeys)
+Request body: { &quot;component_id&quot;: uuid, &quot;name&quot;: string, &quot;description&quot;: string }
+Response: { &quot;status&quot;: &quot;success&quot;, &quot;error&quot;: {}, &quot;message&quot;: &quot;{component} is updated.&quot; }
+
+Database considerations:
+- Use the existing tables: workflows_names, artifact_groups, journeys
+- Update the &apos;updated_at&apos; timestamp when modifying a record
+
+Security considerations:
+- Validate the component_id to ensure it exists and belongs to the correct component type
+- Implement proper error handling to avoid exposing sensitive information
+</technical_details>
+    <affected_files>
+      <file>src/routes/catalog/update-component/handler.ts</file>
+      <file>src/routes/catalog/update-component/chassis-plugin.ts</file>
+      <file>src/orm/repositories/workflow/repository.ts</file>
+      <file>src/orm/repositories/artifact-group/repository.ts</file>
+      <file>src/orm/repositories/journey/repository.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create new route handler for PUT /catalog/{component}</step>
+      <step>Implement input validation logic</step>
+      <step>Create new repository methods for updating components</step>
+      <step>Implement error handling and response formatting</step>
+      <step>Add unit tests for the new endpoint and repository methods</step>
+      <step>Update API documentation</step>
+    </steps>
+    <dependencies>Create Catalog Component API</dependencies>
+    <risks_and_challenges>Handling concurrent updates, ensuring data integrity across related components</risks_and_challenges>
+    <estimated_complexity>Low</estimated_complexity>
+    <priority>High</priority>
+    <effort>8</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Retrieve Catalog Components API</title>
+    <user_story>As a developer, I want to retrieve catalog components via an API so that I can view existing workflow names, artifact groups, or journeys in the system.</user_story>
+    <acceptance_criteria>
+      <criterion>The API should accept GET requests to retrieve catalog components</criterion>
+      <criterion>The endpoint should be secured with S2S authentication using bearer tokens</criterion>
+      <criterion>The API should return a list of components for the specified type</criterion>
+      <criterion>The API should handle errors gracefully and return appropriate error messages</criterion>
+    </acceptance_criteria>
+    <description>Implement a GET endpoint that allows retrieval of catalog components (workflow_names, artifact_groups, journeys). The API should fetch components from the database and return them in a structured format.</description>
+    <technical_details>
+1. Create a new route handler for GET requests to /catalog/{component}
+2. Add a new method in the appropriate repository to fetch all components of the specified type
+3. Implement pagination to handle large datasets efficiently
+4. Return a structured JSON response with status, data (list of components), error (if any), and message
+
+API Contract:
+GET {LAPS_BASE_URL}/catalog/{component}
+Headers: Authorization: Bearer {S2S token}
+URL param: component (workflow_names | artifact_groups | journeys)
+Query params: page (optional, default 1), limit (optional, default 20)
+Response: {
+  &quot;status&quot;: &quot;success&quot;,
+  &quot;data&quot;: {
+    &quot;{component}&quot;: [
+      {
+        &quot;id&quot;: uuid,
+        &quot;name&quot;: string,
+        &quot;description&quot;: string
+      }
+    ]
+  },
+  &quot;error&quot;: {},
+  &quot;message&quot;: &quot;{component} retrieved.&quot;
+}
+
+Performance considerations:
+- Implement database indexing on frequently queried fields (e.g., name)
+- Use efficient querying techniques, avoiding N+1 query problems
+
+Security considerations:
+- Implement rate limiting to prevent abuse
+- Ensure proper error handling to avoid exposing sensitive information
+</technical_details>
+    <affected_files>
+      <file>src/routes/catalog/get-components/handler.ts</file>
+      <file>src/routes/catalog/get-components/chassis-plugin.ts</file>
+      <file>src/orm/repositories/workflow/repository.ts</file>
+      <file>src/orm/repositories/artifact-group/repository.ts</file>
+      <file>src/orm/repositories/journey/repository.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create new route handler for GET /catalog/{component}</step>
+      <step>Implement repository methods for fetching components with pagination</step>
+      <step>Implement error handling and response formatting</step>
+      <step>Add database indexes for performance optimization</step>
+      <step>Add unit tests for the new endpoint and repository methods</step>
+      <step>Update API documentation</step>
+    </steps>
+    <dependencies>Database schema update</dependencies>
+    <risks_and_challenges>Handling large datasets efficiently, ensuring consistent performance as the number of components grows</risks_and_challenges>
+    <estimated_complexity>Low</estimated_complexity>
+    <priority>High</priority>
+    <effort>8</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Delete Catalog Component API</title>
+    <user_story>As a developer, I want to delete catalog components via an API so that I can remove obsolete workflow names, artifact groups, or journeys from the system.</user_story>
+    <acceptance_criteria>
+      <criterion>The API should accept DELETE requests to remove catalog components</criterion>
+      <criterion>The endpoint should be secured with S2S authentication using bearer tokens</criterion>
+      <criterion>The API should validate the component_id and return appropriate error messages for invalid requests</criterion>
+      <criterion>Successfully deleted components should be soft-deleted in the database</criterion>
+      <criterion>The API should return a success message after deletion</criterion>
+    </acceptance_criteria>
+    <description>Implement a DELETE endpoint that allows removal of catalog components (workflow_names, artifact_groups, journeys). The API should validate input, soft-delete the component in the database, and return appropriate responses.</description>
+    <technical_details>
+1. Create a new route handler for DELETE requests to /catalog/{component}
+2. Implement input validation for the request body (component_id)
+3. Add a new method in the appropriate repository to soft-delete the existing component
+4. Implement error handling for database operations, including checks for non-existent components
+5. Return a structured JSON response with status, error (if any), and message
+
+API Contract:
+DELETE {LAPS_BASE_URL}/catalog/{component}
+Headers: Authorization: Bearer {S2S token}
+URL param: component (workflow_names | artifact_groups | journeys)
+Request body: { &quot;component_id&quot;: uuid }
+Response: { &quot;status&quot;: &quot;success&quot;, &quot;error&quot;: {}, &quot;message&quot;: &quot;{component} is deleted.&quot; }
+
+Database considerations:
+- Implement soft delete by setting the &apos;deleted_at&apos; timestamp
+- Ensure all queries exclude soft-deleted records by default
+
+Security considerations:
+- Validate the component_id to ensure it exists and belongs to the correct component type
+- Implement proper error handling to avoid exposing sensitive information
+- Consider implementing a mechanism to prevent accidental deletion of components in use
+
+Data integrity:
+- Check for dependencies before allowing deletion (e.g., ensure no artifact types are using a workflow before deleting it)
+- Implement a background job to clean up or archive long-deleted components
+</technical_details>
+    <affected_files>
+      <file>src/routes/catalog/delete-component/handler.ts</file>
+      <file>src/routes/catalog/delete-component/chassis-plugin.ts</file>
+      <file>src/orm/repositories/workflow/repository.ts</file>
+      <file>src/orm/repositories/artifact-group/repository.ts</file>
+      <file>src/orm/repositories/journey/repository.ts</file>
+      <file>src/orm/models/base-model/model.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create new route handler for DELETE /catalog/{component}</step>
+      <step>Implement input validation logic</step>
+      <step>Create new repository methods for soft-deleting components</step>
+      <step>Implement dependency checking before deletion</step>
+      <step>Update BaseModel to include soft delete functionality</step>
+      <step>Implement error handling and response formatting</step>
+      <step>Add unit tests for the new endpoint and repository methods</step>
+      <step>Update API documentation</step>
+    </steps>
+    <dependencies>Create Catalog Component API</dependencies>
+    <risks_and_challenges>Ensuring all related data is properly handled during deletion, preventing unintended data loss</risks_and_challenges>
+    <estimated_complexity>Low</estimated_complexity>
+    <priority>Medium</priority>
+    <effort>13</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+</tickets>
+</epic_and_tickets>
+<epic_and_tickets>
+<epic>
+  <title>Caching Implementation for LAPS</title>
+  <user_story>As a LAPS developer, I want to implement Redis caching for artifact types and artifacts so that we can improve system performance and reduce database load.</user_story>
+  <description>Implement Redis caching for artifact types and artifacts in the Lending Artifacts Processing Service (LAPS) to improve data retrieval speed and reduce database load. This will involve setting up Redis cache, implementing a cache-aside strategy, and creating separate caching mechanisms for artifact types and artifacts.</description>
+  <technical_details>The implementation will use Redis as the caching system, integrated with the existing LAPS architecture. We&apos;ll create a cache manager to handle cache operations, implement specific caching structures for artifact types and artifacts, and ensure consistency between the cache and the database. The cache-aside strategy will be used, with artifact caches having a 14-day expiration.</technical_details>
+  <affected_components>
+    <component>LAPS Core Service</component>
+    <component>Cache Manager</component>
+    <component>Artifact Processing Layer</component>
+    <component>Artifact Types Layer</component>
+  </affected_components>
+</epic>
+<tickets>
+  <ticket>
+    <title>Set up Redis Cache for LAPS</title>
+    <user_story>As a LAPS developer, I want to set up and integrate Redis cache with LAPS so that we have a foundation for implementing caching strategies.</user_story>
+    <acceptance_criteria>
+      <criterion>Redis client is successfully configured and connected to LAPS</criterion>
+      <criterion>Cache manager is implemented with basic CRUD operations</criterion>
+      <criterion>Cache operations are logged for monitoring purposes</criterion>
+      <criterion>Unit tests are written for cache manager operations</criterion>
+    </acceptance_criteria>
+    <description>Configure and integrate Redis cache with LAPS, including setting up the Redis client and implementing a cache manager to handle cache operations.</description>
+    <technical_details>
+1. Redis Client Setup:
+   - Use the &apos;ioredis&apos; library for Redis client implementation
+   - Configure connection settings in the environment variables (REDIS_HOST, REDIS_PORT, REDIS_PASSWORD)
+   - Implement a singleton Redis client to ensure a single connection is used across the application
+
+2. Cache Manager Implementation:
+   - Create a new CacheManager class in src/utils/cache-manager.ts
+   - Implement methods for get, set, update, and delete operations
+   - Include error handling and logging for cache operations
+   - Implement a method to handle cache misses, fetching data from the database when needed
+
+3. Integration with LAPS:
+   - Update the LAPS plugin to include the CacheManager as a dependency
+   - Inject the CacheManager into services that will use caching (e.g., ArtifactService, ArtifactTypeService)
+
+4. Logging and Monitoring:
+   - Implement logging for cache hits, misses, and errors
+   - Create a new Splunk dashboard for monitoring cache performance
+
+5. Testing:
+   - Write unit tests for CacheManager methods
+   - Implement integration tests to ensure proper interaction between LAPS and Redis cache
+</technical_details>
+    <affected_files>
+      <file>src/utils/cache-manager.ts</file>
+      <file>src/plugins/laps.plugin.ts</file>
+      <file>src/services/artifact.service.ts</file>
+      <file>src/services/artifact-type.service.ts</file>
+      <file>test/unit/cache-manager.test.ts</file>
+      <file>test/integration/laps-cache.test.ts</file>
+    </affected_files>
+    <steps>
+      <step>Install and configure ioredis library</step>
+      <step>Create CacheManager class with CRUD operations</step>
+      <step>Implement error handling and logging in CacheManager</step>
+      <step>Update LAPS plugin to include CacheManager</step>
+      <step>Inject CacheManager into relevant services</step>
+      <step>Implement logging for cache operations</step>
+      <step>Create Splunk dashboard for cache monitoring</step>
+      <step>Write unit and integration tests</step>
+    </steps>
+    <dependencies>None</dependencies>
+    <risks_and_challenges>Ensuring proper error handling and fallback mechanisms if Redis connection fails</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>13</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Implement Artifact Type Caching</title>
+    <user_story>As a LAPS developer, I want to implement caching for artifact types so that we can retrieve them faster and reduce database load.</user_story>
+    <acceptance_criteria>
+      <criterion>Artifact types are cached in the specified JSON structure</criterion>
+      <criterion>Cache is updated when artifact types are created, updated, or deleted</criterion>
+      <criterion>Artifact type retrieval prioritizes cache over database queries</criterion>
+      <criterion>Cache and database remain consistent after CRUD operations</criterion>
+      <criterion>Performance improvement in artifact type retrieval is measurable</criterion>
+    </acceptance_criteria>
+    <description>Implement caching for artifact types using a specific JSON structure to improve retrieval speed and reduce database load. Ensure cache consistency with database operations.</description>
+    <technical_details>
+1. Cache Structure:
+   - Design a JSON structure for artifact types cache, similar to the provided example
+   - Structure should include groups, events, and entity_applications
+   - Store the cache with a key like &quot;artifact_types_cache&quot;
+
+2. Caching Logic:
+   - Update ArtifactTypeService to use CacheManager for artifact type operations
+   - Implement methods to convert between database model and cache structure
+   - Ensure all CRUD operations update both cache and database
+
+3. Cache Operations:
+   - Implement getArtifactTypes(): Fetch from cache, fallback to DB if cache miss
+   - Implement setArtifactType(): Update DB and cache
+   - Implement updateArtifactType(): Update DB and cache
+   - Implement deleteArtifactType(): Remove from DB and cache
+
+4. Consistency Mechanisms:
+   - Implement transaction-like behavior to ensure cache and DB consistency
+   - Add error handling to revert cache if DB operation fails
+
+5. Performance Optimization:
+   - Implement batch operations for bulk updates to reduce network calls to Redis
+
+6. API Updates:
+   - Update existing artifact type API endpoints to use the new caching mechanism
+   - Ensure proper error handling and response codes
+
+7. Testing:
+   - Write unit tests for new caching methods in ArtifactTypeService
+   - Implement integration tests to verify cache-database consistency
+   - Create performance tests to measure improvement in retrieval times
+</technical_details>
+    <affected_files>
+      <file>src/services/artifact-type.service.ts</file>
+      <file>src/models/artifact-type.model.ts</file>
+      <file>src/controllers/artifact-type.controller.ts</file>
+      <file>test/unit/artifact-type-service.test.ts</file>
+      <file>test/integration/artifact-type-cache.test.ts</file>
+      <file>test/performance/artifact-type-retrieval.test.ts</file>
+    </affected_files>
+    <steps>
+      <step>Design and implement the cache structure for artifact types</step>
+      <step>Update ArtifactTypeService to use CacheManager</step>
+      <step>Implement conversion methods between DB model and cache structure</step>
+      <step>Update CRUD operations to maintain cache-database consistency</step>
+      <step>Implement performance optimizations for batch operations</step>
+      <step>Update API endpoints to use new caching mechanism</step>
+      <step>Write unit, integration, and performance tests</step>
+      <step>Update documentation for artifact type caching</step>
+    </steps>
+    <dependencies>Set up Redis Cache</dependencies>
+    <risks_and_challenges>Ensuring cache consistency with database during concurrent operations</risks_and_challenges>
+    <estimated_complexity>High</estimated_complexity>
+    <priority>High</priority>
+    <effort>21</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Implement Artifact Caching</title>
+    <user_story>As a LAPS developer, I want to implement caching for processed artifacts so that we can retrieve them quickly and reduce processing overhead.</user_story>
+    <acceptance_criteria>
+      <criterion>Processed artifacts are cached with a 14-day expiration</criterion>
+      <criterion>Cache-aside strategy is correctly implemented for artifacts</criterion>
+      <criterion>Artifact retrieval prioritizes cache over database queries</criterion>
+      <criterion>Cache is properly updated when artifacts are created or modified</criterion>
+      <criterion>Expired cache entries are handled correctly</criterion>
+      <criterion>Performance improvement in artifact retrieval is measurable</criterion>
+    </acceptance_criteria>
+    <description>Implement caching for processed artifacts using a cache-aside strategy with a 14-day expiration period. This will improve retrieval speed and reduce processing overhead for frequently accessed artifacts.</description>
+    <technical_details>
+1. Cache Structure:
+   - Design a cache structure for artifacts that includes the artifact data and expiration timestamp
+   - Use a key format like &quot;artifact:{artifactId}&quot; for individual artifacts
+
+2. Caching Logic:
+   - Update ArtifactService to use CacheManager for artifact operations
+   - Implement cache-aside strategy: check cache first, then fall back to database
+   - Set 14-day expiration for all cached artifacts
+
+3. Cache Operations:
+   - Implement getArtifact(id): Check cache, fallback to DB if cache miss
+   - Implement setArtifact(artifact): Save to DB and cache with expiration
+   - Implement updateArtifact(artifact): Update DB and cache, reset expiration
+   - Implement deleteArtifact(id): Remove from DB and cache
+
+4. Expiration Handling:
+   - Implement a mechanism to handle expired cache entries
+   - Consider implementing a background job to clean up expired entries
+
+5. Bulk Operations:
+   - Implement methods for bulk artifact retrieval and caching to optimize performance
+
+6. API Updates:
+   - Update existing artifact API endpoints to use the new caching mechanism
+   - Ensure proper error handling and response codes
+
+7. Testing:
+   - Write unit tests for new caching methods in ArtifactService
+   - Implement integration tests to verify cache-database consistency
+   - Create performance tests to measure improvement in retrieval times
+   - Test expiration and bulk operation scenarios
+
+8. Monitoring:
+   - Implement cache hit/miss ratio monitoring
+   - Add cache-related metrics to existing Splunk dashboard
+</technical_details>
+    <affected_files>
+      <file>src/services/artifact.service.ts</file>
+      <file>src/models/artifact.model.ts</file>
+      <file>src/controllers/artifact.controller.ts</file>
+      <file>src/utils/cache-manager.ts</file>
+      <file>test/unit/artifact-service.test.ts</file>
+      <file>test/integration/artifact-cache.test.ts</file>
+      <file>test/performance/artifact-retrieval.test.ts</file>
+    </affected_files>
+    <steps>
+      <step>Design and implement the cache structure for artifacts</step>
+      <step>Update ArtifactService to use CacheManager with cache-aside strategy</step>
+      <step>Implement CRUD operations with caching and 14-day expiration</step>
+      <step>Develop expiration handling mechanism</step>
+      <step>Implement bulk artifact caching operations</step>
+      <step>Update API endpoints to use new caching mechanism</step>
+      <step>Write unit, integration, and performance tests</step>
+      <step>Implement monitoring for cache performance</step>
+      <step>Update documentation for artifact caching</step>
+    </steps>
+    <dependencies>Set up Redis Cache</dependencies>
+    <risks_and_challenges>Managing cache size and preventing cache overflow with large numbers of artifacts</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>17</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+</tickets>
+</epic_and_tickets>
+<epic_and_tickets>
+<epic>
+  <title>Database Schema Update for Artifact Type Management</title>
+  <user_story>As a developer, I want to update the LAPS database schema to support new artifact type management so that we can implement flexible artifact processing and improve system extensibility.</user_story>
+  <description>This epic involves updating the LAPS database schema to support new artifact type management. It includes creating new tables, modifying existing tables, and defining new enums to enable more flexible and extensible artifact processing.</description>
+  <technical_details>The schema update will involve creating 9 new tables, modifying the existing artifacts table, and defining 4 new enum types. This will require careful consideration of data relationships, indexing for performance, and ensuring backwards compatibility with existing data.</technical_details>
+  <affected_components>
+    <component>LAPS Database</component>
+    <component>ORM Models</component>
+    <component>Database Migration Scripts</component>
+  </affected_components>
+</epic>
+<tickets>
+  <ticket>
+    <title>Create New Tables for Artifact Type Management</title>
+    <user_story>As a database administrator, I want to create new tables to support artifact type management so that we can store and manage artifact types, workflows, and their relationships efficiently.</user_story>
+    <acceptance_criteria>
+      <criterion>All 9 new tables are created in the database with correct columns, data types, and constraints</criterion>
+      <criterion>Appropriate indexes are created for performance optimization</criterion>
+      <criterion>The new tables can be queried and manipulated without errors</criterion>
+      <criterion>The table creation script is idempotent and can be run multiple times without error</criterion>
+    </acceptance_criteria>
+    <description>Create 9 new tables in the LAPS database to support artifact type management. These tables will store information about artifact groups, workflows, artifact types, and their relationships.</description>
+    <technical_details>
+1. Create the following tables with UUID primary keys and timestamp columns (created_at, updated_at, deleted_at):
+   - artifact_groups
+   - artifacts_groups_artifacts_requests
+   - workflows_names
+   - artifacts_groups_artifacts_types
+   - workflows_artifact_types
+   - artifact_types
+   - artifact_types_sources
+   - journeys
+   - journey_artifact_groups
+
+2. Define foreign key relationships:
+   - artifacts_groups_artifacts_requests: FK to artifact_groups and artifact_requests
+   - artifacts_groups_artifacts_types: FK to artifact_groups and artifact_types
+   - workflows_artifact_types: FK to workflows_names and artifact_types
+   - artifact_types_sources: FK to artifact_types
+   - journey_artifact_groups: FK to journeys and artifact_groups
+
+3. Create indexes on foreign key columns and frequently queried columns:
+   - Index on artifacts_groups_artifacts_requests(artifact_group_id, artifact_request_id)
+   - Index on artifacts_groups_artifacts_types(artifact_group_id, artifact_type_id)
+   - Index on workflows_artifact_types(workflow_id, artifact_type_id)
+   - Index on artifact_types_sources(artifact_type_id)
+   - Index on journey_artifact_groups(journey_id, artifact_group_id)
+
+4. Ensure all tables use the &apos;uuid-ossp&apos; extension for UUID generation
+
+Example SQL for creating artifact_groups table:
+
+CREATE TABLE artifact_groups (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE,
+  deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_artifact_groups_name ON artifact_groups(name);
+
+Repeat similar structure for other tables, adjusting columns and constraints as needed.
+</technical_details>
+    <affected_files>
+      <file>schema/sql/V2024_05_28__add_artifact_type_tables.sql</file>
+      <file>src/orm/models/artifact-group/model.ts</file>
+      <file>src/orm/models/workflow-name/model.ts</file>
+      <file>src/orm/models/artifact-type/model.ts</file>
+      <file>src/orm/models/journey/model.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create SQL script for table creation</step>
+      <step>Add CREATE TABLE statements for each new table</step>
+      <step>Define foreign key constraints</step>
+      <step>Create necessary indexes</step>
+      <step>Test the script in a development environment</step>
+      <step>Create corresponding ORM models for new tables</step>
+      <step>Update existing ORM models if necessary</step>
+      <step>Write and run tests for new ORM models</step>
+    </steps>
+    <dependencies>None</dependencies>
+    <risks_and_challenges>Ensuring backwards compatibility with existing data and queries. Performance impact of new tables and relationships.</risks_and_challenges>
+    <estimated_complexity>High</estimated_complexity>
+    <priority>High</priority>
+    <effort>13</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Update Artifacts Table with Applicant Role</title>
+    <user_story>As a database administrator, I want to add an applicant_role column to the artifacts table so that we can associate artifacts with specific applicant types.</user_story>
+    <acceptance_criteria>
+      <criterion>The artifacts table has a new applicant_role column</criterion>
+      <criterion>The applicant_role column accepts valid enum values</criterion>
+      <criterion>Existing queries and operations on the artifacts table continue to work</criterion>
+      <criterion>The table alteration script is idempotent</criterion>
+    </acceptance_criteria>
+    <description>Modify the existing artifacts table to include a new applicant_role column. This will allow artifacts to be associated with specific applicant types (e.g., primary, cosigner).</description>
+    <technical_details>
+1. Alter the artifacts table to add the applicant_role column:
+   - The column should be of type TEXT to match the enum implementation
+   - Add a constraint to ensure only valid enum values are inserted
+
+2. Create an index on the new applicant_role column for query performance
+
+3. Update the ORM model to include the new column
+
+4. Ensure existing queries are not affected by this change
+
+SQL for altering the table:
+
+ALTER TABLE artifacts
+ADD COLUMN applicant_role TEXT;
+
+ALTER TABLE artifacts
+ADD CONSTRAINT check_applicant_role 
+CHECK (applicant_role IN (&apos;primary&apos;, &apos;cosigner&apos;));
+
+CREATE INDEX idx_artifacts_applicant_role ON artifacts(applicant_role);
+
+Update the Artifact ORM model to include the new field:
+
+export default class Artifact extends BaseModel {
+  // ... existing fields
+
+  applicantRole: string;
+
+  // ... rest of the class
+}
+
+Ensure to update any relevant repository methods or queries that interact with the artifacts table.
+</technical_details>
+    <affected_files>
+      <file>schema/sql/V2024_05_29__add_applicant_role_to_artifacts.sql</file>
+      <file>src/orm/models/artifact/model.ts</file>
+      <file>src/orm/repositories/artifact/repository.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create SQL script for altering the artifacts table</step>
+      <step>Add ALTER TABLE statement to add applicant_role column</step>
+      <step>Create CHECK constraint for valid enum values</step>
+      <step>Create index on applicant_role column</step>
+      <step>Update Artifact ORM model</step>
+      <step>Update relevant repository methods and queries</step>
+      <step>Write and run tests for updated model and queries</step>
+    </steps>
+    <dependencies>None</dependencies>
+    <risks_and_challenges>Potential impact on existing queries and data integrity. Ensuring all code that interacts with the artifacts table is updated.</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>5</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Create Enums for Artifact Type Management</title>
+    <user_story>As a developer, I want to create database enums for event types, artifact holders, filters, and applicant types so that we can ensure data consistency and improve query performance for these frequently used values.</user_story>
+    <acceptance_criteria>
+      <criterion>Four new enum types are created in the database: event_types, artifact_holder, filters, and applicant_type</criterion>
+      <criterion>Each enum type contains all the specified values from the TDD</criterion>
+      <criterion>The enums can be used in table column definitions and constraints</criterion>
+      <criterion>The enum creation script is idempotent</criterion>
+    </acceptance_criteria>
+    <description>Define four new enum types in the database to represent event types, artifact holders, filters, and applicant types. These enums will be used in various tables to ensure data consistency and improve query performance.</description>
+    <technical_details>
+1. Create four new enum types using CREATE TYPE statements:
+   - event_types
+   - artifact_holder
+   - filters
+   - applicant_type
+
+2. Populate each enum with the specified values from the TDD
+
+3. Update relevant table columns to use these new enum types
+
+4. Update ORM models to reflect the new enum types
+
+SQL for creating enums:
+
+CREATE TYPE event_types AS ENUM (
+  &apos;completed_evaluation&apos;,
+  &apos;completed_review&apos;,
+  &apos;completed_primary_journey_application&apos;
+);
+
+CREATE TYPE artifact_holder AS ENUM (
+  &apos;entity_applications&apos;,
+  &apos;events&apos;
+);
+
+CREATE TYPE filters AS ENUM (
+  &apos;filter&apos;,
+  &apos;inquiryDate&apos;
+);
+
+CREATE TYPE applicant_type AS ENUM (
+  &apos;primary&apos;,
+  &apos;cosigner&apos;
+);
+
+Example of updating a table to use an enum:
+
+ALTER TABLE artifact_types_sources
+ALTER COLUMN event_type TYPE event_types USING event_type::event_types;
+
+Update ORM models to use TypeScript enums that correspond to the database enums:
+
+export enum EventTypes {
+  COMPLETED_EVALUATION = &apos;completed_evaluation&apos;,
+  COMPLETED_REVIEW = &apos;completed_review&apos;,
+  COMPLETED_PRIMARY_JOURNEY_APPLICATION = &apos;completed_primary_journey_application&apos;
+}
+
+// Similar enums for ArtifactHolder, Filters, and ApplicantType
+
+Update affected model classes to use these enum types for relevant properties.
+</technical_details>
+    <affected_files>
+      <file>schema/sql/V2024_05_30__create_artifact_management_enums.sql</file>
+      <file>src/orm/enums.ts</file>
+      <file>src/orm/models/artifact-type-source/model.ts</file>
+      <file>src/orm/models/artifact/model.ts</file>
+    </affected_files>
+    <steps>
+      <step>Create SQL script for enum creation</step>
+      <step>Add CREATE TYPE statements for each enum</step>
+      <step>Update relevant table columns to use new enum types</step>
+      <step>Create TypeScript enum definitions in src/orm/enums.ts</step>
+      <step>Update affected ORM models to use new enum types</step>
+      <step>Write and run tests for updated models and enum usage</step>
+    </steps>
+    <dependencies>None</dependencies>
+    <risks_and_challenges>Ensuring all existing data conforms to the new enum types. Updating all code that interacts with these fields to use the new enum types.</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>8</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+</tickets>
+</epic_and_tickets>
+<epic_and_tickets>
+<epic>
+  <title>Retool Integration for Self-Service Artifact Type Management</title>
+  <user_story>As a product team member, I want to manage artifact types and catalog components through a user-friendly interface so that I can efficiently configure and maintain the lending artifact processing system without relying on engineering intervention.</user_story>
+  <description>Develop a Retool application that provides a self-service interface for managing artifact types and catalog components in the Lending Artifact Processing Service (LAPS). This will enable product teams to create, read, update, and delete artifact types and catalog components, reducing the time required for adding new artifacts from one sprint to one day.</description>
+  <technical_details>The Retool application will interface with the LAPS backend through newly developed RESTful APIs. It will require S2S authentication for secure communication. The application will manage artifact types and catalog components (workflow names, artifact groups, and journeys) stored in the LAPS database and cache.</technical_details>
+  <affected_components>
+    <component>Retool Application</component>
+    <component>LAPS API</component>
+    <component>LAPS Database</component>
+    <component>Redis Cache</component>
+  </affected_components>
+</epic>
+<tickets>
+  <ticket>
+    <title>Design Artifact Type Management UI</title>
+    <user_story>As a product team member, I want a user-friendly interface to manage artifact types so that I can easily create, view, update, and delete artifact configurations.</user_story>
+    <acceptance_criteria>
+      <criterion>A form is available for creating and editing artifact types with all required fields</criterion>
+      <criterion>Validation is implemented for all required fields</criterion>
+      <criterion>A list view of existing artifact types is available with search functionality</criterion>
+      <criterion>Users can delete artifact types with a confirmation prompt</criterion>
+    </acceptance_criteria>
+    <description>Create a Retool interface for managing artifact types, including forms for CRUD operations and a list view for existing artifact types.</description>
+    <technical_details>
+- Create a new Retool page for Artifact Type Management
+- Implement a form with the following fields:
+  - Journey IDs (multi-select dropdown, populated from /catalog/journeys)
+  - Artifact Group IDs (multi-select dropdown, populated from /catalog/artifact_groups)
+  - Artifact Holder (dropdown with options: &quot;events&quot;, &quot;entity_applications&quot;)
+  - Path (text input)
+  - Artifact Name (text input)
+  - Workflow Name IDs (multi-select dropdown, populated from /catalog/workflow_names, conditional based on Artifact Holder)
+  - Event Type (dropdown, options from event_types enum, conditional based on Artifact Holder)
+  - Evaluation Result Field (text input, conditional based on Artifact Holder)
+  - Filter (dropdown with options from filters enum)
+- Implement client-side validation for required fields
+- Create a table component to display existing artifact types
+- Add search functionality to the table using Retool&apos;s built-in filtering
+- Implement CRUD operations using Retool&apos;s query components, connecting to LAPS API endpoints
+- Add confirmation dialogs for delete operations
+- Implement error handling and success messages for all operations
+</technical_details>
+    <affected_files>
+      <file>New Retool application files</file>
+    </affected_files>
+    <steps>
+      <step>Create new Retool page for Artifact Type Management</step>
+      <step>Design and implement the artifact type form</step>
+      <step>Create the artifact type list view</step>
+      <step>Implement CRUD operations and connect to LAPS API</step>
+      <step>Add validation, error handling, and success messages</step>
+      <step>Test the UI thoroughly</step>
+    </steps>
+    <dependencies>LAPS API endpoints for artifact type management</dependencies>
+    <risks_and_challenges>Ensuring all required fields are properly validated and mapped to the API request structure</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>13</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Design Catalog Management UI</title>
+    <user_story>As a product team member, I want to manage catalog components (workflow names, artifact groups, and journeys) so that I can maintain the necessary metadata for artifact types.</user_story>
+    <acceptance_criteria>
+      <criterion>Separate views are available for workflow names, artifact groups, and journeys</criterion>
+      <criterion>CRUD operations are supported for each catalog component type</criterion>
+      <criterion>List views with search functionality are available for each component type</criterion>
+      <criterion>Validation is implemented for all required fields</criterion>
+    </acceptance_criteria>
+    <description>Create Retool interfaces for managing catalog components, including workflow names, artifact groups, and journeys.</description>
+    <technical_details>
+- Create three new Retool pages: Workflow Names, Artifact Groups, and Journeys
+- For each page, implement:
+  1. A form with fields:
+     - Name (text input, required)
+     - Description (text area, optional)
+  2. A table component to display existing items
+  3. Search functionality using Retool&apos;s built-in filtering
+  4. CRUD operations using Retool&apos;s query components, connecting to LAPS API endpoints:
+     - POST /catalog/{component}
+     - GET /catalog/{component}
+     - PUT /catalog/{component}
+     - DEL /catalog/{component}
+- Implement client-side validation for required fields
+- Add confirmation dialogs for delete operations
+- Implement error handling and success messages for all operations
+- Ensure proper handling of the &apos;component&apos; parameter in API calls (workflow_names, artifact_groups, or journeys)
+</technical_details>
+    <affected_files>
+      <file>New Retool application files</file>
+    </affected_files>
+    <steps>
+      <step>Create new Retool pages for Workflow Names, Artifact Groups, and Journeys</step>
+      <step>Design and implement forms for each component type</step>
+      <step>Create list views for each component type</step>
+      <step>Implement CRUD operations and connect to LAPS API</step>
+      <step>Add validation, error handling, and success messages</step>
+      <step>Test each component management interface thoroughly</step>
+    </steps>
+    <dependencies>LAPS API endpoints for catalog component management</dependencies>
+    <risks_and_challenges>Maintaining consistency across the three different catalog component interfaces while handling their unique requirements</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>13</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Configure API Connections in Retool</title>
+    <user_story>As a Retool developer, I want to set up secure connections to LAPS API endpoints so that the Retool application can communicate with the backend services.</user_story>
+    <acceptance_criteria>
+      <criterion>LAPS API resource is configured in Retool with the correct base URL</criterion>
+      <criterion>S2S authentication is properly set up for API calls</criterion>
+      <criterion>Test queries successfully retrieve data from LAPS API endpoints</criterion>
+      <criterion>API connections are secured and follow Earnest&apos;s security guidelines</criterion>
+    </acceptance_criteria>
+    <description>Configure and test API connections between the Retool application and LAPS backend services, ensuring secure communication using S2S authentication.</description>
+    <technical_details>
+- In Retool, create a new REST API resource for LAPS:
+  - Set the base URL to the LAPS API endpoint (e.g., https://api.earnest.com/laps)
+  - Configure authentication:
+    - Set authentication type to &quot;Bearer Token&quot;
+    - Use an environment variable to store the S2S token (e.g., {{LAPS_S2S_TOKEN}})
+- Create test queries for each LAPS API endpoint:
+  - GET /artifact-type
+  - GET /catalog/workflow_names
+  - GET /catalog/artifact_groups
+  - GET /catalog/journeys
+- Implement error handling for API connection issues
+- Set up appropriate access controls for the API resource in Retool
+- Document the API configuration process for future reference
+</technical_details>
+    <affected_files>
+      <file>Retool API resource configuration</file>
+      <file>Retool environment variables</file>
+    </affected_files>
+    <steps>
+      <step>Create LAPS API resource in Retool</step>
+      <step>Configure S2S authentication for the API resource</step>
+      <step>Create and test queries for each LAPS API endpoint</step>
+      <step>Implement error handling for API connections</step>
+      <step>Set up access controls for the API resource</step>
+      <step>Document the API configuration process</step>
+    </steps>
+    <dependencies>LAPS API implementation and S2S token generation</dependencies>
+    <risks_and_challenges>Ensuring secure handling of S2S tokens and proper access controls in Retool</risks_and_challenges>
+    <estimated_complexity>Low</estimated_complexity>
+    <priority>High</priority>
+    <effort>5</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+  <ticket>
+    <title>Implement Data Binding in Retool</title>
+    <user_story>As a Retool developer, I want to bind UI components to API data so that users can interact with LAPS data through the Retool interface.</user_story>
+    <acceptance_criteria>
+      <criterion>All form fields are correctly mapped to API request structures</criterion>
+      <criterion>API response data is properly displayed in list views</criterion>
+      <criterion>Error messages from API responses are displayed to users</criterion>
+      <criterion>Success messages are shown for successful CRUD operations</criterion>
+    </acceptance_criteria>
+    <description>Implement data binding between Retool UI components and LAPS API data, including proper handling of API requests, responses, and error conditions.</description>
+    <technical_details>
+- For each Retool page (Artifact Types, Workflow Names, Artifact Groups, Journeys):
+  1. Map form input fields to corresponding API request parameters
+  2. Create Retool queries for CRUD operations:
+     - Create: POST request with form data
+     - Read: GET request with optional search parameters
+     - Update: PUT request with form data and item ID
+     - Delete: DELETE request with item ID
+  3. Bind table components to GET query results
+  4. Implement error handling:
+     - Display API error messages in a user-friendly format
+     - Use Retool&apos;s built-in error handling components (e.g., Toast messages)
+  5. Show success messages for successful operations
+  6. Implement data refresh after successful create, update, or delete operations
+- Use Retool&apos;s JavaScript transformers to format data between UI and API formats if necessary
+- Implement loading states for API operations
+- Add client-side validation before sending requests to the API
+</technical_details>
+    <affected_files>
+      <file>Retool application files (all pages)</file>
+    </affected_files>
+    <steps>
+      <step>Map form fields to API request structures for each page</step>
+      <step>Create and configure CRUD queries for each data type</step>
+      <step>Bind table components to API response data</step>
+      <step>Implement error handling and success messages</step>
+      <step>Add data refresh logic for CRUD operations</step>
+      <step>Implement loading states and client-side validation</step>
+      <step>Test data binding thoroughly for all operations</step>
+    </steps>
+    <dependencies>Completed API connection configuration, UI design implementation</dependencies>
+    <risks_and_challenges>Handling complex data structures and ensuring consistent error handling across all operations</risks_and_challenges>
+    <estimated_complexity>Medium</estimated_complexity>
+    <priority>High</priority>
+    <effort>13</effort>
+    <effortIn>story points</effortIn>
+  </ticket>
+</tickets>
+</epic_and_tickets>
+</epics>

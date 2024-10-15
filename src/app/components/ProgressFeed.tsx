@@ -38,12 +38,16 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress }) => {
                                 transition={{ duration: 0.2 }}
                                 className="mb-2"
                             >
-                                <div className="p-2 bg-muted rounded-md">
+                                <div
+                                    className={`p-2 ${
+                                        message.startsWith("*") ? "bg-muted" : "bg-muted"
+                                    } rounded-md`}
+                                >
                                     <p className="text-sm text-foreground">
                                         {message.startsWith("*") ? (
-                                            <span className="ml-4 flex items-center">
-                                                <span className="mr-2 text-primary">•</span>
-                                                {message.slice(1)}
+                                            <span className="flex items-center">
+                                                <span className="mr-2 text-primary">└─</span>
+                                                <span className="">{message.slice(1)}</span>
                                             </span>
                                         ) : (
                                             message
@@ -53,20 +57,6 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress }) => {
                             </motion.div>
                         ))}
                     </AnimatePresence>
-
-                    {/* {currentFile && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="mb-2 p-2 bg-primary/10 rounded-md flex items-center"
-                        >
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
-                            <span className="text-sm text-primary-foreground">
-                                Processing: {currentFile}
-                            </span>
-                        </motion.div>
-                    )} */}
                 </ScrollArea>
             </CardContent>
         </Card>

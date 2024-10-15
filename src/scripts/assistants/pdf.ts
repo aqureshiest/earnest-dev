@@ -83,5 +83,5 @@ export const pdf = async () => {
 
     const jiraTickets = new JiraTicketsAssistant();
     const result = await jiraTickets.process(request2);
-    console.log("Jira tickets generated", result);
+    console.log("Jira tickets generated", result?.responseStr);
 };

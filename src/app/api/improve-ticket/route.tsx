@@ -59,7 +59,7 @@ Ensure that the "updatedTicket" object maintains the original structure of the t
 
         // Extract the JSON block from the response
         const responseText = response.response;
-        console.log("Response text:", responseText);
+        // console.log("Response text:", responseText);
 
         // Parse the response
         const json = parseJSONResponse(responseText);
