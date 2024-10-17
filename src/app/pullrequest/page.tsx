@@ -44,6 +44,7 @@ import { Switch } from "@/components/ui/switch";
 
 interface Repo {
     name: string;
+    owner: string;
 }
 
 const PullRequest: React.FC = () => {
@@ -105,12 +106,13 @@ const PullRequest: React.FC = () => {
 
         try {
             setLoadingBranches(true);
+            const repoOwner = repos.find((r) => r.name === repo)?.owner;
 
             // fetch api call to /api/gh
             const response = await fetch("/api/gh", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "list-branches", owner, repo }),
+                body: JSON.stringify({ action: "list-branches", owner: repoOwner, repo }),
             });
 
             if (!response.ok) throw new Error("Failed to fetch branches");
@@ -144,7 +146,7 @@ const PullRequest: React.FC = () => {
                 if (!response.ok) throw new Error("Failed to fetch repositories");
 
                 const data = await response.json();
-                setRepos(data.map((repo: any) => ({ name: repo.name })));
+                setRepos(data.map((repo: any) => ({ name: repo.name, owner: repo.owner.login })));
             } catch (error) {
                 console.error("Error fetching repositories:", error);
             } finally {
@@ -243,10 +245,14 @@ const PullRequest: React.FC = () => {
         setIsCreating(true);
         setAcceptedChanges(true);
 
+        const repoOwner = repos.find((r) => r.name === repo)?.owner;
+
+        if (!repoOwner) throw new Error("repository owner was not found");
+
         try {
             const response = await createPullRequest(
                 taskId,
-                owner,
+                repoOwner,
                 repo!,
                 branch!,
                 description,
@@ -273,9 +279,13 @@ const PullRequest: React.FC = () => {
 
             setProgress((prev) => [...prev, `Task ${newTaskId} started`]);
 
+            const repoOwner = repos.find((r) => r.name === repo)?.owner;
+
+            if (!repoOwner) throw new Error("repository owner was not found");
+
             const response = await generateCode(
                 newTaskId,
-                owner,
+                repoOwner,
                 repo!,
                 branch!,
                 description,
