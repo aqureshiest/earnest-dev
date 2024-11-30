@@ -1,5 +1,6 @@
 import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 import { BaseAssistant } from "./BaseAssistant";
+import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 
 abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskRequest, R> {
     async process(request: CodingTaskRequest): Promise<AIAssistantResponse<R> | null> {
@@ -29,11 +30,10 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
         // Process chunks sequentially with a delay between them
         for (let index = 0; index < chunks.length; index++) {
             const chunk = chunks[index];
-            console.log(
-                `Processing chunk ${index + 1} of ${chunk.files.length} files with tokens ${
-                    chunk.tokens
-                }`
-            );
+            const logMessage = `* Processing chunk ${index + 1}/${chunks.length} of ${
+                chunk.files.length
+            } files with ${chunk.tokens.toFixed(0)} tokens`;
+            this.logMessage(request, logMessage);
 
             // Add the chunk files to the prompt
             const finalPromptWithFiles = this.promptBuilder.addChunkFilesToPrompt(
@@ -80,7 +80,7 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
                 console.log(`Chunk ${index + 1} processed successfully.`);
             } catch (error) {
                 console.error(`Error processing chunk ${index + 1}:`, error);
-                // Continue processing other chunks even if one fails
+                throw error;
             }
 
             // Introduce a delay between chunk processing
@@ -105,6 +105,12 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
     }
 
     protected abstract aggregateResponses(responses: (R | null)[]): R;
+
+    private logMessage(request: CodingTaskRequest, message: string) {
+        const taskId = request.taskId.includes("-") ? request.taskId.split("-")[0] : request.taskId;
+        console.log(message);
+        sendTaskUpdate(taskId, "progress", message);
+    }
 }
 
 export { CodebaseChunksAssistant };

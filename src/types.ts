@@ -30,6 +30,10 @@ interface JiraTicketsRequest extends CodingTaskRequest {
     tddContent: string;
 }
 
+interface CodeAnalysisRequest extends CodingTaskRequest {
+    analysisTypes: string[];
+}
+
 // specifications types
 
 interface Specifications {
@@ -162,4 +166,49 @@ interface File {
 
 interface Step {
     step: string;
+}
+
+// Code Analysis types
+
+interface Solution {
+    description: string;
+    code?: string;
+}
+
+interface PatternViolation {
+    pattern: string;
+    location: string;
+    issue: string;
+    impact: string;
+    solution: Solution;
+    priority: "high" | "medium" | "low";
+}
+
+interface Implementation {
+    code?: string;
+}
+
+interface Suggestion {
+    pattern: string;
+    location: string;
+    problem: string;
+    benefit: string;
+    implementation: Implementation;
+    priority: "high" | "medium" | "low";
+}
+
+interface FileInfo {
+    filename: string;
+    violations: {
+        pattern_violation: PatternViolation[];
+    };
+    opportunities: {
+        suggestion: Suggestion[];
+    };
+}
+
+interface AnalysisResponse {
+    analysis: {
+        file_info: FileInfo[];
+    };
 }

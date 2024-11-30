@@ -1,7 +1,6 @@
 "use client";
 
-import { LLM_MODELS } from "@/modules/utils/llmInfo";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import SpecificationsCard from "../components/SpecificationsCard";
 import ImplementationPlanCard from "../components/ImplementationPlanCard";
 import AssistantWorkspace from "../components/AssistantWorkspace";
@@ -13,46 +12,26 @@ import { AssistantState, AssistantStates, useAssistantStates } from "./useAssist
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
 import {
     Check,
     Code,
-    EyeIcon,
     FileSearch,
     GitPullRequest,
     GitPullRequestArrow,
-    Loader,
-    Loader2,
     Maximize,
     Minimize,
     SearchCheck,
     Telescope,
-    View,
-    ViewIcon,
     X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-
-interface Repo {
-    name: string;
-}
+import RepoAndBranchSelection from "../components/RepoAndBranchSelection";
+import AIModelSelection from "../components/AIModelSelection";
 
 const PullRequest: React.FC = () => {
-    const [repos, setRepos] = useState<Repo[]>([]);
-    const [branches, setBranches] = useState<string[]>([]);
-
-    const [loadingRepos, setLoadingRepos] = useState(false);
-    const [loadingBranches, setLoadingBranches] = useState(false);
-
     const [taskId, setTaskId] = useState("");
 
     const [repo, setRepo] = useState<string>("");
@@ -64,7 +43,7 @@ const PullRequest: React.FC = () => {
     const [acceptedChanges, setAcceptedChanges] = useState(false);
     const [showDiff, setShowDiff] = useState(false);
 
-    const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
+    const [selectedModel, setSelectedModel] = useState<string>("");
 
     const [generatedPRLink, setGeneratedPRLink] = useState<string | null>(null);
 
@@ -81,14 +60,6 @@ const PullRequest: React.FC = () => {
         useState<AIAssistantResponse<CodeChanges> | null>(null);
     const [generatedCode, setGeneratedCode] = useState<CodeChanges | null>(null);
 
-    const availableModels = [
-        LLM_MODELS.OPENAI_GPT_4O,
-        LLM_MODELS.OPENAI_GPT_4O_MINI,
-        LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
-        LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
-        LLM_MODELS.GEMINI_1_5_FLASH,
-    ];
-
     const assistants = [
         { name: "specifications", icon: FileSearch },
         { name: "planning", icon: Telescope },
@@ -99,68 +70,6 @@ const PullRequest: React.FC = () => {
     const { assistantStates, resetAssistantStates, updateAssistantState } = useAssistantStates();
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
-
-    const fetchBranches = async () => {
-        if (!repo) return;
-
-        try {
-            setLoadingBranches(true);
-
-            // fetch api call to /api/gh
-            const response = await fetch("/api/gh", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "list-branches", owner, repo }),
-            });
-
-            if (!response.ok) throw new Error("Failed to fetch branches");
-
-            const data = await response.json();
-
-            setBranches(data.map((branch: any) => branch.name));
-            const mainBranch = data.find(
-                (branch: any) => branch.name === "main" || branch.name === "master"
-            );
-            setBranch(mainBranch ? mainBranch.name : data[0].name);
-        } catch (error) {
-            console.error("Error fetching branches:", error);
-        } finally {
-            setLoadingBranches(false);
-        }
-    };
-
-    // Fetch repositories on page load
-    useEffect(() => {
-        async function fetchRepos() {
-            try {
-                setLoadingRepos(true);
-
-                const response = await fetch("/api/gh", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "list-repos" }),
-                });
-
-                if (!response.ok) throw new Error("Failed to fetch repositories");
-
-                const data = await response.json();
-                setRepos(data.map((repo: any) => ({ name: repo.name })));
-            } catch (error) {
-                console.error("Error fetching repositories:", error);
-            } finally {
-                setLoadingRepos(false);
-            }
-        }
-
-        fetchRepos();
-    }, []);
-
-    // Fetch branches when a repository is selected
-    useEffect(() => {
-        if (!repo) return;
-
-        fetchBranches();
-    }, [repo]);
 
     // Create a pull request
     const createPullRequest = async (
@@ -391,14 +300,6 @@ const PullRequest: React.FC = () => {
         setDescription(e.target.value);
     };
 
-    // useEffect(() => {
-    //     // focus on selected repo element
-    //     const selectedRepoElement = document.getElementById("repo");
-    //     if (selectedRepoElement) {
-    //         selectedRepoElement.focus();
-    //     }
-    // }, []);
-
     return (
         <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
@@ -510,55 +411,13 @@ const PullRequest: React.FC = () => {
                             <CardContent>
                                 <div className="space-y-4">
                                     {/* Selected Repository and Branch */}
-                                    <div>
-                                        <div className="flex items-center mb-2">
-                                            <Label htmlFor="repo">Selected Repository</Label>
-                                            {loadingRepos && (
-                                                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                            )}
-                                        </div>
-                                        <Select
-                                            value={repo}
-                                            onValueChange={(value) => setRepo(value)}
-                                            disabled={isCreating}
-                                        >
-                                            <SelectTrigger id="repo">
-                                                <SelectValue placeholder="Select a repository" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {repos.map((repo) => (
-                                                    <SelectItem key={repo.name} value={repo.name}>
-                                                        {repo.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-center mb-2">
-                                            <Label htmlFor="branch">Selected Branch</Label>
-                                            {loadingBranches && (
-                                                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                            )}
-                                        </div>
-                                        <Select
-                                            value={branch}
-                                            onValueChange={(value) => setBranch(value)}
-                                            disabled={isCreating}
-                                        >
-                                            <SelectTrigger id="branch">
-                                                <SelectValue placeholder="Select a branch" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {branches.map((branch) => (
-                                                    <SelectItem key={branch} value={branch}>
-                                                        {branch}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    <RepoAndBranchSelection
+                                        repo={repo}
+                                        setRepo={setRepo}
+                                        branch={branch}
+                                        setBranch={setBranch}
+                                        loading={isCreating}
+                                    />
 
                                     {/* Task Description */}
                                     <div>
@@ -574,29 +433,11 @@ const PullRequest: React.FC = () => {
                                     </div>
 
                                     {/* AI Model Selection */}
-                                    <div>
-                                        <Label htmlFor="aiModel">AI Model</Label>
-                                        <Select
-                                            value={selectedModel}
-                                            onValueChange={(value) => setSelectedModel(value)}
-                                            disabled={isCreating}
-                                        >
-                                            <SelectTrigger id="aiModel">
-                                                <SelectValue placeholder="Select an AI model" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {availableModels.map((model) => (
-                                                    <SelectItem key={model} value={model}>
-                                                        {model.replace(/_/g, " ")}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-xs mt-2 text-gray-700 dark:text-gray-200">
-                                            * Works best with{" "}
-                                            {LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET}
-                                        </p>
-                                    </div>
+                                    <AIModelSelection
+                                        selectedModel={selectedModel}
+                                        setSelectedModel={setSelectedModel}
+                                        loading={isCreating}
+                                    />
 
                                     {/* Action Buttons */}
                                     <div className="space-y-4">

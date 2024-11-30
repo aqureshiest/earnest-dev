@@ -1,8 +1,8 @@
 import { TECHNICAL_DESIGN_DOC_PLACEHOLDER } from "@/constants";
-import { StandardAssistant } from "../../StandardAssistant";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
+import { StandardAssistant } from "@/modules/ai/assistants/StandardAssistant";
 
 export class FeatureBreakdownAssistant extends StandardAssistant<TaskRequest, FeatureBreakdown> {
     private responseParser: ResponseParser<FeatureBreakdown>;

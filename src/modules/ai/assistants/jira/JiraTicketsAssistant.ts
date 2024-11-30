@@ -6,7 +6,7 @@ import {
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { CodebaseAssistant } from "../../CodebaseAssistant";
+import { CodebaseAssistant } from "@/modules/ai/assistants/CodebaseAssistant";
 
 export class JiraTicketsAssistant extends CodebaseAssistant<JiraItems> {
     private responseParser: ResponseParser<JiraItems>;

@@ -43,7 +43,13 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress }) => {
                                         message.startsWith("*") ? "bg-muted" : "bg-muted"
                                     } rounded-md`}
                                 >
-                                    <p className="text-sm text-foreground">
+                                    <p
+                                        className={`text-sm ${
+                                            message.toLowerCase().includes("error")
+                                                ? "text-red-500"
+                                                : "text-foreground"
+                                        }`}
+                                    >
                                         {message.startsWith("*") ? (
                                             <span className="flex items-center">
                                                 <span className="mr-2 text-primary">└─</span>

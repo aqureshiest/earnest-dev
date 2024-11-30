@@ -1,8 +1,8 @@
 import { displayTime } from "../utils/displayTime";
 import { formatXml } from "../utils/formatXml";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
-import { FeatureBreakdownAssistant } from "./assistants/under-development/jira/FeatureBreakdownAssistant";
-import { JiraTicketsAssistant } from "./assistants/under-development/jira/JiraTicketsAssistant";
+import { FeatureBreakdownAssistant } from "./assistants/jira/FeatureBreakdownAssistant";
+import { JiraTicketsAssistant } from "./assistants/jira/JiraTicketsAssistant";
 import { PrepareCodebase } from "./PrepareCodebase";
 
 export class GeneateJiraTickets {

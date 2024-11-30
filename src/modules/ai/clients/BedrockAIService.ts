@@ -1,15 +1,17 @@
 import { calculateLLMCost } from "@/modules/utils/llmCost";
 import { LLM_MODELS, LLMS } from "@/modules/utils/llmInfo";
-import Anthropic from "@anthropic-ai/sdk";
 import { BaseAIService } from "./BaseAIService";
 import chalk from "chalk";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
-export class ClaudeAIService extends BaseAIService {
-    private anthropic: Anthropic;
+export class BedrockAIService extends BaseAIService {
+    private client: BedrockRuntimeClient;
 
-    constructor(model: string = LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW.id) {
+    constructor(model: string = LLM_MODELS.AWS_BEDROCK_CLAUDE_35_SONNET_V2.id) {
         super(model);
-        this.anthropic = new Anthropic();
+        this.client = new BedrockRuntimeClient({
+            region: process.env.AWS_REGION || "us-east-1",
+        });
     }
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
@@ -27,41 +29,44 @@ export class ClaudeAIService extends BaseAIService {
 
             const LLM = LLMS.find((m) => m.model === this.model);
             if (!LLM) {
-                throw new Error(`LLM {this.model} not found`);
+                throw new Error(`LLM ${this.model} not found`);
             }
 
-            const completion = await this.anthropic.messages.create(
-                {
-                    model: this.model,
+            const command = new InvokeModelCommand({
+                modelId: this.model,
+                contentType: "application/json",
+                accept: "application/json",
+                body: JSON.stringify({
+                    anthropic_version: "bedrock-2023-05-31",
                     max_tokens: LLM.maxOutputTokens,
                     system: systemPrompt,
                     messages: [{ role: "user", content: prompt }],
                     temperature: 0,
-                },
-                {
-                    headers: {
-                        "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-                    },
-                }
-            );
+                }),
+            });
 
-            const response =
-                completion.content[0]?.type == "text" ? completion.content[0].text : "";
-            if (!response) {
-                throw new Error("No response generated.");
+            const completion = await this.client.send(command);
+            const responseData = JSON.parse(new TextDecoder().decode(completion.body));
+
+            if (!responseData.content || responseData.content.length === 0) {
+                throw new Error("No response content found");
             }
 
-            console.log("response usage", completion.usage);
+            const content = responseData.content[0]?.text;
+            if (!content) {
+                throw new Error("No text content in response");
+            }
+
             const { inputCost, outputCost } = calculateLLMCost(
                 this.model,
-                completion.usage?.input_tokens,
-                completion.usage?.output_tokens
+                responseData.usage.input_tokens,
+                responseData.usage.output_tokens
             );
 
             const result: AIResponse = {
-                response,
-                inputTokens: completion.usage?.input_tokens || 0,
-                outputTokens: completion.usage?.output_tokens || 0,
+                response: content,
+                inputTokens: responseData.usage.input_tokens || 0,
+                outputTokens: responseData.usage.output_tokens || 0,
                 cost: inputCost + outputCost,
             };
 

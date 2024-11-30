@@ -10,8 +10,8 @@ import { trimPrompt } from "./trim-prompt";
 import { codeMetadata } from "./codeMetadata";
 import { CA } from "./assistants/ca";
 import { pdf } from "./assistants/pdf";
-import { cacheTest } from "./cache-test";
 import { misc } from "./misc";
+import { codeanalysis } from "./audit/codeanalysis";
 
 const program = new Command();
 
@@ -26,7 +26,7 @@ program.command("trim-prompt").action(trimPrompt);
 program.command("code-metadata").action(codeMetadata);
 program.command("ca").action(CA);
 program.command("pdf").action(pdf);
-program.command("cache-test").action(cacheTest);
 program.command("misc").action(misc);
+program.command("audit-analyze").action(codeanalysis);
 
 program.parse(process.argv);

@@ -1,5 +1,5 @@
 import { CODEFILES_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
-import { CodebaseAssistant } from "../CodebaseAssistant";
+import { CodebaseAssistant } from "@/modules/ai/assistants/CodebaseAssistant";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";

@@ -1,39 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { LLM_MODELS } from "@/modules/utils/llmInfo";
+import React, { useState } from "react";
 import ProgressFeed from "../components/ProgressFeed";
 import { Button } from "@/components/ui/button";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { FolderOpen, Loader2, Save, Ticket } from "lucide-react";
+import { Loader2, Ticket } from "lucide-react";
 import { motion } from "framer-motion";
 import TasksProgressBar from "../components/TasksProgressBar";
 import JiraEpicsDisplay from "../components/jira/JiraEpicsDisplay";
-
-interface Repo {
-    name: string;
-}
+import RepoAndBranchSelection from "../components/RepoAndBranchSelection";
+import AIModelSelection from "../components/AIModelSelection";
 
 const JiraTicketGenerator: React.FC = () => {
-    const [repos, setRepos] = useState<Repo[]>([]);
-    const [branches, setBranches] = useState<string[]>([]);
-
-    const [loadingRepos, setLoadingRepos] = useState(false);
-    const [loadingBranches, setLoadingBranches] = useState(false);
-
     const [taskId, setTaskId] = useState("");
     const [repo, setRepo] = useState("");
     const [branch, setBranch] = useState("");
     const [designDoc, setDesignDoc] = useState<File | null>(null);
-    const [selectedModel, setSelectedModel] = useState(LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET);
+    const [selectedModel, setSelectedModel] = useState("");
 
     const [jiraItems, setJiraItems] = useState<JiraItems[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -46,77 +30,7 @@ const JiraTicketGenerator: React.FC = () => {
         null
     );
 
-    const availableModels = [
-        LLM_MODELS.OPENAI_GPT_4O,
-        LLM_MODELS.OPENAI_GPT_4O_MINI,
-        LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
-        LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
-        // LLM_MODELS.GEMINI_1_5_FLASH,
-    ];
-
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
-
-    const fetchBranches = async () => {
-        if (!repo) return;
-
-        try {
-            setLoadingBranches(true);
-
-            // fetch api call to /api/gh
-            const response = await fetch("/api/gh", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "list-branches", owner, repo }),
-            });
-
-            if (!response.ok) throw new Error("Failed to fetch branches");
-
-            const data = await response.json();
-
-            setBranches(data.map((branch: any) => branch.name));
-            const mainBranch = data.find(
-                (branch: any) => branch.name === "main" || branch.name === "master"
-            );
-            setBranch(mainBranch ? mainBranch.name : data[0].name);
-        } catch (error) {
-            console.error("Error fetching branches:", error);
-        } finally {
-            setLoadingBranches(false);
-        }
-    };
-
-    // Fetch repositories on page load
-    useEffect(() => {
-        async function fetchRepos() {
-            try {
-                setLoadingRepos(true);
-
-                const response = await fetch("/api/gh", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "list-repos" }),
-                });
-
-                if (!response.ok) throw new Error("Failed to fetch repositories");
-
-                const data = await response.json();
-                setRepos(data.map((repo: any) => ({ name: repo.name })));
-            } catch (error) {
-                console.error("Error fetching repositories:", error);
-            } finally {
-                setLoadingRepos(false);
-            }
-        }
-
-        fetchRepos();
-    }, []);
-
-    // Fetch branches when a repository is selected
-    useEffect(() => {
-        if (!repo) return;
-
-        fetchBranches();
-    }, [repo]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
@@ -270,20 +184,6 @@ const JiraTicketGenerator: React.FC = () => {
         setTaskProgress(null);
     };
 
-    const handleUpdateTicket = (updatedTicket: Ticket) => {
-        setJiraItems((prevItems) =>
-            prevItems.map((item) => ({
-                ...item,
-                tickets: {
-                    ...item.tickets,
-                    ticket: item.tickets.ticket.map((t) =>
-                        t.title === updatedTicket.title ? updatedTicket : t
-                    ),
-                },
-            }))
-        );
-    };
-
     return (
         <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
@@ -310,55 +210,13 @@ const JiraTicketGenerator: React.FC = () => {
                             <CardContent>
                                 <div className="space-y-4">
                                     {/* Selected Repository and Branch */}
-                                    <div>
-                                        <div className="flex items-center mb-2">
-                                            <Label htmlFor="repo">Selected Repository</Label>
-                                            {loadingRepos && (
-                                                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                            )}
-                                        </div>
-                                        <Select
-                                            value={repo}
-                                            onValueChange={(value) => setRepo(value)}
-                                            disabled={isGenerating}
-                                        >
-                                            <SelectTrigger id="repo">
-                                                <SelectValue placeholder="Select a repository" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {repos.map((repo) => (
-                                                    <SelectItem key={repo.name} value={repo.name}>
-                                                        {repo.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-center mb-2">
-                                            <Label htmlFor="branch">Selected Branch</Label>
-                                            {loadingBranches && (
-                                                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                                            )}
-                                        </div>
-                                        <Select
-                                            value={branch}
-                                            onValueChange={(value) => setBranch(value)}
-                                            disabled={isGenerating}
-                                        >
-                                            <SelectTrigger id="branch">
-                                                <SelectValue placeholder="Select a branch" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {branches.map((branch) => (
-                                                    <SelectItem key={branch} value={branch}>
-                                                        {branch}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    <RepoAndBranchSelection
+                                        repo={repo}
+                                        branch={branch}
+                                        setRepo={setRepo}
+                                        setBranch={setBranch}
+                                        loading={isGenerating}
+                                    />
 
                                     {/* Design Document Upload */}
                                     <div>
@@ -378,29 +236,11 @@ const JiraTicketGenerator: React.FC = () => {
                                     </div>
 
                                     {/* AI Model Selection */}
-                                    <div>
-                                        <Label htmlFor="aiModel">AI Model</Label>
-                                        <Select
-                                            value={selectedModel}
-                                            onValueChange={setSelectedModel}
-                                            disabled={isGenerating}
-                                        >
-                                            <SelectTrigger id="aiModel">
-                                                <SelectValue placeholder="Select an AI model" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {availableModels.map((model) => (
-                                                    <SelectItem key={model} value={model}>
-                                                        {model.replace(/_/g, " ")}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-xs mt-2 text-gray-700 dark:text-gray-200">
-                                            * Works best with{" "}
-                                            {LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET}
-                                        </p>
-                                    </div>
+                                    <AIModelSelection
+                                        selectedModel={selectedModel}
+                                        setSelectedModel={setSelectedModel}
+                                        loading={isGenerating}
+                                    />
 
                                     {/* Generate Button */}
                                     <Button
