@@ -7,7 +7,8 @@ interface FileDetails {
     ref: string;
     commitHash: string;
     tokenCount: number;
-    embeddings: number[];
+    embeddings?: number[];
+    similarity?: number;
 }
 
 // request types

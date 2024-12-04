@@ -4,18 +4,17 @@ import { jira } from "./jira/jira";
 import { run } from "./run";
 import { pr } from "./pr";
 import { ast } from "./ast";
-import { tasksWGap } from "./assistants/tasks-w-gap";
 import { tasksWCode } from "./assistants/tasks-w-code";
 import { trimPrompt } from "./trim-prompt";
 import { codeMetadata } from "./codeMetadata";
 import { CA } from "./assistants/ca";
-import { pdf } from "./assistants/pdf";
 import { misc } from "./misc";
 import { codeanalysis } from "./audit/codeanalysis";
+import { rds } from "./rds";
+import { vectorsearch } from "./vectorsearch";
 
 const program = new Command();
 
-program.command("tasks-w-gap").action(tasksWGap);
 program.command("tasks-w-code").action(tasksWCode);
 program.command("jira").action(jira);
 program.command("run").action(run);
@@ -25,8 +24,9 @@ program.command("ast").action(ast);
 program.command("trim-prompt").action(trimPrompt);
 program.command("code-metadata").action(codeMetadata);
 program.command("ca").action(CA);
-program.command("pdf").action(pdf);
 program.command("misc").action(misc);
 program.command("audit-analyze").action(codeanalysis);
+program.command("rds").action(rds);
+program.command("vectorsearch").action(vectorsearch);
 
 program.parse(process.argv);
