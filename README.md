@@ -4,18 +4,20 @@ Earnest AI Dev is a project designed to empower developers at Earnest by leverag
 
 ## Table of Contents
 
-- [Environment Variables](#environment-variables)
+- [Core Setup](#core-setup)
   - [GitHub Token](#github-token)
-  - [OpenAI API Key](#openai-api-key)
-  - [Anthropic API Key](#anthropic-api-key)
   - [Supabase](#supabase)
+- [AI Model Setup](#ai-model-setup)
+  - [AWS Bedrock](#aws-bedrock)
+  - [OpenAI](#openai)
+  - [Anthropic](#anthropic)
 - [Installation and Setup](#installation-and-setup)
 - [Running the Project](#running-the-project)
 - [Environment Example File](#environment-example-file)
 
-## Environment Variables
+## Core Setup
 
-To run this project, you need to set up several environment variables. Follow the steps below to obtain and configure each one.
+These steps are required regardless of which AI models you plan to use.
 
 ### GitHub Token
 
@@ -26,20 +28,6 @@ To run this project, you need to set up several environment variables. Follow th
 5. Copy the token and set it as the value for `GITHUB_TOKEN` and `NEXT_PUBLIC_GITHUB_TOKEN` in your `.env.local` file.
 6. The `NEXT_PUBLIC_GITHUB_OWNER` should be set to the GitHub username or organization name owning the repositories.
 
-### OpenAI API Key
-
-1. Sign up or log in to [OpenAI](https://platform.openai.com/).
-2. Navigate to **API Keys** under your account settings.
-3. Generate a new API key.
-4. Copy the key and set it as the value for `OPENAI_API_KEY` in your `.env.local` file.
-
-### Anthropic API Key
-
-1. Sign up or log in to [Anthropic](https://www.anthropic.com/).
-2. Navigate to the API section under your account settings.
-3. Generate a new API key.
-4. Copy the key and set it as the value for `ANTHROPIC_API_KEY` in your `.env.local` file.
-
 ### Supabase
 
 1. Sign up or log in to [Supabase](https://supabase.com/).
@@ -48,6 +36,37 @@ To run this project, you need to set up several environment variables. Follow th
 4. Copy the `URL` and `anon` key provided.
 5. Set the `NEXT_PUBLIC_SUPABASE_URL` to the copied `URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the `anon` key in your `.env.local` file.
 6. Run the SQL from `src/modules/db/schema.sql` in Supabase SQL editor to create the tables and the function.
+
+## AI Model Setup
+
+Choose and configure one or more of the following AI model providers:
+
+### AWS Bedrock
+
+1. Configure AWS credentials using SAML2AWS:
+    ```bash
+    saml2aws login
+    ```
+2. When prompted, log in to your OKTA account and select the AWS development account.
+
+3. Set your AWS profile:
+    ```bash
+    export AWS_PROFILE=est-development-Okta-Development-Eng
+    ```
+
+### OpenAI
+
+1. Sign up or log in to [OpenAI](https://platform.openai.com/).
+2. Navigate to **API Keys** under your account settings.
+3. Generate a new API key.
+4. Copy the key and set it as the value for `OPENAI_API_KEY` in your `.env.local` file.
+
+### Anthropic
+
+1. Sign up or log in to [Anthropic](https://www.anthropic.com/).
+2. Navigate to the API section under your account settings.
+3. Generate a new API key.
+4. Copy the key and set it as the value for `ANTHROPIC_API_KEY` in your `.env.local` file.
 
 ## Installation and Setup
 
@@ -86,7 +105,10 @@ GITHUB_TOKEN=your_github_token
 NEXT_PUBLIC_GITHUB_TOKEN=your_github_token
 NEXT_PUBLIC_GITHUB_OWNER=your_github_username_or_organization
 
+# only needed if you are running openai models
 OPENAI_API_KEY=your_openai_api_key
+
+# only needed if you are running anthropic claude models
 ANTHROPIC_API_KEY=your_anthropic_api_key
 
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
