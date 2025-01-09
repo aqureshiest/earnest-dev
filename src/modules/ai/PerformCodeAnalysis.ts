@@ -6,8 +6,7 @@ import { PrepareCodebase } from "./PrepareCodebase";
 
 export class PerformCodeAnalysis {
     private codeAnalysisAssistant: CodeAnaylsisAssistant;
-    private readonly PATH_TO_PATTERNS =
-        "src/modules/ai/assistants/under-development/code-analysis/patterns";
+    private readonly PATH_TO_PATTERNS = "src/modules/ai/assistants/code-analysis/patterns";
 
     constructor() {
         this.codeAnalysisAssistant = new CodeAnaylsisAssistant();

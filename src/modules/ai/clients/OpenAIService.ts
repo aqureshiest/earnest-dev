@@ -7,7 +7,7 @@ import chalk from "chalk";
 export class OpenAIService extends BaseAIService {
     private openai: OpenAI;
 
-    constructor(model: string = LLM_MODELS.OPENAI_GPT_4O_MINI) {
+    constructor(model: string = LLM_MODELS.OPENAI_GPT_4O_MINI.id) {
         super(model);
         this.openai = new OpenAI();
     }

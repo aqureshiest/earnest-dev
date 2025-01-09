@@ -419,6 +419,13 @@ const PullRequest: React.FC = () => {
                                         loading={isCreating}
                                     />
 
+                                    {/* AI Model Selection */}
+                                    <AIModelSelection
+                                        selectedModel={selectedModel}
+                                        setSelectedModel={setSelectedModel}
+                                        loading={isCreating}
+                                    />
+
                                     {/* Task Description */}
                                     <div>
                                         <Label htmlFor="description">Task Description</Label>
@@ -431,13 +438,6 @@ const PullRequest: React.FC = () => {
                                             disabled={isCreating}
                                         />
                                     </div>
-
-                                    {/* AI Model Selection */}
-                                    <AIModelSelection
-                                        selectedModel={selectedModel}
-                                        setSelectedModel={setSelectedModel}
-                                        loading={isCreating}
-                                    />
 
                                     {/* Action Buttons */}
                                     <div className="space-y-4">
