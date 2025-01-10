@@ -67,3 +67,40 @@ CREATE TABLE IF NOT EXISTS BranchCommits (
     UNIQUE (owner, repo, ref)
 );
 
+
+
+-- 004_create_extension_table.sql
+create table public.extensions (
+    id text primary key,
+    name text not null,
+    description text,
+    system_prompt text not null,
+    output_schema jsonb not null,
+    ui_config jsonb not null,
+    created_at timestamp with time zone not null default now(),
+    updated_at timestamp with time zone
+);
+
+-- Enable RLS
+alter table public.extensions enable row level security;
+
+-- Create policies
+create policy "Enable read access for all users" on public.extensions
+    for select using (true);
+
+create policy "Enable insert for authenticated users only" on public.extensions
+    for insert with check (auth.role() = 'authenticated');
+
+-- Create updated_at trigger
+create function public.handle_updated_at()
+returns trigger as $$
+begin
+    new.updated_at = now();
+    return new;
+end;
+$$ language plpgsql;
+
+create trigger set_updated_at
+    before update on public.extensions
+    for each row
+    execute function public.handle_updated_at();

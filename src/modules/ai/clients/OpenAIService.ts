@@ -13,6 +13,11 @@ export class OpenAIService extends BaseAIService {
     }
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
+        console.log("----------------- OpenAI Service -----------------");
+        console.log("system prompt", systemPrompt);
+        console.log("user prompt", prompt);
+        console.log("-------------------------------------------------");
+
         const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
         const cachedResponse = await this.getCachedResponse(cacheKey);
         if (cachedResponse) {
@@ -24,7 +29,6 @@ export class OpenAIService extends BaseAIService {
 
         try {
             console.log(this.constructor.name, "Generating response for model", this.model);
-
             const completion = await this.openai.chat.completions.create({
                 messages: [
                     {
@@ -41,11 +45,14 @@ export class OpenAIService extends BaseAIService {
             });
 
             const response = completion.choices[0]?.message?.content?.trim();
+            console.log("--- OpenAI Response ---");
+            console.log("response", response);
+            console.log("-----------------------");
+
             if (!response) {
                 throw new Error("No response generated.");
             }
 
-            console.log("response usage", completion.usage);
             const { inputCost, outputCost } = calculateLLMCost(
                 this.model,
                 completion.usage?.prompt_tokens || 0,

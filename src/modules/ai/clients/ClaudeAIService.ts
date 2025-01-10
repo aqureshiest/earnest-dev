@@ -24,6 +24,8 @@ export class ClaudeAIService extends BaseAIService {
 
         try {
             console.log(this.constructor.name, "Generating response for model", this.model);
+            console.log("system prompt", systemPrompt);
+            console.log("user prompt", prompt);
 
             const LLM = LLMS.find((m) => m.model === this.model);
             if (!LLM) {
