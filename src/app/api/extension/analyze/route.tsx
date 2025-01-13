@@ -5,7 +5,7 @@ import { ExtensionDataStore } from "@/modules/ai/extensions/ExtensionDataStore";
 
 export async function POST(req: Request) {
     try {
-        const { taskId, extensionId, owner, repo, branch, selectedModel, params } =
+        const { taskId, extensionId, owner, repo, branch, selectedModel, params, config } =
             await req.json();
 
         if (!taskId || !extensionId) {
@@ -21,8 +21,16 @@ export async function POST(req: Request) {
                     setClient(taskId, controller);
                     req.signal.addEventListener("abort", () => deleteClient(taskId));
 
-                    const dataStore = new ExtensionDataStore();
-                    const extensionConfig = await dataStore.loadExtensionConfig(extensionId);
+                    console.log(config);
+
+                    // Only fetch from datastore if config is not provided
+                    let extensionConfig;
+                    if (config) {
+                        extensionConfig = config;
+                    } else {
+                        const dataStore = new ExtensionDataStore();
+                        extensionConfig = await dataStore.loadExtensionConfig(extensionId);
+                    }
 
                     const request = {
                         taskId,
@@ -31,9 +39,9 @@ export async function POST(req: Request) {
                         repo,
                         branch,
                         model: selectedModel,
+                        config: extensionConfig,
                         params: {
                             ...params,
-                            extensionConfig,
                         },
                     };
 

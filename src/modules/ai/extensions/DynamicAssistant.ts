@@ -3,16 +3,7 @@ import { PromptBuilder } from "../support/PromptBuilder";
 import { TokenLimiter } from "../support/TokenLimiter";
 import { ResponseParser } from "../support/ResponseParser";
 import { CODEFILES_PLACEHOLDER } from "@/constants";
-
-interface ExtensionConfig {
-    id: string;
-    systemPrompt: string;
-    outputSchema: {
-        type: string;
-        structure: Record<string, any>;
-        responseFormat: string;
-    };
-}
+import { ExtensionConfig } from "./types";
 
 export class DynamicAssistant extends CodebaseChunksAssistant<any> {
     private responseParser: ResponseParser<any>;
@@ -35,11 +26,17 @@ Here are the existing code files you will be working with:
 ${CODEFILES_PLACEHOLDER}
 </existing_codebase>
 
-<response_format>
-${this.extensionConfig.outputSchema.responseFormat}
-</response_format>
+Output format: ${this.extensionConfig.outputSchema.responseFormat}
 
-Analyze the codebase according to the instructions above and provide your response in the specified format.
+Format the response in the following XML structure:
+<${this.extensionConfig.outputSchema.normalizedType}>
+${JSON.stringify(this.extensionConfig.outputSchema.structure, null, 2)}
+</${this.extensionConfig.outputSchema.normalizedType}>
+
+Analyze the codebase according to the instructions above and provide your response in the specified XML format.
+Important: Preserve the case of enclosing tag as ${
+            this.extensionConfig.outputSchema.normalizedType
+        }.
 `;
     }
 

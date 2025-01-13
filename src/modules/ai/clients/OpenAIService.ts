@@ -13,10 +13,17 @@ export class OpenAIService extends BaseAIService {
     }
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
-        console.log("----------------- OpenAI Service -----------------");
-        console.log("system prompt", systemPrompt);
-        console.log("user prompt", prompt);
-        console.log("-------------------------------------------------");
+        console.log(chalk.blue("----------------- OpenAI Service -----------------"));
+        console.log("> ", systemPrompt);
+        // print user prompt but condense section <existing_codebase>...</existing_codebase>
+        console.log(
+            "> ",
+            prompt.replace(
+                /<existing_codebase>[\s\S]*<\/existing_codebase>/g,
+                "<existing_codebase>.....</existing_codebase>"
+            )
+        );
+        console.log(chalk.blue("-------------------------------------------------"));
 
         const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
         const cachedResponse = await this.getCachedResponse(cacheKey);
@@ -24,6 +31,9 @@ export class OpenAIService extends BaseAIService {
             console.log(
                 chalk.green(this.constructor.name, "Using cached response for model", this.model)
             );
+            console.log(chalk.green("--- OpenAI Cached Response ---"));
+            console.log("response", cachedResponse.response);
+            console.log(chalk.green("-----------------------"));
             return cachedResponse;
         }
 

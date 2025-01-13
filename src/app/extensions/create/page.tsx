@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Send, GitBranch, CheckCircle } from "lucide-react";
+import { Loader2, Send, GitBranch, CheckCircle, Save } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ExtensionConfig } from "@/modules/ai/extensions/types";
 import { Badge } from "@/components/ui/badge";
+import PreviewExtension from "@/app/components/PreviewExtension";
+import { useRouter } from "next/navigation";
 
 interface Message {
     role: "user" | "assistant";
@@ -19,6 +21,135 @@ interface Message {
 interface MessageProps {
     message: Message;
 }
+
+// const sampleConfig = {
+//     name: "API Documentation Generator",
+//     description: "An extension that generates documentation for API endpoints.",
+//     userInput: {
+//         required: false,
+//         useRelevantFiles: false,
+//         description: "No user input required during execution.",
+//     },
+//     outputSchema: {
+//         type: "SwaggerDocumentation",
+//         structure: {
+//             swagger: {
+//                 type: "string",
+//                 description: "The version of the Swagger specification being used.",
+//                 required: true,
+//             },
+//             info: {
+//                 type: "object",
+//                 description: "Information about the API.",
+//                 required: true,
+//                 properties: {
+//                     title: {
+//                         type: "string",
+//                         description: "The title of the API.",
+//                         required: true,
+//                     },
+//                     version: {
+//                         type: "string",
+//                         description: "The version of the API.",
+//                         required: true,
+//                     },
+//                     description: {
+//                         type: "string",
+//                         description: "A brief description of the API.",
+//                         required: false,
+//                     },
+//                 },
+//             },
+//             paths: {
+//                 type: "object",
+//                 description: "Available API endpoints.",
+//                 required: true,
+//             },
+//         },
+//         responseFormat: "<swagger>...</swagger>",
+//         normalizedType: "swaggerdocumentation",
+//     },
+//     uiConfig: {
+//         visualization: "swagger",
+//         inputFields: [],
+//         outputViews: [
+//             {
+//                 type: "detailed",
+//                 description: "Detailed view of the generated API documentation.",
+//             },
+//         ],
+//     },
+//     systemPrompt:
+//         "You are an AI assistant designed to generate comprehensive API documentation for various endpoints. Your task is to create a structured documentation output in the Swagger format based on the provided specifications. You do not require any user input during execution. Ensure that the generated documentation adheres to the Swagger standards and is well-structured for easy integration and understanding.",
+//     id: "api-documentation-generator",
+// };
+
+// const sampleConfig = {
+//     name: "Complexity Identifier",
+//     description:
+//         "Identifies files with higher complexity based on the number of lines of code in a repository.",
+//     userInput: {
+//         required: false,
+//         useRelevantFiles: false,
+//         description: "No user input needed during execution.",
+//     },
+//     outputSchema: {
+//         type: "ComplexityAnalysisResult",
+//         structure: { labels: [Object], values: [Object] },
+//         responseFormat:
+//             "<complexityAnalysis><labels>{fileNames}</labels><values>{complexityScores}</values></complexityAnalysis>",
+//         normalizedType: "complexityanalysisresult",
+//     },
+//     uiConfig: {
+//         visualization: "chart",
+//         inputFields: [],
+//         outputViews: [[Object]],
+//     },
+//     systemPrompt:
+//         "You are an AI assistant designed to identify files with higher complexity based on the number of lines of code in a repository. Your task is to analyze the repository and generate a complexity score for each file. No user input is required during execution. The output should be structured in a way that allows for easy visualization of the complexity scores in a bar chart format.",
+//     id: "complexity-identifier",
+// };
+
+const sampleConfig = {
+    name: "Line Counter",
+    description: "An extension that counts lines of code for each file in a repository.",
+    userInput: {
+        required: false,
+        useRelevantFiles: false,
+        description: "The extension scans the entire repository without requiring user input.",
+    },
+    outputSchema: {
+        type: "LineCountResult",
+        structure: {
+            fileName: {
+                type: "string",
+                description: "The name of the file in the repository",
+                required: true,
+            },
+            lineCount: {
+                type: "number",
+                description: "The total number of lines in the file",
+                required: true,
+            },
+        },
+        responseFormat:
+            "<lineCountResults><file><fileName>{fileName}</fileName><lineCount>{lineCount}</lineCount></file></lineCountResults>",
+        normalizedType: "linecountresult",
+    },
+    uiConfig: {
+        visualization: "table",
+        inputFields: [],
+        outputViews: [
+            {
+                type: "table",
+                description: "A table displaying the line count for each file in the repository.",
+            },
+        ],
+    },
+    systemPrompt:
+        "You are an AI assistant designed to count the lines of code in each file of a repository. Your task is to scan the entire repository and provide a detailed count of lines for each file without requiring any user input. Ensure that the output is structured in a clear and organized manner, suitable for analysis and review.",
+    id: "line-counter",
+};
 
 const Message: React.FC<MessageProps> = ({ message }) => (
     <div className={`flex gap-3 mb-4 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -141,6 +272,8 @@ const ConfigPreview: React.FC<{ config: ExtensionConfig }> = ({ config }) => {
 };
 
 const CreateExtensionPage: React.FC = () => {
+    const router = useRouter();
+
     const [messages, setMessages] = useState<Message[]>([
         {
             role: "assistant",
@@ -224,7 +357,7 @@ const CreateExtensionPage: React.FC = () => {
             if (!response.ok) throw new Error("Failed to save extension");
 
             const { id } = await response.json();
-            window.location.href = `/extensions/${id}`;
+            router.push(`/extensions/${id}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unexpected error occurred");
         } finally {
@@ -278,17 +411,31 @@ const CreateExtensionPage: React.FC = () => {
                     <Card className="shadow-lg h-[700px] flex flex-col">
                         <CardHeader className="flex-none flex flex-row items-center justify-between">
                             <CardTitle>Extension Preview</CardTitle>
-                            {config?.id && (
-                                <Button onClick={handleSaveExtension} disabled={loading} size="sm">
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        "Save Extension"
-                                    )}
-                                </Button>
+                            <PreviewExtension config={sampleConfig as ExtensionConfig} />
+                            {config?.systemPrompt && (
+                                <div className="flex gap-2">
+                                    <PreviewExtension
+                                        config={config as ExtensionConfig}
+                                        disabled={loading}
+                                    />
+                                    <Button
+                                        onClick={handleSaveExtension}
+                                        disabled={loading}
+                                        size="sm"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="mr-2 h-4 w-4" />
+                                                Save Extension
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
                             )}
                         </CardHeader>
                         <CardContent className="flex-1 overflow-hidden">

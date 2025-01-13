@@ -5,13 +5,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProgressFeedProps {
     progress: string[];
+    slim?: boolean;
 }
 
-const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress }) => {
+const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, slim = false }) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (scrollAreaRef.current) {
+        if (scrollAreaRef.current && !slim) {
             const scrollElement = scrollAreaRef.current.querySelector(
                 "[data-radix-scroll-area-viewport]"
             );
@@ -19,8 +20,27 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress }) => {
                 scrollElement.scrollTop = scrollElement.scrollHeight;
             }
         }
-    }, [progress]);
+    }, [progress, slim]);
 
+    if (slim) {
+        // Slim view: Show only the latest message
+        const latestMessage = progress[progress.length - 1] || "No progress yet";
+        return (
+            <Card className="flex items-center h-12 px-4">
+                <p
+                    className={`text-sm truncate ${
+                        latestMessage.toLowerCase().includes("error")
+                            ? "text-red-500"
+                            : "text-foreground"
+                    }`}
+                >
+                    {latestMessage}
+                </p>
+            </Card>
+        );
+    }
+
+    // Full view: Show the complete progress feed
     return (
         <Card>
             <CardHeader>
@@ -53,7 +73,7 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress }) => {
                                         {message.startsWith("*") ? (
                                             <span className="flex items-center">
                                                 <span className="mr-2 text-primary">└─</span>
-                                                <span className="">{message.slice(1)}</span>
+                                                <span>{message.slice(1)}</span>
                                             </span>
                                         ) : (
                                             message

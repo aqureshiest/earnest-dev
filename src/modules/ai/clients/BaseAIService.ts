@@ -1,6 +1,5 @@
-import chalk from "chalk";
 import { createHash } from "crypto";
-import fs from "fs/promises";
+// import fs from "fs/promises";
 import path from "path";
 
 abstract class BaseAIService {
@@ -16,16 +15,17 @@ abstract class BaseAIService {
 
     protected async cacheResponse(key: string, response: AIResponse): Promise<void> {
         const cacheDir = path.join(process.cwd(), this.cacheDir);
-        await fs.mkdir(cacheDir, { recursive: true });
+        // await fs.mkdir(cacheDir, { recursive: true });
         const cacheFile = path.join(cacheDir, `${key}.json`);
-        await fs.writeFile(cacheFile, JSON.stringify(response));
+        // await fs.writeFile(cacheFile, JSON.stringify(response));
     }
 
     protected async getCachedResponse(key: string): Promise<AIResponse | null> {
         const cacheFile = path.join(process.cwd(), this.cacheDir, `${key}.json`);
         try {
-            const data = await fs.readFile(cacheFile, "utf-8");
-            return JSON.parse(data) as AIResponse;
+            // const data = await fs.readFile(cacheFile, "utf-8");
+            // return JSON.parse(data) as AIResponse;
+            return null;
         } catch (error) {
             return null;
         }
@@ -34,8 +34,6 @@ abstract class BaseAIService {
     protected getCacheKey(model: string, systemPrompt: string, prompt: string): string {
         const combined = `${model}${systemPrompt}${prompt}`;
         const key = createHash("md5").update(combined).digest("hex");
-        // console.log(chalk.blue("cache key", key));
-        // console.log(chalk.red("TEXT>", combined));
         return key;
     }
 }

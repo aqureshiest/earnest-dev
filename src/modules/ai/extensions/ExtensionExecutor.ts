@@ -1,8 +1,8 @@
 import { PrepareCodebase } from "../PrepareCodebase";
 import { DynamicAssistant } from "./DynamicAssistant";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
-import { ExtensionDataStore } from "./ExtensionDataStore";
 import { displayTime } from "@/modules/utils/displayTime";
+import { ExtensionConfig } from "./types";
 
 interface ExtensionRequest {
     taskId: string;
@@ -11,16 +11,11 @@ interface ExtensionRequest {
     repo: string;
     branch: string;
     model: string;
+    config: ExtensionConfig;
     params?: Record<string, any>;
 }
 
 export class ExtensionExecutor {
-    private dataStore: ExtensionDataStore;
-
-    constructor() {
-        this.dataStore = new ExtensionDataStore();
-    }
-
     async execute(request: ExtensionRequest) {
         const startTime = new Date().getTime();
         let totalCost = 0;
@@ -28,17 +23,16 @@ export class ExtensionExecutor {
         try {
             // Load extension configuration
             sendTaskUpdate(request.taskId, "progress", "Loading extension configuration...");
-            const config = await this.dataStore.loadExtensionConfig(request.extensionId);
 
             // Create dynamic assistant
-            const assistant = new DynamicAssistant(config);
+            const assistant = new DynamicAssistant(request.config);
 
             // Prepare codebase
             sendTaskUpdate(request.taskId, "progress", "Preparing codebase for analysis...");
             const prepareCodebase = new PrepareCodebase();
             const files = await prepareCodebase.prepare({
                 ...request,
-                task: config.name,
+                task: request.config.name,
                 files: [],
             });
 
@@ -46,7 +40,7 @@ export class ExtensionExecutor {
             const analysisRequest = {
                 taskId: request.taskId,
                 model: request.model,
-                task: config.name,
+                task: request.config.name,
                 repo: request.repo,
                 branch: request.branch,
                 owner: request.owner,

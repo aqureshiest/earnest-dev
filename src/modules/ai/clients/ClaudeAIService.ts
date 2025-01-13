@@ -13,19 +13,32 @@ export class ClaudeAIService extends BaseAIService {
     }
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
+        console.log(chalk.blue("----------------- Claude Service -----------------"));
+        console.log("> ", systemPrompt);
+        // print user prompt but condense section <existing_codebase>...</existing_codebase>
+        console.log(
+            "> ",
+            prompt.replace(
+                /<existing_codebase>[\s\S]*<\/existing_codebase>/g,
+                "<existing_codebase>.....</existing_codebase>"
+            )
+        );
+        console.log(chalk.blue("-------------------------------------------------"));
+
         const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
         const cachedResponse = await this.getCachedResponse(cacheKey);
         if (cachedResponse) {
             console.log(
                 chalk.green(this.constructor.name, "Using cached response for model", this.model)
             );
+            console.log(chalk.green("--- Claude Cached Response ---"));
+            console.log("response", cachedResponse.response);
+            console.log(chalk.green("-----------------------"));
             return cachedResponse;
         }
 
         try {
             console.log(this.constructor.name, "Generating response for model", this.model);
-            console.log("system prompt", systemPrompt);
-            console.log("user prompt", prompt);
 
             const LLM = LLMS.find((m) => m.model === this.model);
             if (!LLM) {
@@ -52,6 +65,9 @@ export class ClaudeAIService extends BaseAIService {
             if (!response) {
                 throw new Error("No response generated.");
             }
+            console.log("--- Claude Response ---");
+            console.log("response", response);
+            console.log("-----------------------");
 
             console.log("response usage", completion.usage);
             const { inputCost, outputCost } = calculateLLMCost(
