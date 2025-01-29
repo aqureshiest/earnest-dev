@@ -1,6 +1,6 @@
 import { ExtensionDataStore } from "@/modules/ai/extensions/ExtensionDataStore";
 import { notFound } from "next/navigation";
-import { ExtensionConfig } from "@/modules/ai/extensions/types";
+import { ExtensionConfig } from "@/types/extension";
 import ExtensionDetail from "@/app/components/ExtensionDetail";
 
 interface PageProps {

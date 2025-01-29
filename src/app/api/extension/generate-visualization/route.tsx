@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { OutputVisualizationGenerator } from "@/modules/ai/extensions/OutputVisualizationGenerator";
-import { ExtensionConfig } from "@/modules/ai/extensions/types";
+import { ExtensionConfig } from "@/types/extension";
 
 export async function POST(req: Request) {
     try {

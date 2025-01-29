@@ -1,5 +1,5 @@
 import { OpenAIService } from "../clients/OpenAIService";
-import { PromptGeneratorOutput } from "./types";
+import { PromptGeneratorOutput } from "../../../types/extension";
 
 // Example response for a line counter extension:
 // {

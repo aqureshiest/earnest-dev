@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { ExtensionConfig } from "./types";
+import { ExtensionConfig } from "../../../types/extension";
 
 export class ExtensionDataStore {
     private supabase: SupabaseClient;

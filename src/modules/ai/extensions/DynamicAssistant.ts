@@ -3,7 +3,7 @@ import { PromptBuilder } from "../support/PromptBuilder";
 import { TokenLimiter } from "../support/TokenLimiter";
 import { ResponseParser } from "../support/ResponseParser";
 import { CODEFILES_PLACEHOLDER } from "@/constants";
-import { ExtensionConfig } from "./types";
+import { ExtensionConfig } from "../../../types/extension";
 
 export class DynamicAssistant extends CodebaseChunksAssistant<any> {
     private responseParser: ResponseParser<any>;

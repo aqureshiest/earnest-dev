@@ -8,11 +8,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Send, GitBranch, CheckCircle, Save } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ExtensionConfig } from "@/modules/ai/extensions/types";
+import { ExtensionConfig } from "@/types/extension";
 import { Badge } from "@/components/ui/badge";
 import PreviewExtension from "@/app/components/PreviewExtension";
 import { useRouter } from "next/navigation";
-import ExtensionConfigProgress from "@/app/components/ExtensionConfigProgress";
 
 interface Message {
     role: "user" | "assistant";
@@ -245,7 +244,6 @@ const CreateExtensionPage: React.FC = () => {
         <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-semibold text-center mb-8">Create Extension</h1>
-                <ExtensionConfigProgress config={config} />
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Left Side - Chat Interface */}

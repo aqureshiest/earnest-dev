@@ -2,7 +2,7 @@ import { PrepareCodebase } from "../PrepareCodebase";
 import { DynamicAssistant } from "./DynamicAssistant";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { displayTime } from "@/modules/utils/displayTime";
-import { ExtensionConfig } from "./types";
+import { ExtensionConfig } from "../../../types/extension";
 
 interface ExtensionRequest {
     taskId: string;

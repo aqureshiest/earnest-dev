@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, Circle } from "lucide-react";
-import { ExtensionConfig } from "@/modules/ai/extensions/types";
+import { ExtensionConfig } from "@/types/extension";
 
 const ExtensionConfigProgress = ({
     config,
@@ -34,7 +34,7 @@ const ExtensionConfigProgress = ({
         {
             title: "Views",
             description: "Output visualization",
-            complete: Boolean(config?.uiConfig?.outputViews?.length > 0),
+            complete: Boolean(config?.uiConfig?.outputViews?.length ?? 0 > 0),
         },
     ];
 

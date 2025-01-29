@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { ExtensionConfig } from "@/modules/ai/extensions/types";
+import { ExtensionConfig } from "@/types/extension";
 import AIModelSelection from "./AIModelSelection";
 import DynamicSchemaViewer from "./DynamicSchemaViewer";
 import ProgressFeed from "./ProgressFeed";

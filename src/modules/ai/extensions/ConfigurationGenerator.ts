@@ -1,6 +1,6 @@
 import { OpenAIService } from "../clients/OpenAIService";
 import { PromptGenerator } from "./PromptGenerator";
-import { ExtensionConfig } from "./types";
+import { ExtensionConfig } from "../../../types/extension";
 
 interface ConversationResponse {
     message: string;

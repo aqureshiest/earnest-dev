@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, Play, Eye } from "lucide-react";
-import { ExtensionConfig } from "@/modules/ai/extensions/types";
+import { ExtensionConfig } from "@/types/extension";
 import ProgressFeed from "./ProgressFeed";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { VisualizationConfig } from "@/modules/ai/extensions/OutputVisualizationGenerator";

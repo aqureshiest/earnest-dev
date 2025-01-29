@@ -1,5 +1,5 @@
 import { OpenAIService } from "../clients/OpenAIService";
-import { ExtensionConfig } from "./types";
+import { ExtensionConfig } from "@/types/extension";
 
 export interface VisualizationConfig {
     type: string; // e.g., "table", "tree", "chart", "code", "swagger"
