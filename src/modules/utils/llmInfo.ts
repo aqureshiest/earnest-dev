@@ -35,6 +35,14 @@ export const LLM_MODELS = {
         id: "us.anthropic.claude-3-5-haiku-20241022-v1:0",
         name: "AWS Bedrock Claude 3.5 Haiku V2",
     },
+    OLLAMA_DEEPSEEK: {
+        id: "deepseek-r1:latest",
+        name: "OLLama DeepSeek",
+    },
+    OLLAMA_LLAMA: {
+        id: "llama3:latest",
+        name: "OLLama Llama",
+    },
 };
 
 export const LLMS = [
@@ -104,5 +112,20 @@ export const LLMS = [
         outputCost: 5,
         maxInputTokens: 50000, //200000,
         maxOutputTokens: 8192,
+    },
+    // OLLama
+    {
+        model: LLM_MODELS.OLLAMA_DEEPSEEK.id,
+        inputCost: 0,
+        outputCost: 0,
+        maxInputTokens: 20000,
+        maxOutputTokens: 4096,
+    },
+    {
+        model: LLM_MODELS.OLLAMA_LLAMA.id,
+        inputCost: 0,
+        outputCost: 0,
+        maxInputTokens: 20000,
+        maxOutputTokens: 4096,
     },
 ];

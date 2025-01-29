@@ -64,7 +64,7 @@ ${pdfResponse.images
         repo: repo,
         branch: "main",
         task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET.id,
         files: [],
         params: {
             technicalDesignDoc: pdfXml,

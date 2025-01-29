@@ -30,13 +30,14 @@ export async function POST(req: Request) {
         }
 
         // Generate full configuration if conversation is complete
-        if (response.conversationComplete && !config.systemPrompt) {
+        if (response.conversationComplete /* && !config.systemPrompt*/) {
             config = await configGenerator.generateFullConfig(config);
         }
 
         return NextResponse.json({
             message: response.message,
             config,
+            conversationComplete: response.conversationComplete,
         });
     } catch (error) {
         console.error("Error generating extension config:", error);

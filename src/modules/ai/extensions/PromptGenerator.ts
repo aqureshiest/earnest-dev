@@ -1,6 +1,40 @@
 import { OpenAIService } from "../clients/OpenAIService";
 import { PromptGeneratorOutput } from "./types";
 
+// Example response for a line counter extension:
+// {
+//     "systemPrompt": "You are an AI assistant designed to count lines of code...",
+//     "outputSchema": {
+//         "type": "LineCountResult",
+//         "structure": {
+//             "type": "array",
+//             "items": {
+//                 "type": "object",
+//                 "properties": {
+//                     "fileName": {
+//                         "type": "string",
+//                         "description": "Name of the analyzed file",
+//                         "required": true
+//                     },
+//                     "lineCount": {
+//                         "type": "number",
+//                         "description": "Number of lines in the file",
+//                         "required": true
+//                     }
+//                 }
+//             }
+//         }
+//     },
+//     "uiConfig": {
+//         "visualization": "table",
+//         "inputFields": [],
+//         "outputViews": [{
+//             "type": "table",
+//             "description": "Table showing line counts per file"
+//         }]
+//     }
+// }
+
 export class PromptGenerator {
     private readonly aiService: OpenAIService;
 
@@ -11,9 +45,8 @@ The configuration will contain information about what the extension should do, a
 The prompt you create should include:
 1. Clear task definition and scope
 2. Specific instructions for the AI to follow
-3. Structured response format in XML
-4. Validation rules and constraints
-5. Error handling guidelines
+3. JSON schema for response validation
+4. Error handling guidelines
 
 Focus on making the prompt:
 - Precise and unambiguous
@@ -27,68 +60,34 @@ interface PromptGeneratorOutput {
     systemPrompt: string;   // The complete system prompt for the AI
     outputSchema: {
         type: string;       // A descriptive name for the output type
-        structure: {        // TypeScript-like schema of the output
+        resultKey: string;  // Key in the output object that contains the results
+        structure: {        // JSON schema of the expected output
             [key: string]: {
                 type: string;
                 description: string;
                 required?: boolean;
+                items?: any;  // For array types
             };
         };
-        responseFormat: string;  // XML format specification
     };
     uiConfig: {
-        visualization: string;  // How the output should be displayed (e.g., "table", "tree", "chart")
+        visualization: string;
         inputFields: Array<{
             name: string;
             type: "text" | "select" | "multiselect" | "boolean";
             label: string;
             description: string;
             required: boolean;
-            options?: string[];  // For select/multiselect types
+            options?: string[];
             default?: any;
         }>;
         outputViews: Array<{
-            type: string;      // View type (e.g., "summary", "detailed", "visual")
+            type: string;
             description: string;
         }>;
     };
 }
-
-Ensure you maintain consistency between:
-1. The system prompt's expected output format
-2. The outputSchema structure
-3. The visualization and output views
-
-Example response structure:
-{
-    "systemPrompt": "You are an AI assistant...",
-    "outputSchema": {
-        "type": "AnalysisResult",
-        "structure": {
-            "summary": {
-                "type": "string",
-                "description": "Brief overview of the analysis",
-                "required": true
-            }
-        },
-        "responseFormat": "<analysis>...</analysis>"
-    },
-    "uiConfig": {
-        "visualization": "structured-text",
-        "inputFields": [{
-            "name": "depth",
-            "type": "select",
-            "label": "Analysis Depth",
-            "description": "How detailed should the analysis be",
-            "required": true,
-            "options": ["basic", "detailed", "comprehensive"]
-        }],
-        "outputViews": [{
-            "type": "summary",
-            "description": "Condensed overview of results"
-        }]
-    }
-}`;
+`;
 
     constructor() {
         this.aiService = new OpenAIService();
@@ -138,7 +137,7 @@ Example response structure:
             if (
                 !parsed.outputSchema.type ||
                 !parsed.outputSchema.structure ||
-                !parsed.outputSchema.responseFormat
+                !parsed.outputSchema.resultKey
             ) {
                 throw new Error("Invalid output schema structure");
             }

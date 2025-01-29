@@ -5,9 +5,8 @@ export interface ExtensionConfig {
     systemPrompt: string;
     outputSchema: {
         type: string;
-        structure: Record<string, any>;
-        responseFormat: string;
-        normalizedType?: string;
+        structure: Record<string, any>; // The JSON schema
+        resultKey: string;
     };
     uiConfig: {
         visualization: string;
@@ -39,8 +38,3 @@ export type PromptGeneratorOutput = Pick<
     ExtensionConfig,
     "systemPrompt" | "outputSchema" | "uiConfig"
 >;
-
-// Helper function to normalize schema types
-export function normalizeSchemaType(type: string): string {
-    return type.toLowerCase().replace(/\s+/g, "_");
-}

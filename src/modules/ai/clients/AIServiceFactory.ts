@@ -4,6 +4,7 @@ import { OpenAIService } from "./OpenAIService";
 import { ClaudeAIService } from "./ClaudeAIService";
 import { GeminiAIService } from "./GeminiAIService";
 import { BedrockAIService } from "./BedrockAIService";
+import { OllamaAIService } from "./OllamaAIService";
 
 class AIServiceFactory {
     static createAIService(model: string): BaseAIService {
@@ -21,6 +22,9 @@ class AIServiceFactory {
             case LLM_MODELS.AWS_BEDROCK_CLAUDE_35_SONNET_V2.id:
             case LLM_MODELS.AWS_BEDROCK_CLAUDE_35_HAIKU_V2.id:
                 return new BedrockAIService(model);
+            case LLM_MODELS.OLLAMA_DEEPSEEK.id:
+            case LLM_MODELS.OLLAMA_LLAMA.id:
+                return new OllamaAIService(model);
             default:
                 throw new Error(`Model ${model} not supported`);
         }

@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { calculateLLMCost } from "../../utils/llmCost";
-import { LLM_MODELS } from "../../utils/llmInfo";
+import { LLM_MODELS, LLMS } from "../../utils/llmInfo";
 import { BaseAIService } from "./BaseAIService";
 import chalk from "chalk";
 
@@ -38,6 +38,11 @@ export class OpenAIService extends BaseAIService {
         }
 
         try {
+            const LLM = LLMS.find((m) => m.model === this.model);
+            if (!LLM) {
+                throw new Error(`LLM {this.model} not found`);
+            }
+
             console.log(this.constructor.name, "Generating response for model", this.model);
             const completion = await this.openai.chat.completions.create({
                 messages: [
@@ -51,6 +56,7 @@ export class OpenAIService extends BaseAIService {
                     },
                 ],
                 model: this.model,
+                max_completion_tokens: LLM.maxOutputTokens,
                 temperature: 0,
             });
 

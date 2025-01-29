@@ -1,7 +1,6 @@
 import { OpenAIService } from "../clients/OpenAIService";
 import { PromptGenerator } from "./PromptGenerator";
 import { ExtensionConfig } from "./types";
-import { normalizeSchemaType } from "./types";
 
 interface ConversationResponse {
     message: string;
@@ -21,9 +20,7 @@ interface ExtensionConfig {
     systemPrompt: string;   
     outputSchema: {
         type: string;
-        structure: Record<string, any>;
-        responseFormat: string;
-        normalizedType?: string;
+        structure: Record<string, any>;  // JSON schema of the expected output        
     };
     uiConfig: {
         visualization: string;
@@ -55,8 +52,9 @@ Focus on gathering these key aspects through conversation:
 
 3. Output Format:
    - Get a description of the desired output format
-   - Example: "swagger documentation for api endpoints"
-   - This will help populate: outputSchema and uiConfig.outputViews
+   - Example: "analysis results with file metrics"
+   - This will help populate: outputSchema.type and outputSchema.structure
+   - Use proper JSON schema format for the structure
 
 IMPORTANT GUIDELINES:
 - If this is the first message and contains a clear description, use it to populate name/description and move to gathering input requirements
@@ -132,6 +130,9 @@ Respond with a JSON object:
             JSON.stringify(config, null, 2)
         );
 
+        console.log("original config ", config);
+        console.log("Updated config ", fullConfig);
+
         return {
             ...config,
             ...fullConfig,
@@ -139,10 +140,6 @@ Respond with a JSON object:
                 ?.toLowerCase()
                 .replace(/[^a-z0-9]+/g, "-")
                 .replace(/(^-|-$)/g, ""),
-            outputSchema: {
-                ...fullConfig.outputSchema,
-                normalizedType: normalizeSchemaType(fullConfig.outputSchema.type),
-            },
         } as ExtensionConfig;
     }
 }

@@ -14,6 +14,7 @@ import ProgressFeed from "./ProgressFeed";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { VisualizationConfig } from "@/modules/ai/extensions/OutputVisualizationGenerator";
 import VisualizationRenderer from "./VisualizationRenderer";
+import JsonViewer from "./JsonViewer";
 
 interface PreviewExtensionProps {
     config: ExtensionConfig;
@@ -28,12 +29,7 @@ const PreviewExtension: React.FC<PreviewExtensionProps> = ({ config, disabled })
     const [visualizationConfig, setVisualizationConfig] = useState<VisualizationConfig | null>(
         null
     );
-
-    // useEffect(() => {
-    //     if (result && !visualizationConfig) {
-    //         generateVisualization();
-    //     }
-    // }, [result]);
+    const [viewMode, setViewMode] = useState<"raw" | "formatted">("raw");
 
     const generateVisualization = async () => {
         try {
@@ -93,14 +89,13 @@ const PreviewExtension: React.FC<PreviewExtensionProps> = ({ config, disabled })
             case "complete":
                 // Reset visualization config when new results arrive
                 setVisualizationConfig(null);
-                // Normalize the result if a normalized type is provided
-                console.log(data.message.results);
-                const normalizedType = config.outputSchema.normalizedType;
-                if (normalizedType && data.message.results[normalizedType]) {
-                    setResult(JSON.parse(data.message.results[normalizedType]));
-                } else {
-                    setResult(JSON.parse(data.message.results));
-                }
+                const parsedResult =
+                    typeof data.message.results === "string"
+                        ? JSON.parse(data.message.results)
+                        : data.message.results;
+                setResult(parsedResult);
+                // Automatically generate visualization but don't show it yet
+                generateVisualization();
                 break;
             case "final":
                 setProgress((prev) => [...prev, data.message]);
@@ -163,9 +158,25 @@ const PreviewExtension: React.FC<PreviewExtensionProps> = ({ config, disabled })
                             Testing with sample repository:{" "}
                             <span className="font-semibold">aqureshiest/bookstore</span>
                         </div>
-                        <Button onClick={() => generateVisualization()} disabled={loading}>
-                            Generate Visualization
-                        </Button>
+                        {result && (
+                            <div className="flex gap-2">
+                                <Button
+                                    variant={viewMode === "raw" ? "default" : "outline"}
+                                    onClick={() => setViewMode("raw")}
+                                    size="sm"
+                                >
+                                    Raw Output
+                                </Button>
+                                <Button
+                                    variant={viewMode === "formatted" ? "default" : "outline"}
+                                    onClick={() => setViewMode("formatted")}
+                                    size="sm"
+                                    disabled={!visualizationConfig}
+                                >
+                                    Formatted View
+                                </Button>
+                            </div>
+                        )}
                         <Button onClick={handlePreview} disabled={loading}>
                             {loading ? (
                                 <>
@@ -185,13 +196,11 @@ const PreviewExtension: React.FC<PreviewExtensionProps> = ({ config, disabled })
 
                     {result && (
                         <div className="space-y-4 overflow-auto max-h-[500px]">
-                            {visualizationConfig ? (
+                            {viewMode === "formatted" && visualizationConfig ? (
                                 <VisualizationRenderer data={result} config={visualizationConfig} />
                             ) : (
                                 <Card className="p-4">
-                                    <pre className="whitespace-pre-wrap bg-muted p-4 rounded-lg overflow-auto">
-                                        {JSON.stringify(result, null, 2)}
-                                    </pre>
+                                    <JsonViewer data={result} />
                                 </Card>
                             )}
                         </div>

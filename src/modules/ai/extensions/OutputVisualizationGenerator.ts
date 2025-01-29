@@ -74,9 +74,9 @@ You MUST return a JSON object that matches this structure exactly:
                 "chartType": "string",  // Optional - For chart type
                 "codeLanguage": "string", // Optional - For code type
                 "treeConfig": {         // Optional - For tree type
-                    "nodeKey": "string",
-                    "childrenKey": "string",
-                    "labelKey": "string"
+                    "nodeKey": "string", // unique key for each node
+                    "childrenKey": "string", // key to access children nodes
+                    "labelKey": "string" // key to display as node label
                 }
             }
         }

@@ -36,15 +36,77 @@ interface VisualizationProps {
 }
 
 export const DataTable: React.FC<VisualizationProps> = ({ data, config }) => {
-    const rows = Array.isArray(data) ? data : [data];
+    // Convert data to array format if it's an object
+    const getRowsFromData = (inputData: any): any[] => {
+        if (Array.isArray(inputData)) {
+            return inputData;
+        }
+
+        // If it's an object with a single key containing an array, use that array
+        if (typeof inputData === "object" && inputData !== null) {
+            const keys = Object.keys(inputData);
+            if (keys.length === 1 && Array.isArray(inputData[keys[0]])) {
+                return inputData[keys[0]];
+            }
+
+            // Convert object to array of values
+            return Object.entries(inputData).map(([key, value]) => {
+                if (typeof value === "object" && value !== null) {
+                    // Type check for metrics property
+                    const valueWithMetrics = value as { metrics?: Record<string, any> };
+                    const flattenedMetrics = valueWithMetrics.metrics
+                        ? Object.entries(valueWithMetrics.metrics).reduce(
+                              (acc, [metricKey, metricValue]) => ({
+                                  ...acc,
+                                  [`metrics.${metricKey}`]: metricValue,
+                              }),
+                              {}
+                          )
+                        : {};
+
+                    return {
+                        key,
+                        ...value,
+                        ...flattenedMetrics,
+                    };
+                }
+                return { key, value };
+            });
+        }
+
+        return [inputData];
+    };
+
+    const rows = getRowsFromData(data);
+
+    // Get value from an object using dot notation path
+    const getNestedValue = (obj: any, path: string) => {
+        return _.get(obj, path);
+    };
+
+    // If columns are not specified, generate them from the first row
     const columns =
-        config.columns || Object.keys(rows[0] || {}).map((key) => ({ key, label: key }));
+        config.columns ||
+        (rows[0]
+            ? Object.keys(rows[0])
+                  .filter((key) => typeof rows[0][key] !== "object") // Filter out nested objects
+                  .map((key) => ({
+                      key,
+                      label: key
+                          .split(".")
+                          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(" "),
+                  }))
+            : []);
 
     return (
         <Card>
             {config.title && (
                 <CardHeader>
                     <CardTitle>{config.title}</CardTitle>
+                    {config.description && (
+                        <p className="text-sm text-muted-foreground">{config.description}</p>
+                    )}
                 </CardHeader>
             )}
             <CardContent>
@@ -61,7 +123,9 @@ export const DataTable: React.FC<VisualizationProps> = ({ data, config }) => {
                             {rows.map((row: any, i: number) => (
                                 <TableRow key={i}>
                                     {columns.map((col: any) => (
-                                        <TableCell key={col.key}>{row[col.key]}</TableCell>
+                                        <TableCell key={col.key}>
+                                            {getNestedValue(row, col.key)?.toString() || ""}
+                                        </TableCell>
                                     ))}
                                 </TableRow>
                             ))}
@@ -74,7 +138,8 @@ export const DataTable: React.FC<VisualizationProps> = ({ data, config }) => {
 };
 
 export const DataTree: React.FC<VisualizationProps> = ({ data, config }) => {
-    const { nodeKey, childrenKey, labelKey } = config.treeConfig || {};
+    const { nodeKey, childrenKey, labelKey } = config || {};
+    console.log("Tree config:", config);
 
     const TreeNode: React.FC<{ node: any; depth?: number }> = ({ node, depth = 0 }) => {
         const [isOpen, setIsOpen] = useState(true);
@@ -93,6 +158,10 @@ export const DataTree: React.FC<VisualizationProps> = ({ data, config }) => {
                     )}
                     {!hasChildren && <div className="w-4" />}
                     <span className="text-sm">{node[labelKey]}</span>
+                    {/* optionally show type */}
+                    {node.type && (
+                        <span className="text-xs text-muted-foreground ml-2">{node.type}</span>
+                    )}
                 </div>
                 {isOpen && hasChildren && (
                     <div className="border-l border-border pl-2">
@@ -110,6 +179,9 @@ export const DataTree: React.FC<VisualizationProps> = ({ data, config }) => {
             {config.title && (
                 <CardHeader>
                     <CardTitle>{config.title}</CardTitle>
+                    {config.description && (
+                        <p className="text-sm text-muted-foreground">{config.description}</p>
+                    )}
                 </CardHeader>
             )}
             <CardContent>
@@ -261,6 +333,7 @@ export const CodeView: React.FC<VisualizationProps> = ({ data, config }) => {
 };
 
 export const MarkdownView: React.FC<VisualizationProps> = ({ data, config }) => {
+    console.log("Markdown data:", data);
     const content = typeof data === "string" ? data : JSON.stringify(data, null, 2);
 
     return (
@@ -271,7 +344,7 @@ export const MarkdownView: React.FC<VisualizationProps> = ({ data, config }) => 
                 </CardHeader>
             )}
             <CardContent>
-                <ScrollArea className="h-[400px]">
+                <ScrollArea>
                     <div className="prose dark:prose-invert max-w-none p-4">
                         <ReactMarkdown>{content}</ReactMarkdown>
                     </div>
@@ -312,21 +385,31 @@ export const VisualizationRenderer: React.FC<{
     data: any;
     config: any;
 }> = ({ data, config }) => {
+    console.log("Visualization config:", config);
+
     // Get data - if dataPath is not specified, use entire data object
     const getData = (path?: string) => {
         if (!path) return data;
-        return _.get(data, path, data); // fallback to entire data if path not found
+        // Use lodash get to extract the nested data
+        const result = _.get(data, path);
+        // If result not found with the path, return fallback
+        return result ?? data;
     };
 
     return (
         <div className="space-y-4">
             {config.components.map((component: any) => {
                 const componentData = getData(component.dataPath);
+                console.log(`Component ${component.id} data:`, componentData);
 
                 switch (component.type) {
                     case "table":
                         return (
-                            <DataTable key={component.id} data={data} config={component.config} />
+                            <DataTable
+                                key={component.id}
+                                data={componentData}
+                                config={component.config}
+                            />
                         );
                     case "tree":
                         return (

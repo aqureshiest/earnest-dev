@@ -13,6 +13,7 @@ import { codeanalysis } from "./audit/codeanalysis";
 import { rds } from "./rds";
 import { vectorsearch } from "./vectorsearch";
 import { ext } from "./exts/ext";
+import { parsePrd } from "./prd/parse";
 
 const program = new Command();
 
@@ -31,5 +32,8 @@ program.command("rds").action(rds);
 program.command("vectorsearch").action(vectorsearch);
 
 program.command("ext").action(ext);
+
+// prd
+program.command("parsePrd").action(parsePrd);
 
 program.parse(process.argv);

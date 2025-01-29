@@ -90,7 +90,6 @@ const CategorySection: React.FC<CategorySectionProps> = ({
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                     <h2 className={`text-xl font-semibold ${accentColor}`}>{title}</h2>
-                    <div className="h-px w-12 bg-border/60" />
                 </div>
                 {showCreateButton && (
                     <Link href="/create-extension">
@@ -144,19 +143,6 @@ const HomePage: React.FC = () => {
                 color: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
             }}
         />,
-        <ToolCard
-            key="code-analysis"
-            href="/code-analysis"
-            icon={GitFork}
-            title="Design Patterns Audit"
-            description="AI-powered design pattern analysis"
-            content="Enhance your codebase quality with automated design pattern analysis and receive intelligent architectural improvement suggestions."
-            buttonText="Audit Repository"
-            badge={{
-                text: "Beta",
-                color: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
-            }}
-        />,
     ];
 
     const inProgressTools: React.ReactNode[] = [
@@ -168,6 +154,19 @@ const HomePage: React.FC = () => {
             description="Automated project planning assistant"
             content="Transform technical design documents into well-structured Jira epics and tickets with intelligent task breakdown and estimation."
             buttonText="Generate Tickets"
+            badge={{
+                text: "Beta",
+                color: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
+            }}
+        />,
+        <ToolCard
+            key="code-analysis"
+            href="/code-analysis"
+            icon={GitFork}
+            title="Design Patterns Audit"
+            description="AI-powered design pattern analysis"
+            content="Enhance your codebase quality with automated design pattern analysis and receive intelligent architectural improvement suggestions."
+            buttonText="Audit Repository"
             badge={{
                 text: "Beta",
                 color: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
@@ -192,25 +191,25 @@ const HomePage: React.FC = () => {
 
             <div className="space-y-2">
                 <CategorySection
-                    title="Production Ready"
+                    title="Ready To Use"
                     tools={readyTools}
                     backgroundColor="bg-background"
                     accentColor="text-emerald-600 dark:text-emerald-400"
                 />
 
                 <CategorySection
-                    title="Community Extensions"
-                    tools={extensionTools}
+                    title="Under Development"
+                    tools={inProgressTools}
                     backgroundColor="bg-muted/30"
-                    accentColor="text-purple-600 dark:text-purple-400"
-                    showCreateButton={true}
+                    accentColor="text-blue-600 dark:text-blue-400"
                 />
 
                 <CategorySection
-                    title="Under Development"
-                    tools={inProgressTools}
+                    title="Community Extensions"
+                    tools={extensionTools}
                     backgroundColor="bg-background"
-                    accentColor="text-blue-600 dark:text-blue-400"
+                    accentColor="text-purple-600 dark:text-purple-400"
+                    showCreateButton={true}
                 />
             </div>
         </div>

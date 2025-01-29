@@ -20,74 +20,43 @@ export class DynamicAssistant extends CodebaseChunksAssistant<any> {
     }
 
     getPrompt(params?: any): string {
+        const resultKey = this.extensionConfig.outputSchema.resultKey;
         return `
 Here are the existing code files you will be working with:
 <existing_codebase>
 ${CODEFILES_PLACEHOLDER}
 </existing_codebase>
 
-Output format: ${this.extensionConfig.outputSchema.responseFormat}
-
-Format the response in the following XML structure:
-<${this.extensionConfig.outputSchema.normalizedType}>
+Your response must be a valid JSON object with a key '${resultKey}' containing data that follows this schema:
 ${JSON.stringify(this.extensionConfig.outputSchema.structure, null, 2)}
-</${this.extensionConfig.outputSchema.normalizedType}>
 
-Analyze the codebase according to the instructions above and provide your response in the specified XML format.
-Important: Preserve the case of enclosing tag as ${
-            this.extensionConfig.outputSchema.normalizedType
-        }.
-`;
+Example response:
+{
+    "${resultKey}": // Your analyzed data here
+}
+
+Analyze the codebase according to the instructions above and return the results in the specified format.`;
     }
 
     protected handleResponse(response: string): any {
-        // Convert the schema type to both camelCase and snake_case for flexibility
-        const schemaPascalCase = this.extensionConfig.outputSchema.type.replace(/\s+/g, "");
-        const schemaSnakeCase = this.extensionConfig.outputSchema.type
-            .toLowerCase()
-            .replace(/\s+/g, "_");
-        const schemaCamelCase =
-            schemaPascalCase.charAt(0).toLowerCase() + schemaPascalCase.slice(1);
-
-        // Try matching different case formats
-        const formats = [schemaPascalCase, schemaSnakeCase, schemaCamelCase];
-        let matchedBlock = "";
-
-        for (const format of formats) {
-            const regex = new RegExp(`<${format}>[\\s\\S]*?<\\/${format}>`, "i");
-            const match = response.match(regex);
-            if (match) {
-                matchedBlock = match[0];
-                break;
+        try {
+            // First try to find JSON in a code block
+            const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (codeBlockMatch) {
+                const result = JSON.parse(codeBlockMatch[1]);
+                return result;
             }
+
+            // Fallback to looking for raw JSON
+            const jsonMatch = response.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+            if (jsonMatch) {
+                const result = JSON.parse(jsonMatch[0]);
+                return result;
+            }
+        } catch (error) {
+            console.error("Failed to parse response:", error);
+            throw error;
         }
-
-        if (!matchedBlock) {
-            console.error("Response:", response);
-            console.error("Expected formats:", formats);
-            throw new Error(
-                `No matching block found in the response for formats: ${formats.join(", ")}`
-            );
-        }
-
-        // Parse the response using the schema structure
-        const options = {
-            ignoreAttributes: false,
-            attributeNamePrefix: "",
-            isArray: (name: string, jpath: string) => {
-                // Determine if a field should be treated as an array based on schema
-                const path = jpath.split(".");
-                let current = this.extensionConfig.outputSchema.structure;
-                for (const segment of path) {
-                    if (!current) break;
-                    current = current[segment];
-                }
-                return current?.type === "array";
-            },
-        };
-
-        const parsedData = this.responseParser.parse(matchedBlock, options);
-        return parsedData;
     }
 
     protected aggregateResponses(responses: (any | null)[]): any {
