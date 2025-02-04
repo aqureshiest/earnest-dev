@@ -1,17 +1,34 @@
 import { createHash } from "crypto";
 import fs from "fs/promises";
 import path from "path";
+import chalk from "chalk";
 
-abstract class BaseAIService {
+export interface AIResponse {
+    response: string;
+    inputTokens: number;
+    outputTokens: number;
+    cost: number;
+}
+
+export abstract class BaseAIService {
     protected model: string;
-
     private cacheDir: string = ".ai_cache";
+    private readonly debug: boolean;
 
     constructor(model: string) {
         this.model = model;
+        this.debug = process.env.AI_SERVICE_DEBUG === "true";
     }
 
     abstract generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse>;
+
+    generateImageResponse(
+        systemPrompt: string,
+        prompt: string,
+        image: Buffer
+    ): Promise<AIResponse> {
+        throw new Error("Method not implemented.");
+    }
 
     protected async cacheResponse(key: string, response: AIResponse): Promise<void> {
         const cacheDir = path.join(process.cwd(), this.cacheDir);
@@ -35,6 +52,38 @@ abstract class BaseAIService {
         const key = createHash("md5").update(combined).digest("hex");
         return key;
     }
-}
 
-export { BaseAIService };
+    protected logServiceHeader(serviceName: string): void {
+        if (!this.debug) return;
+        console.log(chalk.blue(`----------------- ${serviceName} -----------------`));
+    }
+
+    protected logPrompts(systemPrompt: string, prompt: string): void {
+        if (!this.debug) return;
+        console.log("> ", systemPrompt);
+        // Condense section with existing_codebase tags
+        console.log(
+            "> ",
+            prompt.replace(
+                /<existing_codebase>[\s\S]*<\/existing_codebase>/g,
+                "<existing_codebase>.....</existing_codebase>"
+            )
+        );
+    }
+
+    protected logResponse(response: string | undefined, source: string = ""): void {
+        if (!this.debug) return;
+        console.log(`--- ${source} Response ---`);
+        console.log("response", response);
+        console.log("-".repeat(source.length + 15));
+    }
+
+    protected logCacheHit(serviceName: string): void {
+        if (!this.debug) return;
+        console.log(chalk.green(serviceName, "Using cached response for model", this.model));
+    }
+
+    protected logError(message: string, error: unknown): void {
+        console.error(message, error);
+    }
+}

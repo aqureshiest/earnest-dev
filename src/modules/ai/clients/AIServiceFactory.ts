@@ -11,6 +11,7 @@ class AIServiceFactory {
         switch (model) {
             case LLM_MODELS.OPENAI_GPT_4O_MINI.id:
             case LLM_MODELS.OPENAI_GPT_4O.id:
+            case "o3-mini-2025-01-31":
                 return new OpenAIService(model);
             case LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU.id:
             case LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET.id:

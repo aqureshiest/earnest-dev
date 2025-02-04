@@ -26,7 +26,7 @@ export const misc = async () => {
     const xml = formatXml(copy);
     fs.writeFileSync(file.replace(".xml", "-no-tech-details.xml"), xml);
 
-    const aiService = AIServiceFactory.createAIService(LLM_MODELS.OPENAI_GPT_4O);
+    const aiService = AIServiceFactory.createAIService(LLM_MODELS.OPENAI_GPT_4O.id);
     const response = await aiService.generateResponse(
         `
 You are a project manager who is responsible for planning a new project. Your task is to create a project plan using

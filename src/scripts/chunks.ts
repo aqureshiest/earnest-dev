@@ -118,7 +118,7 @@ export const chunks = async () => {
         repo: "laps-snapshot",
         branch: "main",
         task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU,
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU.id,
         files: [],
         params: {},
     };

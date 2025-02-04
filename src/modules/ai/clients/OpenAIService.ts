@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 import { calculateLLMCost } from "../../utils/llmCost";
 import { LLM_MODELS, LLMS } from "../../utils/llmInfo";
-import { BaseAIService } from "./BaseAIService";
-import chalk from "chalk";
+import { BaseAIService, AIResponse } from "./BaseAIService";
+import { createHash } from "crypto";
 
 export class OpenAIService extends BaseAIService {
     private openai: OpenAI;
@@ -13,37 +13,24 @@ export class OpenAIService extends BaseAIService {
     }
 
     async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
-        console.log(chalk.blue("----------------- OpenAI Service -----------------"));
-        console.log("> ", systemPrompt);
-        // print user prompt but condense section <existing_codebase>...</existing_codebase>
-        console.log(
-            "> ",
-            prompt.replace(
-                /<existing_codebase>[\s\S]*<\/existing_codebase>/g,
-                "<existing_codebase>.....</existing_codebase>"
-            )
-        );
-        console.log(chalk.blue("-------------------------------------------------"));
+        this.logServiceHeader("OpenAI Service");
+        this.logPrompts(systemPrompt, prompt);
 
         const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
         const cachedResponse = await this.getCachedResponse(cacheKey);
+
         if (cachedResponse) {
-            console.log(
-                chalk.green(this.constructor.name, "Using cached response for model", this.model)
-            );
-            console.log(chalk.green("--- OpenAI Cached Response ---"));
-            console.log("response", cachedResponse.response);
-            console.log(chalk.green("-----------------------"));
+            this.logCacheHit(this.constructor.name);
+            this.logResponse(cachedResponse.response, "OpenAI Cached");
             return cachedResponse;
         }
 
         try {
             const LLM = LLMS.find((m) => m.model === this.model);
             if (!LLM) {
-                throw new Error(`LLM {this.model} not found`);
+                throw new Error(`LLM ${this.model} not found`);
             }
 
-            console.log(this.constructor.name, "Generating response for model", this.model);
             const completion = await this.openai.chat.completions.create({
                 messages: [
                     {
@@ -61,9 +48,7 @@ export class OpenAIService extends BaseAIService {
             });
 
             const response = completion.choices[0]?.message?.content?.trim();
-            console.log("--- OpenAI Response ---");
-            console.log("response", response);
-            console.log("-----------------------");
+            this.logResponse(response, "OpenAI");
 
             if (!response) {
                 throw new Error("No response generated.");
@@ -85,7 +70,86 @@ export class OpenAIService extends BaseAIService {
             await this.cacheResponse(cacheKey, result);
             return result;
         } catch (error) {
-            console.error("Error generating AI response:", error);
+            this.logError("Error generating AI response:", error);
+            throw error;
+        }
+    }
+
+    async generateImageResponse(
+        systemPrompt: string,
+        textPrompt: string,
+        image: Buffer
+    ): Promise<AIResponse> {
+        this.logServiceHeader("OpenAI Image Service");
+        this.logPrompts(systemPrompt, textPrompt);
+
+        const imageHash = createHash("sha256").update(image).digest("hex");
+        const cacheKey = this.getCacheKey(this.model, systemPrompt, textPrompt + imageHash);
+
+        const cachedResponse = await this.getCachedResponse(cacheKey);
+        if (cachedResponse) {
+            this.logCacheHit(this.constructor.name);
+            return cachedResponse;
+        }
+
+        try {
+            const LLM = LLMS.find((m) => m.model === this.model);
+            if (!LLM) {
+                throw new Error(`LLM ${this.model} not found`);
+            }
+
+            const base64Image = image.toString("base64");
+
+            const completion = await this.openai.chat.completions.create({
+                model: this.model,
+                messages: [
+                    {
+                        role: "system",
+                        content: systemPrompt,
+                    },
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "text",
+                                text: textPrompt,
+                            },
+                            {
+                                type: "image_url",
+                                image_url: {
+                                    url: `data:image/png;base64,${base64Image}`,
+                                },
+                            },
+                        ],
+                    },
+                ],
+                max_completion_tokens: LLM.maxOutputTokens,
+            });
+
+            const response = completion.choices[0]?.message?.content?.trim();
+            this.logResponse(response, "Image Analysis");
+
+            if (!response) {
+                throw new Error("No response generated for image analysis.");
+            }
+
+            const { inputCost, outputCost } = calculateLLMCost(
+                this.model,
+                completion.usage?.prompt_tokens || 0,
+                completion.usage?.completion_tokens || 0
+            );
+
+            const result: AIResponse = {
+                response,
+                inputTokens: completion.usage?.prompt_tokens || 0,
+                outputTokens: completion.usage?.completion_tokens || 0,
+                cost: inputCost + outputCost,
+            };
+
+            await this.cacheResponse(cacheKey, result);
+            return result;
+        } catch (error) {
+            this.logError("Error analyzing image:", error);
             throw error;
         }
     }

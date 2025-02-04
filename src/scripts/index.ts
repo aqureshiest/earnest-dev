@@ -13,7 +13,8 @@ import { codeanalysis } from "./audit/codeanalysis";
 import { rds } from "./rds";
 import { vectorsearch } from "./vectorsearch";
 import { ext } from "./exts/ext";
-import { parsePrd } from "./prd/parse";
+import { prd } from "./prd/prd";
+import { llm } from "./llm";
 
 const program = new Command();
 
@@ -30,10 +31,10 @@ program.command("misc").action(misc);
 program.command("audit-analyze").action(codeanalysis);
 program.command("rds").action(rds);
 program.command("vectorsearch").action(vectorsearch);
+program.command("llm").action(llm);
 
 program.command("ext").action(ext);
 
-// prd
-program.command("parsePrd").action(parsePrd);
+program.command("prd").action(prd);
 
 program.parse(process.argv);

@@ -16,7 +16,7 @@ interface Props {
 }
 
 const AIModelSelection = ({ selectedModel, setSelectedModel, loading }: Props) => {
-    const DEFAULT_MODEL = LLM_MODELS.AWS_BEDROCK_CLAUDE_35_SONNET_V2;
+    const DEFAULT_MODEL = LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW;
 
     const getAvailabelModels = () => {
         const models = Object.entries(LLM_MODELS).map(([key, value]) => ({
