@@ -1,4 +1,4 @@
-import { GeneratePRD } from "@/modules/prd/PRDAssistant";
+import { GeneratePRD } from "@/modules/prd/GeneratePRD";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { PRDInput } from "@/types/prd";
 import { loadEnvConfig } from "@next/env";
@@ -46,7 +46,7 @@ export const prd = async () => {
     };
 
     // Generate PRD
-    const prdGenerater = new GeneratePRD(LLM_MODELS.OPENAI_GPT_4O.id);
+    const prdGenerater = new GeneratePRD(LLM_MODELS.OPENAI_GPT_4O.id, "1");
     const prd = await prdGenerater.generatePRD(prodInput);
     console.log(prd);
 };

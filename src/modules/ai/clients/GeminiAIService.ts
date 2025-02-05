@@ -7,7 +7,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 export class GeminiAIService extends BaseAIService {
     private gemini;
 
-    constructor(model: string = LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU) {
+    constructor(model: string = LLM_MODELS.GEMINI_1_5_FLASH.id) {
         super(model);
         this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     }

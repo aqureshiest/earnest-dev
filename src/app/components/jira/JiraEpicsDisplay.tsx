@@ -34,7 +34,7 @@ const JiraEpicsDisplay: React.FC<EpicDisplayProps> = ({
 
         // update ticket in state
         const updatedJiraItems = jiraItems.map((item) => {
-            const updatedTickets = item.tickets.ticket.map((ticket: Ticket) => {
+            const updatedTickets = (item.tickets as any).ticket.map((ticket: Ticket) => {
                 if (ticket.title === updatedTicket.title) {
                     return updatedTicket;
                 }
@@ -49,6 +49,7 @@ const JiraEpicsDisplay: React.FC<EpicDisplayProps> = ({
             };
         });
 
+        // @ts-ignore
         setJiraItems(updatedJiraItems);
     };
 
@@ -92,7 +93,7 @@ const JiraEpicsDisplay: React.FC<EpicDisplayProps> = ({
                         >
                             <EpicCard
                                 epic={item.epic}
-                                tickets={item.tickets.ticket}
+                                tickets={(item.tickets as any).ticket}
                                 isExpanded={isExpanded}
                                 onToggle={() => toggleEpicExpansion(index)}
                                 tddContent={tddContent}

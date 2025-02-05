@@ -20,7 +20,7 @@ export const CA = async () => {
         repo: repo,
         branch: "main",
         task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET.id,
         files: [],
     };
     console.log("analyze task id", analyze.taskId);
@@ -38,7 +38,7 @@ export const CA = async () => {
     const aggregate: TaskRequest = {
         taskId: Date.now().toString(),
         task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET,
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET.id,
         params: {
             chunkAnalyses: analyses?.responseStr,
         },

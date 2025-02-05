@@ -267,11 +267,11 @@ const TicketModal: React.FC<TicketModalProps> = ({
                                     </CardHeader>
                                     <CardContent>
                                         <ul className="list-disc pl-5 space-y-2">
-                                            {ticketToDisplay.acceptance_criteria.criterion.map(
-                                                (criterion, index) => (
-                                                    <li key={index}>{criterion}</li>
-                                                )
-                                            )}
+                                            {(
+                                                ticketToDisplay.acceptance_criteria as any
+                                            ).criterion.map((criterion: any, index: number) => (
+                                                <li key={index}>{criterion}</li>
+                                            ))}
                                         </ul>
                                     </CardContent>
                                 </Card>
@@ -300,9 +300,11 @@ const TicketModal: React.FC<TicketModalProps> = ({
                                     </CardHeader>
                                     <CardContent>
                                         <ol className="list-decimal pl-5 space-y-2">
-                                            {ticketToDisplay.steps.step.map((step, index) => (
-                                                <li key={index}>{step}</li>
-                                            ))}
+                                            {(ticketToDisplay.steps as any).step.map(
+                                                (step: any, index: number) => (
+                                                    <li key={index}>{step}</li>
+                                                )
+                                            )}
                                         </ol>
                                     </CardContent>
                                 </Card>
@@ -357,8 +359,8 @@ const TicketModal: React.FC<TicketModalProps> = ({
                                         </CardHeader>
                                         <CardContent>
                                             <ul className="list-disc pl-5 space-y-1 text-sm">
-                                                {ticketToDisplay.affected_files.file.map(
-                                                    (file, index) => (
+                                                {(ticketToDisplay.affected_files as any).file.map(
+                                                    (file: any, index: number) => (
                                                         <li key={index}>{file}</li>
                                                     )
                                                 )}

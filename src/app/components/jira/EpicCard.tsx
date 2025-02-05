@@ -151,11 +151,13 @@ const EpicCard: React.FC<EpicCardProps> = ({
                             <div className="">
                                 <h4 className="font-semibold mb-2">Affected Components:</h4>
                                 <div className="flex flex-wrap gap-2">
-                                    {epic.affected_components.component.map((component, index) => (
-                                        <Badge key={index} variant="outline">
-                                            {component}
-                                        </Badge>
-                                    ))}
+                                    {(epic.affected_components as any).component.map(
+                                        (component: any, index: number) => (
+                                            <Badge key={index} variant="outline">
+                                                {component}
+                                            </Badge>
+                                        )
+                                    )}
                                 </div>
                             </div>
                         </CardContent>

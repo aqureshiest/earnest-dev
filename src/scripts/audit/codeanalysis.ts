@@ -12,7 +12,7 @@ export const codeanalysis = async () => {
             repo: repo,
             branch: "main",
             task: "",
-            model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW,
+            model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW.id,
             files: [],
             analysisTypes: ["resiliency"],
         };
