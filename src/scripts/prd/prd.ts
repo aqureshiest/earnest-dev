@@ -1,4 +1,4 @@
-import { GeneratePRD } from "@/modules/prd/GeneratePRD";
+import { GeneratePRD } from "@/modules/prd/PRDAssistant";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { PRDInput } from "@/types/prd";
 import { loadEnvConfig } from "@next/env";

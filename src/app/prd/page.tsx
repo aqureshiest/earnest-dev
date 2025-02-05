@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,30 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Loader2, FileText, Plus, Trash2, Upload } from "lucide-react";
+import {
+    Loader2,
+    FileText,
+    Plus,
+    Trash2,
+    Upload,
+    CheckCircle2,
+    Copy,
+    Settings2,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import AIModelSelection from "../components/AIModelSelection";
 import type { KeyFeature, PRDInput } from "@/types/prd";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MarkdownViewer from "../components/MarkdownViewer";
+import { LLM_MODELS } from "@/modules/utils/llmInfo";
+import { defaultFeatureFlowPrompt } from "@/modules/prd/featureFlowPrompt";
+
+// Types
+type FeatureAnalysis = {
+    featureId: string;
+    featureName: string;
+    analysis: string;
+};
 
 interface FeatureInput extends Omit<KeyFeature, "id"> {
     id: string;
@@ -38,7 +58,44 @@ const PRDGenerator: React.FC = () => {
     ]);
     const [selectedModel, setSelectedModel] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
+
     const [progress, setProgress] = useState<string[]>([]);
+    const [generatedContent, setGeneratedContent] = useState<string>("");
+    const [featureAnalyses, setFeatureAnalyses] = useState<Record<string, FeatureAnalysis>>({});
+    const [activeTab, setActiveTab] = useState<string>("progress");
+
+    const [customPromptSys, setCustomPromptSys] = useState(defaultFeatureFlowPrompt.system);
+    const [customPromptUser, setCustomPromptUser] = useState(defaultFeatureFlowPrompt.user);
+
+    const handleLoadSample = () => {
+        setGoalStatement(
+            "Create a new servicing dashboard for users to perform various tasks including offering the ability to consolidate previous loans using the Earnest new product called Personal Loans."
+        );
+        setTargetAudience(["Existing Earnest Refi customers"]);
+        setConstraints(["Using prefill requires us to access the existing data."]);
+        setFeatures([
+            {
+                id: crypto.randomUUID(),
+                name: "Consolidate Previous Loans",
+                description:
+                    "Ability to consolidate previous loans and creating consolidated personal loan from prefilled application data",
+                priority: "high",
+                files: [],
+            },
+        ]);
+    };
+
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(generatedContent);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+        } catch (err) {
+            console.error("Failed to copy:", err);
+        }
+    };
 
     const handleAudienceChange = (index: number, value: string) => {
         const newAudience = [...targetAudience];
@@ -113,9 +170,15 @@ const PRDGenerator: React.FC = () => {
     const handleGeneratePRD = async () => {
         setIsGenerating(true);
         setProgress([]);
+        setGeneratedContent("");
+        setFeatureAnalyses({});
+        setActiveTab("progress");
 
         try {
-            const prdInput: PRDInput = {
+            const formData = new FormData();
+
+            // Add basic PRD data
+            const prdInput = {
                 goalStatement,
                 targetAudience: targetAudience.filter(Boolean),
                 constraints: constraints.filter(Boolean),
@@ -123,17 +186,26 @@ const PRDGenerator: React.FC = () => {
                     id,
                     name,
                     description,
-                    priority: priority as "high" | "medium" | "low",
+                    priority,
                 })),
             };
 
+            formData.append("input", JSON.stringify(prdInput));
+            formData.append("model", selectedModel);
+
+            formData.append("customPromptSys", customPromptSys);
+            formData.append("customPromptUser", customPromptUser);
+
+            // Add files with feature ID in the field name
+            features.forEach((feature) => {
+                feature.files.forEach((file, index) => {
+                    formData.append(`file_${feature.id}`, file);
+                });
+            });
+
             const response = await fetch("/api/generate-prd", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    input: prdInput,
-                    model: selectedModel,
-                }),
+                body: formData,
             });
 
             if (!response.ok) {
@@ -153,8 +225,30 @@ const PRDGenerator: React.FC = () => {
 
                 for (const line of lines) {
                     if (line.startsWith("data: ")) {
-                        const data = JSON.parse(line.slice(6));
-                        setProgress((prev) => [...prev, data.message]);
+                        const event = JSON.parse(line.slice(6));
+
+                        switch (event.type) {
+                            case "complete":
+                                setGeneratedContent(event.message.content);
+                                setActiveTab("final");
+                                break;
+
+                            case "feature_screens_analysis":
+                                setFeatureAnalyses((prev) => ({
+                                    ...prev,
+                                    [event.message.featureName]: event.message,
+                                }));
+                                break;
+
+                            case "final":
+                                setProgress((prev) => [...prev, event.message]);
+                                setIsGenerating(false);
+                                break;
+
+                            default:
+                                setProgress((prev) => [...prev, event.message]);
+                                break;
+                        }
                     }
                 }
             }
@@ -168,25 +262,33 @@ const PRDGenerator: React.FC = () => {
 
     return (
         <div className="min-h-screen py-8 px-6">
-            <div className="max-w-3xl mx-auto">
-                <motion.h1
-                    className="text-3xl font-semibold text-center mb-8"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    PRD Generator
-                </motion.h1>
+            <motion.h1
+                className="text-3xl font-semibold text-center mb-8"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                PRD Generator
+            </motion.h1>
 
-                <div className="">
+            <div className="max-w-7xl mx-auto mb-10">
+                <div className="grid grid-cols-3 gap-4">
                     {/* Main Form Content */}
-                    <div className="space-y-6">
+                    <div className="col-span-2 space-y-6">
                         {/* Goal Statement Card */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Goal Statement</CardTitle>
                             </CardHeader>
                             <CardContent>
+                                <div className="flex items-center gap-4  mb-2">
+                                    <button
+                                        className="flex items-center gap-2 text-sm text-gray-500 border border-gray-300 rounded-md px-2 py-1"
+                                        onClick={handleLoadSample}
+                                    >
+                                        Load Sample PRD
+                                    </button>
+                                </div>
                                 <Textarea
                                     id="goalStatement"
                                     value={goalStatement}
@@ -406,57 +508,197 @@ const PRDGenerator: React.FC = () => {
                         </Card>
 
                         {/* Generation Controls Card */}
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="space-y-4">
+                        <Button
+                            onClick={handleGeneratePRD}
+                            className="w-full"
+                            disabled={isGenerating || !selectedModel || !goalStatement}
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Generate PRD
+                                </>
+                            )}
+                        </Button>
+                    </div>
+
+                    {/* Configuration Panel Column */}
+                    <div className="w-full">
+                        <Card className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-md">
+                            <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-800/80 rounded-t-lg">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Settings2 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                                        <CardTitle className="dark:text-slate-200">
+                                            Configuration Panel
+                                        </CardTitle>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setCustomPromptSys(defaultFeatureFlowPrompt.system);
+                                            setCustomPromptUser(defaultFeatureFlowPrompt.user);
+                                        }}
+                                        className="dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300"
+                                    >
+                                        <span className="mr-2">↺</span>
+                                        Reset to Defaults
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-6 p-6">
+                                {/* System Prompt */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium flex items-center gap-2 dark:text-slate-300">
+                                        <span className="inline-block w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-full"></span>
+                                        System Prompt
+                                    </Label>
+                                    <Textarea
+                                        value={customPromptSys}
+                                        onChange={(e) => setCustomPromptSys(e.target.value)}
+                                        placeholder="Enter system prompt for the AI model"
+                                        rows={6}
+                                        className="resize-none bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-slate-200 dark:placeholder:text-slate-400"
+                                    />
+                                </div>
+
+                                {/* User Prompt */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium flex items-center gap-2 dark:text-slate-300">
+                                        <span className="inline-block w-2 h-2 bg-green-400 dark:bg-green-500 rounded-full"></span>
+                                        Feature Flow Prompt
+                                    </Label>
+                                    <Textarea
+                                        value={customPromptUser}
+                                        onChange={(e) => setCustomPromptUser(e.target.value)}
+                                        placeholder="Enter custom prompt for feature flow generation"
+                                        rows={15}
+                                        className="resize-none bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-slate-200 dark:placeholder:text-slate-400"
+                                    />
+                                </div>
+
+                                {/* AI Model */}
+                                <div className="space-y-2">
                                     <AIModelSelection
                                         selectedModel={selectedModel}
                                         setSelectedModel={setSelectedModel}
                                         loading={isGenerating}
+                                        recommendedModel={LLM_MODELS.OPENAI_GPT_4O}
                                     />
-                                    <Button
-                                        onClick={handleGeneratePRD}
-                                        className="w-full"
-                                        disabled={isGenerating || !selectedModel || !goalStatement}
-                                    >
-                                        {isGenerating ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FileText className="mr-2 h-4 w-4" />
-                                                Generate PRD
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Progress Feed Sidebar */}
-                    <div className="mt-12">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Progress</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                                    {progress.map((message, index) => (
-                                        <div
-                                            key={index}
-                                            className="text-sm p-2 rounded-md bg-slate-50 dark:bg-slate-900"
-                                        >
-                                            {message}
-                                        </div>
-                                    ))}
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
                 </div>
+            </div>
+
+            {/* Results Section */}
+            <div className="max-w-7xl mx-auto mb-10">
+                <Card className="mt-6 dark:bg-slate-900/50 dark:border-slate-800">
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="dark:text-slate-200">Analysis Results</CardTitle>
+                            {isGenerating && (
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating...
+                                </div>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                            <TabsList className="w-full bg-slate-100 dark:bg-slate-800">
+                                <TabsTrigger
+                                    value="progress"
+                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 dark:text-slate-300 dark:data-[state=active]:text-slate-100"
+                                >
+                                    Progress
+                                </TabsTrigger>
+                                {Object.values(featureAnalyses).map((feature) => (
+                                    <TabsTrigger
+                                        key={feature.featureId}
+                                        value={feature.featureId}
+                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 dark:text-slate-300 dark:data-[state=active]:text-slate-100"
+                                    >
+                                        {feature.featureName}
+                                    </TabsTrigger>
+                                ))}
+                                {generatedContent && (
+                                    <TabsTrigger
+                                        value="final"
+                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 dark:text-slate-300 dark:data-[state=active]:text-slate-100"
+                                    >
+                                        Final PRD
+                                    </TabsTrigger>
+                                )}
+                            </TabsList>
+
+                            <TabsContent value="progress">
+                                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                                    {progress.map((message, index) => (
+                                        <div
+                                            key={index}
+                                            className="text-sm p-2 rounded-md bg-slate-50 dark:bg-slate-800/50 dark:text-slate-300"
+                                        >
+                                            {message}
+                                        </div>
+                                    ))}
+                                </div>
+                            </TabsContent>
+
+                            {Object.values(featureAnalyses).map((feature) => (
+                                <TabsContent key={feature.featureId} value={feature.featureId}>
+                                    <div className="prose dark:prose-invert max-w-none">
+                                        <div className="p-4 bg-white dark:bg-slate-900 rounded-lg">
+                                            <MarkdownViewer content={feature.analysis} />
+                                        </div>
+                                    </div>
+                                </TabsContent>
+                            ))}
+
+                            {generatedContent && (
+                                <TabsContent value="final">
+                                    <div className="flex items-center justify-end mb-4">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleCopy}
+                                            className="gap-2 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300"
+                                        >
+                                            {copied ? (
+                                                <>
+                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                    <span className="dark:text-slate-200">
+                                                        Copied!
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy className="h-4 w-4" />
+                                                    <span className="dark:text-slate-200">
+                                                        Copy Markdown
+                                                    </span>
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                    <div className="prose dark:prose-invert max-w-none">
+                                        <div className="p-4 bg-white dark:bg-slate-900 rounded-lg">
+                                            <MarkdownViewer content={generatedContent} />
+                                        </div>
+                                    </div>
+                                </TabsContent>
+                            )}
+                        </Tabs>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

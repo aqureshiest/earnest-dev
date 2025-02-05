@@ -97,3 +97,28 @@ body {
         @apply bg-background text-foreground;
     }
 }
+
+@layer components {
+    .markdown-body ol {
+        @apply pl-5 list-decimal;
+    }
+
+    .markdown-body ul {
+        @apply pl-5 list-disc;
+    }
+
+    .markdown-body ol ol,
+    .markdown-body ul ul {
+        @apply pl-6; /* Additional indentation for nested lists */
+    }
+
+    .markdown-body h1,
+    .markdown-body h2,
+    .markdown-body h3 {
+        @apply border-b border-gray-300 pb-1;
+    }
+
+    .markdown-body pre {
+        @apply bg-gray-100 p-3 rounded-md;
+    }
+}

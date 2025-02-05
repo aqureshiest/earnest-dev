@@ -1,13 +1,8 @@
 export interface FigmaScreen {
     id: string;
     name: string; // Descriptive name like "Login Screen" or "Settings Page"
-    imageBuffer: Buffer;
+    imageBuffer: Buffer | ArrayBuffer;
     description?: string; // Optional context about the screen
-}
-
-export interface FigmaAnalysisResult {
-    individualAnalyses: FigmaScreenAnalysis[];
-    combinedAnalysis: string;
 }
 
 export interface FigmaScreenAnalysis {

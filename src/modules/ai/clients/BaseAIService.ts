@@ -25,7 +25,7 @@ export abstract class BaseAIService {
     generateImageResponse(
         systemPrompt: string,
         prompt: string,
-        image: Buffer
+        image: Buffer | ArrayBuffer
     ): Promise<AIResponse> {
         throw new Error("Method not implemented.");
     }

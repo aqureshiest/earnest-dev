@@ -13,11 +13,15 @@ interface Props {
     selectedModel: string;
     setSelectedModel: (model: string) => void;
     loading: boolean;
+    recommendedModel?: (typeof LLM_MODELS)[keyof typeof LLM_MODELS];
 }
 
-const AIModelSelection = ({ selectedModel, setSelectedModel, loading }: Props) => {
-    const DEFAULT_MODEL = LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW;
-
+const AIModelSelection = ({
+    selectedModel,
+    setSelectedModel,
+    loading,
+    recommendedModel = LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW,
+}: Props) => {
     const getAvailabelModels = () => {
         const models = Object.entries(LLM_MODELS).map(([key, value]) => ({
             label: value.name,
@@ -28,13 +32,13 @@ const AIModelSelection = ({ selectedModel, setSelectedModel, loading }: Props) =
 
     const availableModels = getAvailabelModels();
 
-    const setDefaultModel = () => {
-        setSelectedModel(DEFAULT_MODEL.id);
+    const setRecommendedModel = () => {
+        setSelectedModel(recommendedModel.id);
     };
 
     useEffect(() => {
         if (!selectedModel) {
-            setDefaultModel();
+            setRecommendedModel();
         }
     }, [selectedModel]);
 
@@ -57,8 +61,8 @@ const AIModelSelection = ({ selectedModel, setSelectedModel, loading }: Props) =
             </Select>
             <p className="text-xs mt-2 text-gray-600 dark:text-gray-300">
                 Recommended:{" "}
-                <button className="text-blue-500 hover:underline" onClick={setDefaultModel}>
-                    {DEFAULT_MODEL.name}
+                <button className="text-blue-500 hover:underline" onClick={setRecommendedModel}>
+                    {recommendedModel.name}
                 </button>
                 .
             </p>
