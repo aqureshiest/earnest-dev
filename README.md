@@ -11,6 +11,9 @@ Earnest AI Dev is a project designed to empower developers at Earnest by leverag
   - [AWS Bedrock](#aws-bedrock)
   - [OpenAI](#openai)
   - [Anthropic](#anthropic)
+- [Docker Setup](#docker-setup)
+  - [Development Environment](#development-environment)
+  - [Production Deployment](#production-deployment)
 - [Installation and Setup](#installation-and-setup)
 - [Running the Project](#running-the-project)
 - [Environment Example File](#environment-example-file)
@@ -68,9 +71,47 @@ Choose and configure one or more of the following AI model providers:
 3. Generate a new API key.
 4. Copy the key and set it as the value for `ANTHROPIC_API_KEY` in your `.env.local` file.
 
+## Docker Setup
+
+The project can be run using Docker for both development and production environments.
+
+### Development Environment
+
+1. Clone the repository and navigate to the project directory:
+   ```bash
+   git clone <repository-url>
+   cd earnest-dev
+   ```
+
+2. Copy the Docker environment example file:
+   ```bash
+   cp .env.docker.example .env
+   ```
+
+3. Start the development environment:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+   ```
+
+The application will be available at http://localhost:3000 with hot reloading enabled.
+
+### Production Deployment
+
+1. Build the production image:
+   ```bash
+   docker build -t earnest-dev:latest .
+   ```
+
+2. Start the production stack:
+   ```bash
+   docker compose up -d
+   ```
+
+For detailed Docker instructions, please refer to [DOCKER.md](DOCKER.md).
+
 ## Installation and Setup
 
-To set up the project locally, follow these steps:
+To set up the project locally without Docker, follow these steps:
 
 1. Clone the repository:
     ```bash

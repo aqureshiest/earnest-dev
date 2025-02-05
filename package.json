@@ -8,7 +8,13 @@
     "start": "next start",
     "lint": "next lint",
     "run": "tsx src/scripts/run.ts",
-    "dev-script": "tsx src/scripts/index.ts"
+    "dev-script": "tsx src/scripts/index.ts",
+    "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker:build": "docker build -t earnest-dev:latest .",
+    "docker:start": "docker compose up -d",
+    "docker:stop": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:db:init": "docker compose exec db psql -U postgres -d earnest_dev -f /docker-entrypoint-initdb.d/init-vector-db.sql"
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.11.2",
