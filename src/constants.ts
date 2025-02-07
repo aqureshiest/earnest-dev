@@ -78,6 +78,7 @@ export const EXCLUDE_PATTERNS = [
     "requirements.txt",
     "Pipfile.lock",
     ".txt",
+    ".xsd",
 ];
 
 export const EMBEDDINGS_MODEL = "text-embedding-3-large";

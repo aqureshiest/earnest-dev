@@ -77,7 +77,7 @@ export class RepositoryService {
                     return file;
                 }
 
-                // console.log("fetching file content", file.path);
+                console.log("fetching file content", file.path);
                 const content = await this.ghService.readFile(
                     file.owner,
                     file.repo,

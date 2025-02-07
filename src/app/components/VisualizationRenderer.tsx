@@ -29,6 +29,8 @@ import ReactMarkdown from "react-markdown";
 import SwaggerUI from "swagger-ui-react";
 import "swagger-ui-react/swagger-ui.css";
 import _ from "lodash";
+import { jsonToMarkdown } from "./GenericMarkdownViewer";
+import remarkGfm from "remark-gfm";
 
 interface VisualizationProps {
     data: any;
@@ -334,7 +336,12 @@ export const CodeView: React.FC<VisualizationProps> = ({ data, config }) => {
 
 export const MarkdownView: React.FC<VisualizationProps> = ({ data, config }) => {
     console.log("Markdown data:", data);
-    const content = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+
+    // Convert data to markdown string
+    const content =
+        typeof data === "string"
+            ? data // If it's already a string, use it directly
+            : jsonToMarkdown(data); // Otherwise convert JSON to markdown
 
     return (
         <Card>
@@ -344,9 +351,9 @@ export const MarkdownView: React.FC<VisualizationProps> = ({ data, config }) => 
                 </CardHeader>
             )}
             <CardContent>
-                <ScrollArea>
+                <ScrollArea className="h-[600px]">
                     <div className="prose dark:prose-invert max-w-none p-4">
-                        <ReactMarkdown>{content}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                     </div>
                 </ScrollArea>
             </CardContent>
