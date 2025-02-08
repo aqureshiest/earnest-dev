@@ -1,12 +1,14 @@
-import { PRDInput, FigmaScreenAnalysis, FigmaScreen } from "@/types/prd";
+import { PRDInput, FigmaScreenAnalysis, FigmaScreen, FeatureQuestions } from "@/types/prd";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 import { FigmaProcessor } from "./FigmaProcessor";
 import { defaultFeatureFlowPrompt, FeatureFlowPrompt } from "./featureFlowPrompt";
 import { PRDAssistant } from "./PRDAssistant";
+import { FeatureQuestionsService } from "./FeatureQuestionsService";
 
 export class GeneratePRD {
     private prdAssistant: PRDAssistant;
     private figmaProcessor: FigmaProcessor;
+    private questionService: FeatureQuestionsService;
     private taskId: string;
 
     private featureFlowPrompt: FeatureFlowPrompt = {
@@ -29,14 +31,26 @@ export class GeneratePRD {
 
         this.prdAssistant = new PRDAssistant(model, this.featureFlowPrompt);
         this.figmaProcessor = new FigmaProcessor(model);
+        this.questionService = new FeatureQuestionsService(model);
         this.taskId = taskId;
+    }
+
+    async generateQuestions(input: PRDInput): Promise<FeatureQuestions[]> {
+        try {
+            sendTaskUpdate(this.taskId, "progress", "Generating follow-up questions...");
+            const questions = await this.questionService.generateQuestions(input);
+            return questions;
+        } catch (error: any) {
+            console.error("Error generating questions:", error);
+            throw new Error(`Failed to generate questions: ${error.message}`);
+        }
     }
 
     async generatePRD(input: PRDInput): Promise<string> {
         try {
             sendTaskUpdate(this.taskId, "progress", "Starting PRD generation");
 
-            // 1. Process features and their screens
+            // Process features and their screens
             const featureFlows: string[] = [];
             for (const feature of input.keyFeatures) {
                 try {
@@ -49,7 +63,7 @@ export class GeneratePRD {
                     // Process Figma screens if available
                     let screenAnalyses: FigmaScreenAnalysis[] = [];
                     const figmaScreens = feature.figmaScreens as FigmaScreen[];
-                    if (figmaScreens.length > 0) {
+                    if (figmaScreens?.length > 0) {
                         screenAnalyses = await this.figmaProcessor.analyzeScreens(
                             figmaScreens,
                             feature
@@ -84,11 +98,11 @@ export class GeneratePRD {
                 }
             }
 
-            // 2. Generate main PRD sections
+            // Generate main PRD sections
             sendTaskUpdate(this.taskId, "progress", "Generating main PRD sections");
             const mainPRDContent = await this.prdAssistant.generateMainSections(input);
 
-            // 3. Combine all content
+            // Combine all content
             sendTaskUpdate(this.taskId, "progress", "Finalizing PRD");
             const completePRD = this.combinePRDContent(mainPRDContent, featureFlows);
 

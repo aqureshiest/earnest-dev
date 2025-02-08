@@ -22,14 +22,20 @@ import {
     CheckCircle2,
     Copy,
     Settings2,
+    MessageSquare,
+    Sparkle,
+    Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import AIModelSelection from "../components/AIModelSelection";
-import type { KeyFeature, PRDInput } from "@/types/prd";
+import type { FeatureQuestion, FeatureQuestions, KeyFeature, PRDInput } from "@/types/prd";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MarkdownViewer from "../components/MarkdownViewer";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import { defaultFeatureFlowPrompt } from "@/modules/prd/featureFlowPrompt";
+import { toast } from "@/hooks/use-toast";
+import FeatureQuestionsModal from "../components/FeatureQuestionsModal";
+import { loanConsolidationPRD, LocalLensPRD } from "./samples";
 
 // Types
 type FeatureAnalysis = {
@@ -58,6 +64,7 @@ const PRDGenerator: React.FC = () => {
     ]);
     const [selectedModel, setSelectedModel] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
     const [progress, setProgress] = useState<string[]>([]);
     const [generatedContent, setGeneratedContent] = useState<string>("");
@@ -67,22 +74,27 @@ const PRDGenerator: React.FC = () => {
     const [customPromptSys, setCustomPromptSys] = useState(defaultFeatureFlowPrompt.system);
     const [customPromptUser, setCustomPromptUser] = useState(defaultFeatureFlowPrompt.user);
 
+    const [showQuestionsModal, setShowQuestionsModal] = useState(false);
+    const [featureQuestions, setFeatureQuestions] = useState<FeatureQuestions[]>([]);
+
+    useEffect(() => {
+        if (!goalStatement) {
+            handleLoadSample();
+        }
+    }, [goalStatement]);
+
     const handleLoadSample = () => {
-        setGoalStatement(
-            "Create a new servicing dashboard for users to perform various tasks including offering the ability to consolidate previous loans using the Earnest new product called Personal Loans."
-        );
-        setTargetAudience(["Existing Earnest Refi customers"]);
-        setConstraints(["Using prefill requires us to access the existing data."]);
-        setFeatures([
-            {
+        const inputPRD = loanConsolidationPRD;
+        setGoalStatement(inputPRD.goalStatement);
+        setTargetAudience(inputPRD.targetAudience);
+        setFeatures(
+            inputPRD.keyFeatures.map((feature) => ({
+                ...feature,
                 id: crypto.randomUUID(),
-                name: "Consolidate Previous Loans",
-                description:
-                    "Ability to consolidate previous loans and creating consolidated personal loan from prefilled application data",
-                priority: "high",
                 files: [],
-            },
-        ]);
+            }))
+        );
+        setConstraints(inputPRD.constraints);
     };
 
     const [copied, setCopied] = useState(false);
@@ -167,7 +179,104 @@ const PRDGenerator: React.FC = () => {
         setFeatures(features.filter((feature) => feature.id !== id));
     };
 
-    const handleGeneratePRD = async () => {
+    // Generate questions for features
+    const handleGenerateQuestions = async () => {
+        setIsGeneratingQuestions(true);
+        try {
+            const formData = new FormData();
+            const input: PRDInput = {
+                goalStatement,
+                targetAudience: targetAudience.filter(Boolean),
+                constraints: constraints.filter(Boolean),
+                keyFeatures: features.map(({ id, name, description, priority }) => ({
+                    id,
+                    name,
+                    description,
+                    priority,
+                })),
+            };
+
+            formData.append("input", JSON.stringify(input));
+            formData.append("model", selectedModel);
+
+            const response = await fetch("/api/prd/generate-questions", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to generate questions: ${response.statusText}`);
+            }
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+
+            while (reader) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split("\n");
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        const event = JSON.parse(line.slice(6));
+
+                        if (event.type === "complete") {
+                            setFeatureQuestions(event.message.questions);
+                            console.log("Generated questions:", event.message.questions);
+                            setShowQuestionsModal(true);
+                        }
+                    }
+                }
+            }
+        } catch (error: any) {
+            console.error("Error generating questions:", error);
+            toast({
+                title: "Error",
+                description: `Failed to generate questions: ${error.message}`,
+                variant: "destructive",
+            });
+        } finally {
+            setIsGeneratingQuestions(false);
+        }
+    };
+
+    // Handle feature responses and generate PRD
+    const formatQuestionsAndAnswers = (questions: FeatureQuestion[]): string => {
+        return questions
+            .filter((q) => q.answer.length > 0) // Filter out questions without answers
+            .map((q) => {
+                const selectedChoices = q.choices
+                    .filter((c) => q.answer.includes(c.id))
+                    .map((c) => c.text);
+
+                const answerText =
+                    q.type === "multiple" ? selectedChoices.join(", ") : selectedChoices[0] || "";
+
+                return `Q: ${q.question}\nA: ${answerText}`;
+            })
+            .join("\n\n");
+    };
+
+    const handleFeatureResponsesComplete = async (responses: FeatureQuestions[]) => {
+        // Update features with clarifying questions text
+        const featuresWithResponses = features.map((feature) => {
+            const featureResponses = responses.find((r) => r.featureId === feature.id);
+            if (!featureResponses) return feature;
+
+            return {
+                ...feature,
+                clarifyingQuestions: formatQuestionsAndAnswers(featureResponses.questions),
+            };
+        });
+
+        setShowQuestionsModal(false);
+        await handleGeneratePRD(featuresWithResponses);
+    };
+
+    // Updated PRD generation function
+    const handleGeneratePRD = async (features: FeatureInput[]) => {
         setIsGenerating(true);
         setProgress([]);
         setGeneratedContent("");
@@ -182,28 +291,30 @@ const PRDGenerator: React.FC = () => {
                 goalStatement,
                 targetAudience: targetAudience.filter(Boolean),
                 constraints: constraints.filter(Boolean),
-                keyFeatures: features.map(({ id, name, description, priority }) => ({
-                    id,
-                    name,
-                    description,
-                    priority,
-                })),
+                keyFeatures: features.map(
+                    ({ id, name, description, priority, clarifyingQuestions }) => ({
+                        id,
+                        name,
+                        description,
+                        priority,
+                        clarifyingQuestions,
+                    })
+                ),
             };
 
             formData.append("input", JSON.stringify(prdInput));
             formData.append("model", selectedModel);
-
             formData.append("customPromptSys", customPromptSys);
             formData.append("customPromptUser", customPromptUser);
 
             // Add files with feature ID in the field name
             features.forEach((feature) => {
-                feature.files.forEach((file, index) => {
+                feature.files.forEach((file) => {
                     formData.append(`file_${feature.id}`, file);
                 });
             });
 
-            const response = await fetch("/api/generate-prd", {
+            const response = await fetch("/api/prd/generate-prd", {
                 method: "POST",
                 body: formData,
             });
@@ -255,6 +366,11 @@ const PRDGenerator: React.FC = () => {
         } catch (error: any) {
             console.error("Error generating PRD:", error);
             setProgress((prev) => [...prev, `Error: ${error.message}`]);
+            toast({
+                title: "Error",
+                description: `Failed to generate PRD: ${error.message}`,
+                variant: "destructive",
+            });
         } finally {
             setIsGenerating(false);
         }
@@ -268,7 +384,10 @@ const PRDGenerator: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                PRD Generator
+                <div className="flex items-center gap-2 justify-center">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                    PRD Generator
+                </div>
             </motion.h1>
 
             <div className="max-w-7xl mx-auto mb-10">
@@ -281,14 +400,6 @@ const PRDGenerator: React.FC = () => {
                                 <CardTitle>Goal Statement</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex items-center gap-4  mb-2">
-                                    <button
-                                        className="flex items-center gap-2 text-sm text-gray-500 border border-gray-300 rounded-md px-2 py-1"
-                                        onClick={handleLoadSample}
-                                    >
-                                        Load Sample PRD
-                                    </button>
-                                </div>
                                 <Textarea
                                     id="goalStatement"
                                     value={goalStatement}
@@ -507,24 +618,38 @@ const PRDGenerator: React.FC = () => {
                             </CardContent>
                         </Card>
 
-                        {/* Generation Controls Card */}
+                        {/* Updated Generate PRD Button */}
                         <Button
-                            onClick={handleGeneratePRD}
+                            onClick={handleGenerateQuestions}
                             className="w-full"
-                            disabled={isGenerating || !selectedModel || !goalStatement}
+                            disabled={
+                                isGeneratingQuestions ||
+                                isGenerating ||
+                                !selectedModel ||
+                                !goalStatement
+                            }
                         >
-                            {isGenerating ? (
+                            {isGeneratingQuestions ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating...
+                                    Generating Questions...
                                 </>
                             ) : (
                                 <>
-                                    <FileText className="mr-2 h-4 w-4" />
+                                    <MessageSquare className="mr-2 h-4 w-4" />
                                     Generate PRD
                                 </>
                             )}
                         </Button>
+
+                        {/* Feature Questions Modal */}
+                        <FeatureQuestionsModal
+                            isOpen={showQuestionsModal}
+                            onClose={() => setShowQuestionsModal(false)}
+                            features={featureQuestions}
+                            onComplete={handleFeatureResponsesComplete}
+                            isLoading={isGenerating}
+                        />
                     </div>
 
                     {/* Configuration Panel Column */}

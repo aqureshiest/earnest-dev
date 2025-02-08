@@ -1,8 +1,8 @@
 export interface FigmaScreen {
     id: string;
-    name: string; // Descriptive name like "Login Screen" or "Settings Page"
+    name: string;
     imageBuffer: Buffer | ArrayBuffer;
-    description?: string; // Optional context about the screen
+    description?: string;
 }
 
 export interface FigmaScreenAnalysis {
@@ -12,6 +12,15 @@ export interface FigmaScreenAnalysis {
     imageUrl?: string;
 }
 
+export interface KeyFeature {
+    id: string;
+    name: string;
+    description: string;
+    priority: "high" | "medium" | "low";
+    figmaScreens?: FigmaScreen[];
+    clarifyingQuestions?: string;
+}
+
 export interface PRDInput {
     goalStatement: string;
     targetAudience: string[];
@@ -19,17 +28,30 @@ export interface PRDInput {
     constraints: string[];
 }
 
-export interface KeyFeature {
-    id: string;
-    name: string;
-    description: string;
-    priority: "high" | "medium" | "low";
-    figmaScreens?: FigmaScreen[];
-}
-
 export interface PRDFeedback {
-    sectionId: string; // e.g., "overview", "user_flows_feature_1"
+    sectionId: string;
     originalContent: string;
     feedback: string;
     suggestedChanges?: string;
+}
+
+export type QuestionType = "single" | "multiple";
+
+export interface QuestionChoice {
+    id: string;
+    text: string;
+}
+
+export interface FeatureQuestion {
+    id: string;
+    question: string;
+    type: QuestionType;
+    choices: QuestionChoice[];
+    answer: string[]; // Array of selected choice IDs
+}
+
+export interface FeatureQuestions {
+    featureId: string;
+    featureName: string;
+    questions: FeatureQuestion[];
 }

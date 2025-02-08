@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
-import { PRDInput } from "@/types/prd";
+import { FeatureQuestions, PRDInput } from "@/types/prd";
 import { GeneratePRD } from "@/modules/prd/GeneratePRD";
 
 export async function POST(req: Request) {
@@ -12,14 +12,16 @@ export async function POST(req: Request) {
         // Parse the input, model and custom prompt from formData
         const input = JSON.parse(body.input as string);
         const model = body.model as string;
-        const customPromptSys = (body.customPromptSys as string) || ""; // Optional
-        const customPromptUser = (body.customPromptUser as string) || ""; // Optional
+        const customPromptSys = (body.customPromptSys as string) || "";
+        const customPromptUser = (body.customPromptUser as string) || "";
 
         if (!input || !model) {
             return NextResponse.json({ error: "Input and model are required" }, { status: 400 });
         }
 
-        // Process file uploads (remains unchanged)
+        console.log(JSON.stringify(input, null, 2));
+
+        // Process file uploads
         const filePromises = Object.entries(body)
             .filter(([key]) => key.startsWith("file_"))
             .map(async ([key, file]) => {
@@ -69,7 +71,7 @@ export async function POST(req: Request) {
 
                     sendTaskUpdate(taskId, "progress", "Starting PRD generation...");
 
-                    // Generate the PRD
+                    // Generate the PRD with feature responses
                     const prdContent = await prdGenerator.generatePRD(input as PRDInput);
 
                     // Send the generated PRD content
