@@ -869,7 +869,7 @@ const PRDGenerator: React.FC = () => {
 
                                         <PRDFeedbackView
                                             content={generatedContent}
-                                            onRegenerateFull={handleRegenerateFull}
+                                            // onRegenerateFull={handleRegenerateFull}
                                             onRegenerateSection={handleRegenerateSection}
                                             isRegenerating={isRegenerating}
                                         />

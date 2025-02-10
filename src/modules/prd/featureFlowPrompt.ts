@@ -14,14 +14,15 @@ Feature: {{featureName}}
 Description: {{featureDescription}}
 Priority: {{featurePriority}}
 
-{{clarifyingQuestions}}
-
 Screen Analyses:
 {{screenAnalyses}}
 
 Product Context:
 - Goal: {{goalStatement}}
 - Target Users: {{targetAudience}}
+
+Clarifying Questions and Answers:
+{{clarifyingQuestions}}
 
 Please provide a detailed analysis covering:
 

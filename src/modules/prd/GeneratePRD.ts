@@ -54,16 +54,16 @@ export class GeneratePRD {
             const featureFlows: string[] = [];
             for (const feature of input.keyFeatures) {
                 try {
-                    sendTaskUpdate(
-                        this.taskId,
-                        "progress",
-                        `Analyzing screens for ${feature.name}`
-                    );
-
                     // Process Figma screens if available
                     let screenAnalyses: FigmaScreenAnalysis[] = [];
                     const figmaScreens = feature.figmaScreens as FigmaScreen[];
                     if (figmaScreens?.length > 0) {
+                        sendTaskUpdate(
+                            this.taskId,
+                            "progress",
+                            `Analyzing screens for ${feature.name}`
+                        );
+
                         screenAnalyses = await this.figmaProcessor.analyzeScreens(
                             figmaScreens,
                             feature
@@ -84,7 +84,7 @@ export class GeneratePRD {
                     sendTaskUpdate(
                         this.taskId,
                         "progress",
-                        `Generating documentation for ${feature.name}`
+                        `Generating requirements for ${feature.name}`
                     );
                     const featureFlow = await this.prdAssistant.generateFeatureFlow(
                         feature,
@@ -99,14 +99,11 @@ export class GeneratePRD {
             }
 
             // Generate main PRD sections
-            sendTaskUpdate(this.taskId, "progress", "Generating main PRD sections");
+            sendTaskUpdate(this.taskId, "progress", "Finalizing PRD");
             const mainPRDContent = await this.prdAssistant.generateMainSections(input);
 
             // Combine all content
-            sendTaskUpdate(this.taskId, "progress", "Finalizing PRD");
             const completePRD = this.combinePRDContent(mainPRDContent, featureFlows);
-
-            sendTaskUpdate(this.taskId, "progress", "PRD generation completed");
 
             return completePRD;
         } catch (error: any) {

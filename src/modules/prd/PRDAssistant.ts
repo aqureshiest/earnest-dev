@@ -13,8 +13,6 @@ export class PRDAssistant {
     }
 
     async generateMainSections(input: PRDInput): Promise<string> {
-        // console.log(">?>>>>>>>>> Generating main sections of the PRD", input);
-
         const systemPrompt = `You are a senior product manager creating a comprehensive PRD.
 Generate the following sections in markdown:
 
@@ -61,11 +59,6 @@ Analysis: ${screen.analysis}
             )
             .join("\n");
 
-        // Add clarifying questions and answers to the feature context if available
-        const clarifyingQuestionsStr = feature.clarifyingQuestions
-            ? `\nClarifying Questions and Answers:\n${feature.clarifyingQuestions}`
-            : "";
-
         // Replace the placeholders in the user prompt template
         const userPrompt = this.featureFlowPrompt.user
             .replace(/{{featureName}}/g, feature.name)
@@ -74,9 +67,9 @@ Analysis: ${screen.analysis}
             .replace(/{{screenAnalyses}}/g, screenAnalysesStr)
             .replace(/{{goalStatement}}/g, input.goalStatement)
             .replace(/{{targetAudience}}/g, input.targetAudience.join(", "))
-            .replace(/{{clarifyingQuestions}}/g, clarifyingQuestionsStr);
+            .replace(/{{clarifyingQuestions}}/g, feature.clarifyingQuestions || "");
 
-        console.log(">>>>>>>>> Generating feature flow", userPrompt);
+        // console.log(">>>> userPrompt", userPrompt);
 
         const response = await this.aiService.generateResponse(systemPrompt, userPrompt);
         return response.response;

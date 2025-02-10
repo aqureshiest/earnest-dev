@@ -69,8 +69,6 @@ export async function POST(req: Request) {
                         customPromptUser
                     );
 
-                    sendTaskUpdate(taskId, "progress", "Starting PRD generation...");
-
                     // Generate the PRD with feature responses
                     const prdContent = await prdGenerator.generatePRD(input as PRDInput);
 
