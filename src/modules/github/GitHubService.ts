@@ -2,6 +2,7 @@ import { Octokit } from "@octokit/rest";
 
 export class GitHubService {
     private octokit: Octokit;
+    private rateLimitWarningThreshold = 100; // Warn when remaining calls are below this
 
     constructor() {
         this.octokit = new Octokit({
@@ -80,7 +81,20 @@ export class GitHubService {
         return files;
     }
 
+    async validateRateLimit() {
+        const { data: rateLimit } = await this.octokit.rateLimit.get();
+        if (rateLimit.resources.core.remaining < this.rateLimitWarningThreshold) {
+            console.warn(
+                `GitHub API rate limit warning: ${rateLimit.resources.core.remaining} calls remaining`
+            );
+            return false;
+        }
+        return true;
+    }
+
     async readFile(owner: string, repo: string, ref: string = "main", path: string) {
+        await this.validateRateLimit();
+
         const { data: content } = await this.octokit.repos.getContent({
             owner,
             repo,

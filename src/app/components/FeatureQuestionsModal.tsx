@@ -125,7 +125,7 @@ const FeatureQuestionsModal: React.FC<FeatureQuestionsModalProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl max-h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
+            <DialogContent className="max-w-4xl max-h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
                 {/* Sticky Header */}
                 <div className="sticky top-0 bg-background border-b z-10">
                     <DialogHeader className="p-6 pb-2">

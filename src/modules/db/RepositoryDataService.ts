@@ -66,7 +66,7 @@ export class RepositoryDataService {
         );
 
         if (error) {
-            throw new Error(`Error saving file details: ${error.message}`);
+            throw new Error(`Error saving file details ${file.path}: ${error.message}`);
         }
     }
 

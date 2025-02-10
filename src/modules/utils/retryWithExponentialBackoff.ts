@@ -1,32 +1,39 @@
 export async function retryWithExponentialBackoff<T>(
     fn: () => Promise<T>,
-    retries: number = 3,
-    delay: number = 3000, // Increased initial delay (2 seconds)
-    factor: number = 3 // Increased exponential factor
+    context: string = "Operation",
+    retries: number = 2,
+    delay: number = 3000,
+    factor: number = 3
 ): Promise<T> {
     let attempt = 0;
+    const startTime = new Date();
 
     while (attempt < retries) {
         try {
-            // Try executing the function
             return await fn();
         } catch (error) {
             attempt++;
+            const errorDetails = {
+                context,
+                attempt,
+                error: error instanceof Error ? error : new Error(String(error)),
+                timestamp: new Date(),
+                timeSinceStart: `${(new Date().getTime() - startTime.getTime()) / 1000}s`,
+            };
 
-            // If we've exhausted retries, throw the error
+            console.error("Operation failed:", context, JSON.stringify(errorDetails, null, 2));
+
             if (attempt === retries) {
-                throw error;
+                throw new Error(`Failed after ${attempt} attempts: ${errorDetails.error.message}`);
             }
 
-            // Increase the delay more aggressively
-            const backoffDelay = delay * Math.pow(factor, attempt) * (1 + Math.random()); // More jitter
-            console.warn(`Retrying... attempt ${attempt}, waiting ${Math.ceil(backoffDelay)}ms`);
-
-            // Wait for the backoff delay before retrying
+            const backoffDelay = delay * Math.pow(factor, attempt) * (1 + Math.random() * 0.2);
+            console.warn(
+                `Retrying ${context}... attempt ${attempt}, waiting ${Math.ceil(backoffDelay)}ms`
+            );
             await new Promise((resolve) => setTimeout(resolve, backoffDelay));
         }
     }
 
-    // Fallback return (will not be reached due to retries logic)
     throw new Error("Retries exhausted");
 }

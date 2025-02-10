@@ -39,6 +39,7 @@ import { toast } from "@/hooks/use-toast";
 import FeatureQuestionsModal from "../../components/FeatureQuestionsModal";
 import { loanConsolidationPRD, LocalLensPRD } from "../samples";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import PRDFeedbackView from "@/app/components/PRDFeedbackView";
 
 // Types
 type FeatureAnalysis = {
@@ -79,6 +80,8 @@ const PRDGenerator: React.FC = () => {
 
     const [showQuestionsModal, setShowQuestionsModal] = useState(false);
     const [featureQuestions, setFeatureQuestions] = useState<FeatureQuestions[]>([]);
+
+    const [isRegenerating, setIsRegenerating] = useState(false);
 
     useEffect(() => {
         if (!goalStatement) {
@@ -379,6 +382,15 @@ const PRDGenerator: React.FC = () => {
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    // Add these handlers
+    const handleRegenerateFull = async () => {
+        console.log("Regenerate full PRD");
+    };
+
+    const handleRegenerateSection = async () => {
+        console.log("Regenerate section");
     };
 
     const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -826,7 +838,15 @@ const PRDGenerator: React.FC = () => {
                                 {/* Final PRD Tab */}
                                 {generatedContent && (
                                     <TabsContent value="final">
-                                        <div className="flex items-center justify-end mb-4">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2">
+                                                {isRegenerating && (
+                                                    <div className="flex items-center gap-2 text-primary">
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        <span>Regenerating...</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -847,11 +867,12 @@ const PRDGenerator: React.FC = () => {
                                             </Button>
                                         </div>
 
-                                        <div className="prose dark:prose-invert max-w-none">
-                                            <div className="py-4 px-6 bg-white dark:bg-slate-900 rounded-lg">
-                                                <MarkdownViewer content={generatedContent} />
-                                            </div>
-                                        </div>
+                                        <PRDFeedbackView
+                                            content={generatedContent}
+                                            onRegenerateFull={handleRegenerateFull}
+                                            onRegenerateSection={handleRegenerateSection}
+                                            isRegenerating={isRegenerating}
+                                        />
                                     </TabsContent>
                                 )}
                             </Tabs>
