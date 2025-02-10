@@ -80,11 +80,11 @@ const PRDGenerator: React.FC = () => {
     const [showQuestionsModal, setShowQuestionsModal] = useState(false);
     const [featureQuestions, setFeatureQuestions] = useState<FeatureQuestions[]>([]);
 
-    useEffect(() => {
-        if (!goalStatement) {
-            handleLoadSample();
-        }
-    }, [goalStatement]);
+    // useEffect(() => {
+    //     if (!goalStatement) {
+    //         handleLoadSample();
+    //     }
+    // }, [goalStatement]);
 
     const handleLoadSample = () => {
         const inputPRD = loanConsolidationPRD;

@@ -19,8 +19,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Input and model are required" }, { status: 400 });
         }
 
-        console.log(JSON.stringify(input, null, 2));
-
         // Process file uploads
         const filePromises = Object.entries(body)
             .filter(([key]) => key.startsWith("file_"))
