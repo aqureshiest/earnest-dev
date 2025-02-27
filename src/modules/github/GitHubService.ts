@@ -10,16 +10,36 @@ export class GitHubService {
         });
     }
 
-    async listRepos() {
-        const { data: repos } = await this.octokit.repos.listForAuthenticatedUser({
-            visibility: "all",
-        });
+    async listRepos(query = "", per_page = 25) {
+        let repos;
 
-        // check if we are in an env where access to repos is limited
+        if (query) {
+            // Search for repositories matching the query
+            const { data } = await this.octokit.search.repos({
+                q: `${query} user:${process.env.NEXT_PUBLIC_GITHUB_OWNER}`,
+                per_page,
+            });
+            return data; // Already has items and total_count
+        } else {
+            // Just get first page of repos when no query
+            const { data } = await this.octokit.repos.listForAuthenticatedUser({
+                visibility: "all",
+                per_page,
+            });
+
+            // Format response to match search API
+            repos = {
+                items: data,
+                total_count: data.length, // This is not accurate, would need additional API call
+            };
+        }
+
+        // Check if we are in an env where access to repos is limited
         const limitedAccessRepos = process.env.NEXT_PUBLIC_LIMIT_TO_REPOS;
         if (limitedAccessRepos) {
             const limitedRepos = limitedAccessRepos.split(",");
-            return repos.filter((repo) => limitedRepos.includes(repo.name));
+            repos.items = repos.items.filter((repo) => limitedRepos.includes(repo.name));
+            repos.total_count = repos.items.length;
         }
 
         return repos;

@@ -2,7 +2,9 @@ import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
@@ -22,15 +24,38 @@ const AIModelSelection = ({
     loading,
     recommendedModel = LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW,
 }: Props) => {
-    const getAvailabelModels = () => {
+    // Group models by company
+    const getGroupedModels = () => {
         const models = Object.entries(LLM_MODELS).map(([key, value]) => ({
             label: value.name,
             value: value.id,
+            company: getCompanyFromName(value.name),
         }));
-        return models;
+
+        // Group by company
+        const grouped = models.reduce((acc, model) => {
+            if (!acc[model.company]) {
+                acc[model.company] = [];
+            }
+            acc[model.company].push(model);
+            return acc;
+        }, {} as Record<string, typeof models>);
+
+        return grouped;
     };
 
-    const availableModels = getAvailabelModels();
+    // Helper to extract company name from model name
+    const getCompanyFromName = (name: string) => {
+        if (name.includes("Bedrock")) return "AWS Bedrock";
+        if (name.includes("OpenAI")) return "OpenAI";
+        if (name.includes("Anthropic") || name.includes("Claude")) return "Anthropic";
+        if (name.includes("Google") || name.includes("Gemini")) return "Google";
+        if (name.includes("AWS") || name.includes("Bedrock")) return "AWS Bedrock";
+        if (name.includes("OLLama") || name.includes("Llama")) return "OLLama";
+        return "Other";
+    };
+
+    const groupedModels = getGroupedModels();
 
     const setRecommendedModel = () => {
         setSelectedModel(recommendedModel.id);
@@ -52,10 +77,15 @@ const AIModelSelection = ({
                     <SelectValue placeholder="Select an AI model" />
                 </SelectTrigger>
                 <SelectContent>
-                    {availableModels.map((model) => (
-                        <SelectItem key={model.value} value={model.value}>
-                            {model.label}
-                        </SelectItem>
+                    {Object.entries(groupedModels).map(([company, models]) => (
+                        <SelectGroup key={company}>
+                            <SelectLabel>{company}</SelectLabel>
+                            {models.map((model) => (
+                                <SelectItem key={model.value} value={model.value}>
+                                    {model.label}
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
                     ))}
                 </SelectContent>
             </Select>

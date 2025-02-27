@@ -11,7 +11,7 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
         );
 
         const systemPrompt = this.getSystemPrompt();
-        const basePrompt = this.getPrompt();
+        const basePrompt = this.getPrompt(params);
 
         const userParams = {
             ...params,
@@ -22,7 +22,12 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
         const userPrompt = this.promptBuilder.buildUserPrompt(basePrompt, userParams);
 
         // Split files into chunks
-        const chunks = this.tokenLimiter.splitInChunks(model, systemPrompt + userPrompt, files);
+        const chunks = this.tokenLimiter.splitInChunks(
+            model,
+            systemPrompt + userPrompt,
+            files,
+            params.maxTokensPerChunk
+        );
 
         const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

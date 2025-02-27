@@ -1,4 +1,5 @@
 import type { PRDInput } from "@/types/prd";
+import { v4 as uuidv4 } from "uuid";
 
 export const LocalLensPRD: PRDInput = {
     goalStatement:
@@ -68,7 +69,7 @@ export const loanConsolidationPRD: PRDInput = {
     constraints: ["Using prefill requires us to access the existing data."],
     keyFeatures: [
         {
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             name: "Consolidate Previous Loans",
             description:
                 "Ability to consolidate previous loans and creating consolidated personal loan from prefilled application data",

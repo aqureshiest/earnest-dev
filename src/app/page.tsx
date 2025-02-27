@@ -120,7 +120,7 @@ const HomePage: React.FC = () => {
             status: "development" as const,
         },
         {
-            href: "/prd/v2",
+            href: "/prd",
             icon: FileText,
             title: "AI PRD Generator",
             description: "Convert designs to PRDs",

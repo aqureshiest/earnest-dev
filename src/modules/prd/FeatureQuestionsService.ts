@@ -3,6 +3,8 @@ import { BaseAIService } from "../ai/clients/BaseAIService";
 import { AIServiceFactory } from "../ai/clients/AIServiceFactory";
 import { QuestionType, FeatureQuestion, FeatureQuestions } from "@/types/prd";
 
+import { v4 as uuidv4 } from "uuid";
+
 export class FeatureQuestionsService {
     private aiService: BaseAIService;
 
@@ -26,11 +28,11 @@ export class FeatureQuestionsService {
         context: PRDInput
     ): Promise<FeatureQuestions> {
         const systemPrompt = `You are a senior product manager helping to gather detailed requirements.
-Your task is to generate 3-4 critical questions about this feature. Each question should be single or multiple choice.
+Your task is to generate 2-3 critical questions about this feature. Each question should be single or multiple choice.
 
 Important Guidelines:
 1. Make questions specific and focused on implementation details
-2. Each question must have 2-4 clear choices
+2. Each question must have 2-3 clear choices
 3. Questions should help clarify:
    - Technical requirements
    - User scenarios
@@ -86,11 +88,11 @@ Remember:
             }
 
             const questions: FeatureQuestion[] = parsed.questions.map((q: FeatureQuestion) => ({
-                id: crypto.randomUUID(),
+                id: uuidv4(),
                 question: q.question,
                 type: q.type as QuestionType,
                 choices: q.choices.map((choice: any) => ({
-                    id: crypto.randomUUID(),
+                    id: uuidv4(),
                     text: choice.text,
                 })),
                 answer: [],

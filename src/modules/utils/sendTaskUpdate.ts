@@ -10,6 +10,8 @@ export function sendTaskUpdate(taskId: string, type: string, message: any) {
             controller.error(new Error("Failed to send update"));
             clients.delete(taskId);
         }
+    } else {
+        console.log(`Message for task ${taskId}, type ${type}:`, message);
     }
 }
 

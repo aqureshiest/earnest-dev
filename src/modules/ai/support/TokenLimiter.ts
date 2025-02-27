@@ -92,7 +92,7 @@ export class TokenLimiter {
         };
     }
 
-    splitInChunks(model: string, prompt: string, files: FileDetails[]) {
+    splitInChunks(model: string, prompt: string, files: FileDetails[], maxTokensPerChunk?: number) {
         // get LLM info
         const LLM: any = LLMS.find((m) => m.model === model);
 
@@ -101,8 +101,15 @@ export class TokenLimiter {
 
         // for balanced chunking
         const totalTokens = files.reduce((sum, file) => sum + this.getFileTokens(file), 0);
-        const optimalChunkCount = Math.ceil(totalTokens / allowedTokens);
-        const tokensPerChunk = Math.ceil(totalTokens / optimalChunkCount);
+        let tokensPerChunk: number;
+        if (maxTokensPerChunk) {
+            // Use the override value, but ensure it doesn't exceed allowed tokens
+            tokensPerChunk = Math.min(maxTokensPerChunk, allowedTokens);
+        } else {
+            // Use optimal chunking strategy
+            const optimalChunkCount = Math.ceil(totalTokens / allowedTokens);
+            tokensPerChunk = Math.ceil(totalTokens / optimalChunkCount);
+        }
 
         const chunks: { files: FileDetails[]; tokens: number }[] = [];
         let chunk: FileDetails[] = [];
@@ -138,6 +145,22 @@ export class TokenLimiter {
                 tokens: chunkTokens,
             });
         }
+
+        // output stats
+        console.log("------------- Token Limiter Stats -------------");
+        console.log(`Total tokens: ${totalTokens}`);
+        console.log(`Tokens per chunk: ${tokensPerChunk}`);
+        console.log(`Total chunks: ${chunks.length}`);
+        // console.log(`Tokens per chunk: ${chunks.map((c) => c.tokens.toFixed(0)).join(", ")}`);
+        // console.log(`Files per chunk: ${chunks.map((c) => c.files.length).join(", ")}`);
+        // console.log(`Total tokens in chunks: ${chunks.reduce((sum, c) => sum + c.tokens, 0)}`);
+        // console.log(`Total files in chunks: ${chunks.reduce((sum, c) => sum + c.files.length, 0)}`);
+        console.log(`Total files: ${files.length}`);
+        // console.log(`Total tokens in files: ${totalTokens}`);
+        console.log(`Allowed tokens: ${allowedTokens}`);
+        console.log(`Prompt tokens: ${promptTokens}`);
+        console.log(`Buffer: ${this.BUFFER}`);
+        console.log("------------- Token Limiter Stats -------------");
 
         return chunks;
     }

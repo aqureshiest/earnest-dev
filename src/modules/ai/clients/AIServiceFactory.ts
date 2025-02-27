@@ -11,7 +11,6 @@ class AIServiceFactory {
         switch (model) {
             case LLM_MODELS.OPENAI_GPT_4O_MINI.id:
             case LLM_MODELS.OPENAI_GPT_4O.id:
-            case "o3-mini-2025-01-31":
                 return new OpenAIService(model);
             case LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU.id:
             case LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET.id:
@@ -20,10 +19,10 @@ class AIServiceFactory {
                 return new ClaudeAIService(model);
             case LLM_MODELS.GEMINI_1_5_FLASH.id:
                 return new GeminiAIService(model);
+            case LLM_MODELS.AWS_BEDROCK_CLAUDE_37_SONNET.id:
             case LLM_MODELS.AWS_BEDROCK_CLAUDE_35_SONNET_V2.id:
             case LLM_MODELS.AWS_BEDROCK_CLAUDE_35_HAIKU_V2.id:
                 return new BedrockAIService(model);
-            case LLM_MODELS.OLLAMA_DEEPSEEK.id:
             case LLM_MODELS.OLLAMA_LLAMA.id:
                 return new OllamaAIService(model);
             default:

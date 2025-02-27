@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,8 +26,10 @@ import {
     MessageSquare,
     Sparkle,
     Sparkles,
+    ChevronDown,
+    ChevronRight,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import AIModelSelection from "../components/AIModelSelection";
 import type { FeatureQuestion, FeatureQuestions, KeyFeature, PRDInput } from "@/types/prd";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,6 +39,7 @@ import { defaultFeatureFlowPrompt } from "@/modules/prd/featureFlowPrompt";
 import { toast } from "@/hooks/use-toast";
 import FeatureQuestionsModal from "../components/FeatureQuestionsModal";
 import { loanConsolidationPRD, LocalLensPRD } from "./samples";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // Types
 type FeatureAnalysis = {
@@ -55,7 +59,7 @@ const PRDGenerator: React.FC = () => {
     const [constraints, setConstraints] = useState<string[]>([""]);
     const [features, setFeatures] = useState<FeatureInput[]>([
         {
-            id: crypto.randomUUID(),
+            id: new Date().getTime().toString(),
             name: "",
             description: "",
             priority: "medium",
@@ -90,7 +94,7 @@ const PRDGenerator: React.FC = () => {
         setFeatures(
             inputPRD.keyFeatures.map((feature) => ({
                 ...feature,
-                id: crypto.randomUUID(),
+                id: new Date().getTime().toString(),
                 files: [],
             }))
         );
@@ -166,7 +170,7 @@ const PRDGenerator: React.FC = () => {
         setFeatures([
             ...features,
             {
-                id: crypto.randomUUID(),
+                id: new Date().getTime().toString(),
                 name: "",
                 description: "",
                 priority: "medium",
@@ -188,12 +192,14 @@ const PRDGenerator: React.FC = () => {
                 goalStatement,
                 targetAudience: targetAudience.filter(Boolean),
                 constraints: constraints.filter(Boolean),
-                keyFeatures: features.map(({ id, name, description, priority }) => ({
-                    id,
-                    name,
-                    description,
-                    priority,
-                })),
+                keyFeatures: features
+                    .filter((f) => f.name || f.description)
+                    .map(({ id, name, description, priority }) => ({
+                        id,
+                        name,
+                        description,
+                        priority,
+                    })),
             };
 
             formData.append("input", JSON.stringify(input));
@@ -291,15 +297,15 @@ const PRDGenerator: React.FC = () => {
                 goalStatement,
                 targetAudience: targetAudience.filter(Boolean),
                 constraints: constraints.filter(Boolean),
-                keyFeatures: features.map(
-                    ({ id, name, description, priority, clarifyingQuestions }) => ({
+                keyFeatures: features
+                    .filter((f) => f.name || f.description)
+                    .map(({ id, name, description, priority, clarifyingQuestions }) => ({
                         id,
                         name,
                         description,
                         priority,
                         clarifyingQuestions,
-                    })
-                ),
+                    })),
             };
 
             formData.append("input", JSON.stringify(prdInput));
@@ -376,96 +382,98 @@ const PRDGenerator: React.FC = () => {
         }
     };
 
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
+
     return (
-        <div className="min-h-screen py-8 px-6">
-            <motion.h1
-                className="text-3xl font-semibold text-center mb-8"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <div className="flex items-center gap-2 justify-center">
-                    <Sparkles className="w-6 h-6 text-primary" />
-                    PRD Generator
-                </div>
-            </motion.h1>
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 py-12 px-6">
+            <div className="max-w-6xl mx-auto space-y-12">
+                {/* Header */}
+                <motion.div
+                    className="text-center mb-12"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                        {/* <Sparkles className="w-8 h-8 text-primary" /> */}
+                        <Image
+                            src="/prd.png"
+                            alt="Earnie Johnson Logo"
+                            width={52}
+                            height={52}
+                            className="rounded-full"
+                        />
+                        <h1 className="text-4xl font-light">Earnie Johnson PRD Automator</h1>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+                        Transform your product vision into a comprehensive PRD with AI assistance
+                    </p>
+                </motion.div>
 
-            <div className="max-w-7xl mx-auto mb-10">
-                <div className="grid grid-cols-3 gap-4">
-                    {/* Main Form Content */}
-                    <div className="col-span-2 space-y-6">
-                        {/* Goal Statement Card */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Goal Statement</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Textarea
-                                    id="goalStatement"
-                                    value={goalStatement}
-                                    onChange={(e) => setGoalStatement(e.target.value)}
-                                    placeholder="What problem are we solving?"
-                                    rows={5}
-                                />
-                            </CardContent>
-                        </Card>
+                {/* Input Section */}
+                <div className="grid grid-cols-[1fr,320px] gap-8">
+                    {/* Left Column - Form */}
+                    <div className="space-y-8">
+                        {/* Goal Statement */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                        >
+                            <h2 className="text-xl font-medium flex items-center gap-2 bg-slate-100 p-4 rounded-md dark:bg-slate-800">
+                                Goal Statement
+                            </h2>
+                            <Card className="overflow-hidden border-none shadow-lg">
+                                <CardContent className="p-6">
+                                    <Textarea
+                                        value={goalStatement}
+                                        onChange={(e) => setGoalStatement(e.target.value)}
+                                        placeholder="Describe the core problem you're solving and your product vision..."
+                                        className="border-none text-md placeholder:text-slate-400 resize-none bg-transparent"
+                                        rows={4}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </motion.div>
 
-                        {/* Features Card */}
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                                <CardTitle>Key Features</CardTitle>
-                                <Button variant="outline" size="sm" onClick={addFeature}>
-                                    <Plus className="h-4 w-4 mr-2" />
+                        {/* Features */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.4 }}
+                        >
+                            <div className="flex items-center justify-between bg-slate-100 p-4 rounded-md dark:bg-slate-800">
+                                <h2 className="text-xl font-medium flex items-center gap-2">
+                                    Key Features
+                                </h2>
+                                <Button variant="ghost" onClick={addFeature} className="gap-2">
+                                    <Plus className="w-4 h-4" />
                                     Add Feature
                                 </Button>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
+                            </div>
+
+                            <div className="space-y-4">
                                 {features.map((feature, index) => (
-                                    <div
+                                    <Card
                                         key={feature.id}
-                                        className="border rounded-lg p-4 space-y-4"
+                                        className="border-none shadow-lg bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
                                     >
-                                        {/* Name and Delete */}
-                                        <div className="grid grid-cols-[1fr,auto] gap-2">
-                                            <Input
-                                                placeholder="Feature name"
-                                                value={feature.name}
-                                                onChange={(e) =>
-                                                    handleFeatureChange(
-                                                        feature.id,
-                                                        "name",
-                                                        e.target.value
-                                                    )
-                                                }
-                                            />
-                                            <div className="w-9">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => removeFeature(feature.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-
-                                        {/* Description */}
-                                        <Textarea
-                                            placeholder="Feature description"
-                                            value={feature.description}
-                                            onChange={(e) =>
-                                                handleFeatureChange(
-                                                    feature.id,
-                                                    "description",
-                                                    e.target.value
-                                                )
-                                            }
-                                            rows={3}
-                                        />
-
-                                        {/* Priority and Files in one row */}
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-40">
+                                        <CardContent className="p-6 space-y-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className="flex-1">
+                                                    <Input
+                                                        placeholder="Feature name"
+                                                        value={feature.name}
+                                                        onChange={(e) =>
+                                                            handleFeatureChange(
+                                                                feature.id,
+                                                                "name",
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        className="text-lg border-none bg-transparent"
+                                                    />
+                                                </div>
                                                 <Select
                                                     value={feature.priority}
                                                     onValueChange={(value) =>
@@ -476,7 +484,7 @@ const PRDGenerator: React.FC = () => {
                                                         )
                                                     }
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="w-32">
                                                         <SelectValue placeholder="Priority" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -487,54 +495,71 @@ const PRDGenerator: React.FC = () => {
                                                         <SelectItem value="low">Low</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeFeature(feature.id)}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
                                             </div>
 
-                                            <div className="flex-1">
-                                                <input
-                                                    type="file"
-                                                    multiple
-                                                    onChange={(e) =>
-                                                        handleFeatureFileChange(
-                                                            feature.id,
-                                                            e.target.files
-                                                        )
-                                                    }
-                                                    className="w-full text-sm file:mr-4 file:py-2 file:px-4
-                                file:rounded-full file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-violet-50 file:text-violet-700
-                                hover:file:bg-violet-100"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
+                                            <Textarea
+                                                placeholder="Describe this feature..."
+                                                value={feature.description}
+                                                onChange={(e) =>
+                                                    handleFeatureChange(
+                                                        feature.id,
+                                                        "description",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="border-none text-md placeholder:text-slate-400 resize-none bg-transparent"
+                                                rows={3}
+                                            />
+
+                                            <input
+                                                type="file"
+                                                multiple
+                                                onChange={(e) =>
+                                                    handleFeatureFileChange(
+                                                        feature.id,
+                                                        e.target.files
+                                                    )
+                                                }
+                                                className="text-sm file:mr-4 file:py-2 file:px-4
+                                 file:rounded-full file:border-0
+                                 file:text-sm file:font-semibold
+                                 file:bg-primary/10 file:text-primary
+                                 hover:file:bg-primary/20"
+                                            />
+                                        </CardContent>
+                                    </Card>
                                 ))}
-                            </CardContent>
-                        </Card>
+                            </div>
 
-                        {/* Target Audience & Constraints Card */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Target Audience & Constraints</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-2 gap-8">
-                                    {/* Target Audience column */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-sm font-medium">
-                                                Target Audience
-                                            </Label>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={addAudienceField}
-                                            >
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Add Audience
-                                            </Button>
-                                        </div>
-                                        <div className="space-y-2">
+                            {/* Target Audience & Constraints */}
+                            <h2 className="text-xl font-medium flex items-center gap-2 bg-slate-100 p-4 rounded-md dark:bg-slate-800 mt-8">
+                                Target Audience & Constraints
+                            </h2>
+                            <Card className="border-none shadow-lg">
+                                <CardContent className="p-6">
+                                    <div className="grid grid-cols-2 gap-8">
+                                        {/* Target Audience */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-sm font-medium">
+                                                    Target Audience
+                                                </Label>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={addAudienceField}
+                                                >
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Add
+                                                </Button>
+                                            </div>
                                             {targetAudience.map((audience, index) => (
                                                 <div
                                                     key={index}
@@ -551,38 +576,32 @@ const PRDGenerator: React.FC = () => {
                                                         placeholder="Who is this for?"
                                                         className="flex-1"
                                                     />
-                                                    <div className="w-9">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                removeAudienceField(index)
-                                                            }
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => removeAudienceField(index)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
 
-                                    {/* Constraints column */}
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-sm font-medium">
-                                                Constraints
-                                            </Label>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={addConstraintField}
-                                            >
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Add Constraint
-                                            </Button>
-                                        </div>
-                                        <div className="space-y-2">
+                                        {/* Constraints */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-sm font-medium">
+                                                    Constraints
+                                                </Label>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={addConstraintField}
+                                                >
+                                                    <Plus className="w-4 h-4 mr-2" />
+                                                    Add
+                                                </Button>
+                                            </div>
                                             {constraints.map((constraint, index) => (
                                                 <div
                                                     key={index}
@@ -596,234 +615,265 @@ const PRDGenerator: React.FC = () => {
                                                                 e.target.value
                                                             )
                                                         }
-                                                        placeholder="Add technical, business, or resource constraint"
+                                                        placeholder="Add constraint..."
                                                         className="flex-1"
                                                     />
-                                                    <div className="w-9">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                removeConstraintField(index)
-                                                            }
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => removeConstraintField(index)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Updated Generate PRD Button */}
-                        <Button
-                            onClick={handleGenerateQuestions}
-                            className="w-full"
-                            disabled={
-                                isGeneratingQuestions ||
-                                isGenerating ||
-                                !selectedModel ||
-                                !goalStatement
-                            }
-                        >
-                            {isGeneratingQuestions ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating Questions...
-                                </>
-                            ) : (
-                                <>
-                                    <MessageSquare className="mr-2 h-4 w-4" />
-                                    Generate PRD
-                                </>
-                            )}
-                        </Button>
-
-                        {/* Feature Questions Modal */}
-                        <FeatureQuestionsModal
-                            isOpen={showQuestionsModal}
-                            onClose={() => setShowQuestionsModal(false)}
-                            features={featureQuestions}
-                            onComplete={handleFeatureResponsesComplete}
-                            isLoading={isGenerating}
-                        />
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                     </div>
 
-                    {/* Configuration Panel Column */}
-                    <div className="w-full">
-                        <Card className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-md">
-                            <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-800/80 rounded-t-lg">
-                                <div className="flex items-center justify-between">
+                    {/* Right Column - Configuration Panel */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, delay: 0.8 }}
+                    >
+                        <Card className="border-none shadow-lg sticky top-8">
+                            <CardContent className="p-6 space-y-6">
+                                <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-2">
-                                        <Settings2 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                                        <CardTitle className="dark:text-slate-200">
-                                            Configuration Panel
-                                        </CardTitle>
+                                        <Settings2 className="w-5 h-5 text-primary" />
+                                        <h3 className="text-lg font-medium">Configuration</h3>
                                     </div>
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
                                         size="sm"
                                         onClick={() => {
                                             setCustomPromptSys(defaultFeatureFlowPrompt.system);
                                             setCustomPromptUser(defaultFeatureFlowPrompt.user);
                                         }}
-                                        className="dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300"
                                     >
-                                        <span className="mr-2">↺</span>
-                                        Reset to Defaults
+                                        Reset Defaults
                                     </Button>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="space-y-6 p-6">
-                                {/* System Prompt */}
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium flex items-center gap-2 dark:text-slate-300">
-                                        <span className="inline-block w-2 h-2 bg-blue-400 dark:bg-blue-500 rounded-full"></span>
-                                        System Prompt
-                                    </Label>
-                                    <Textarea
-                                        value={customPromptSys}
-                                        onChange={(e) => setCustomPromptSys(e.target.value)}
-                                        placeholder="Enter system prompt for the AI model"
-                                        rows={6}
-                                        className="resize-none bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-slate-200 dark:placeholder:text-slate-400"
-                                    />
-                                </div>
 
-                                {/* User Prompt */}
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium flex items-center gap-2 dark:text-slate-300">
-                                        <span className="inline-block w-2 h-2 bg-green-400 dark:bg-green-500 rounded-full"></span>
-                                        Feature Flow Prompt
-                                    </Label>
-                                    <Textarea
-                                        value={customPromptUser}
-                                        onChange={(e) => setCustomPromptUser(e.target.value)}
-                                        placeholder="Enter custom prompt for feature flow generation"
-                                        rows={15}
-                                        className="resize-none bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 dark:text-slate-200 dark:placeholder:text-slate-400"
-                                    />
-                                </div>
-
-                                {/* AI Model */}
+                                {/* Model Selection */}
                                 <div className="space-y-2">
                                     <AIModelSelection
                                         selectedModel={selectedModel}
                                         setSelectedModel={setSelectedModel}
-                                        loading={isGenerating}
                                         recommendedModel={LLM_MODELS.OPENAI_GPT_4O}
+                                        loading={isGenerating}
                                     />
                                 </div>
+
+                                {/* Prompts */}
+                                <Collapsible>
+                                    <CollapsibleTrigger className="flex items-center justify-between w-full">
+                                        <Label>Advanced Configuration</Label>
+                                        {isConfigOpen ? (
+                                            <ChevronDown className="w-4 h-4" />
+                                        ) : (
+                                            <ChevronRight className="w-4 h-4" />
+                                        )}
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="space-y-4 mt-4">
+                                        <div className="space-y-2">
+                                            <Label>System Prompt</Label>
+                                            <Textarea
+                                                value={customPromptSys}
+                                                onChange={(e) => setCustomPromptSys(e.target.value)}
+                                                rows={6}
+                                                className="resize-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Feature Flow Prompt</Label>
+                                            <Textarea
+                                                value={customPromptUser}
+                                                onChange={(e) =>
+                                                    setCustomPromptUser(e.target.value)
+                                                }
+                                                rows={20}
+                                                className="resize-none"
+                                            />
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+
+                                {/* Generate Button */}
+                                <Button
+                                    onClick={handleGenerateQuestions}
+                                    disabled={
+                                        isGeneratingQuestions ||
+                                        isGenerating ||
+                                        !selectedModel ||
+                                        !goalStatement
+                                    }
+                                    className="w-full"
+                                >
+                                    {isGeneratingQuestions ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Analyzing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MessageSquare className="mr-2 h-4 w-4" />
+                                            Generate PRD
+                                        </>
+                                    )}
+                                </Button>
                             </CardContent>
                         </Card>
-                    </div>
+                    </motion.div>
                 </div>
-            </div>
 
-            {/* Results Section */}
-            <div className="max-w-7xl mx-auto mb-10">
-                <Card className="mt-6 dark:bg-slate-900/50 dark:border-slate-800">
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="dark:text-slate-200">Analysis Results</CardTitle>
-                            {isGenerating && (
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating...
-                                </div>
-                            )}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="w-full bg-slate-100 dark:bg-slate-800">
-                                <TabsTrigger
-                                    value="progress"
-                                    className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 dark:text-slate-300 dark:data-[state=active]:text-slate-100"
-                                >
-                                    Progress
-                                </TabsTrigger>
-                                {Object.values(featureAnalyses).map((feature) => (
+                {/* Output Section */}
+                <AnimatePresence>
+                    {(isGenerating ||
+                        generatedContent ||
+                        Object.keys(featureAnalyses).length > 0) && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            className="border-t border-slate-200 dark:border-slate-800 pt-8"
+                        >
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                                <TabsList className="w-full bg-slate-100 dark:bg-slate-800/50 mb-6">
                                     <TabsTrigger
-                                        key={feature.featureId}
-                                        value={feature.featureId}
-                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 dark:text-slate-300 dark:data-[state=active]:text-slate-100"
+                                        value="progress"
+                                        className="flex-1 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800"
                                     >
-                                        {feature.featureName}
+                                        Generation Progress
                                     </TabsTrigger>
-                                ))}
-                                {generatedContent && (
-                                    <TabsTrigger
-                                        value="final"
-                                        className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 dark:text-slate-300 dark:data-[state=active]:text-slate-100"
-                                    >
-                                        Final PRD
-                                    </TabsTrigger>
-                                )}
-                            </TabsList>
-
-                            <TabsContent value="progress">
-                                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                                    {progress.map((message, index) => (
-                                        <div
-                                            key={index}
-                                            className="text-sm p-2 rounded-md bg-slate-50 dark:bg-slate-800/50 dark:text-slate-300"
+                                    {Object.values(featureAnalyses).length > 0 && (
+                                        <TabsTrigger
+                                            value="features"
+                                            className="flex-1 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800"
                                         >
-                                            {message}
-                                        </div>
-                                    ))}
-                                </div>
-                            </TabsContent>
-
-                            {Object.values(featureAnalyses).map((feature) => (
-                                <TabsContent key={feature.featureId} value={feature.featureId}>
-                                    <div className="prose dark:prose-invert max-w-none">
-                                        <div className="p-4 bg-white dark:bg-slate-900 rounded-lg">
-                                            <MarkdownViewer content={feature.analysis} />
-                                        </div>
-                                    </div>
-                                </TabsContent>
-                            ))}
-
-                            {generatedContent && (
-                                <TabsContent value="final">
-                                    <div className="flex items-center justify-end mb-4">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleCopy}
-                                            className="gap-2 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 dark:text-slate-300"
+                                            Feature Analysis
+                                        </TabsTrigger>
+                                    )}
+                                    {generatedContent && (
+                                        <TabsTrigger
+                                            value="final"
+                                            className="flex-1 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800"
                                         >
-                                            {copied ? (
-                                                <>
-                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                    <span className="dark:text-slate-200">
-                                                        Copied!
-                                                    </span>
-                                                </>
+                                            Final PRD
+                                        </TabsTrigger>
+                                    )}
+                                </TabsList>
+
+                                {/* Progress Tab */}
+                                <TabsContent value="progress" className="mt-0">
+                                    <Card className="border-none shadow-lg overflow-hidden">
+                                        <CardContent className="p-6">
+                                            {isGenerating ? (
+                                                <div className="flex items-center gap-3 mb-4 text-primary">
+                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                    <h3 className="font-medium">
+                                                        Generating PRD...
+                                                    </h3>
+                                                </div>
                                             ) : (
-                                                <>
-                                                    <Copy className="h-4 w-4" />
-                                                    <span className="dark:text-slate-200">
-                                                        Copy Markdown
-                                                    </span>
-                                                </>
+                                                <h3 className="font-medium mb-4">
+                                                    Generation Complete
+                                                </h3>
                                             )}
-                                        </Button>
-                                    </div>
-                                    <div className="prose dark:prose-invert max-w-none">
-                                        <div className="p-4 bg-white dark:bg-slate-900 rounded-lg">
-                                            <MarkdownViewer content={generatedContent} />
-                                        </div>
-                                    </div>
+
+                                            <div className="space-y-4">
+                                                {progress.map((message, index) => (
+                                                    <motion.div
+                                                        key={index}
+                                                        initial={{ opacity: 0, x: -20 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        className="flex items-start gap-3 text-sm"
+                                                    >
+                                                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                                                            <CheckCircle2 className="h-3 w-3 text-primary" />
+                                                        </div>
+                                                        <span className="text-slate-600 dark:text-slate-300">
+                                                            {message}
+                                                        </span>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
                                 </TabsContent>
-                            )}
-                        </Tabs>
-                    </CardContent>
-                </Card>
+
+                                {/* Feature Analysis Tab */}
+                                {Object.values(featureAnalyses).length > 0 && (
+                                    <TabsContent value="features">
+                                        {Object.values(featureAnalyses).map((feature, index) => (
+                                            <div className="prose dark:prose-invert max-w-none">
+                                                <div className="p-4 bg-white dark:bg-slate-900 rounded-lg">
+                                                    <div className="flex items-center gap-2 mb-4">
+                                                        <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
+                                                            {index + 1}
+                                                        </span>
+                                                        <h4 className="text-lg font-medium">
+                                                            {feature.featureName}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="prose dark:prose-invert max-w-none">
+                                                        <MarkdownViewer
+                                                            content={feature.analysis}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </TabsContent>
+                                )}
+
+                                {/* Final PRD Tab */}
+                                {generatedContent && (
+                                    <TabsContent value="final">
+                                        <div className="flex items-center justify-end mb-4">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleCopy}
+                                                className="gap-2"
+                                            >
+                                                {copied ? (
+                                                    <>
+                                                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                        Copied!
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Copy className="h-4 w-4" />
+                                                        Copy Markdown
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+
+                                        <div className="prose dark:prose-invert max-w-none">
+                                            <div className="py-4 px-6 bg-white dark:bg-slate-900 rounded-lg">
+                                                <MarkdownViewer content={generatedContent} />
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+                                )}
+                            </Tabs>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+                {/* Feature Questions Modal */}
+                <FeatureQuestionsModal
+                    isOpen={showQuestionsModal}
+                    onClose={() => setShowQuestionsModal(false)}
+                    features={featureQuestions}
+                    onComplete={handleFeatureResponsesComplete}
+                    isLoading={isGenerating}
+                />
             </div>
         </div>
     );

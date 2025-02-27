@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import MarkdownViewer from "./MarkdownViewer";
+import { v4 as uuidv4 } from "uuid";
 
 export interface SectionFeedback {
     id: string;
@@ -104,7 +105,7 @@ export const PRDFeedbackView: React.FC<PRDFeedbackViewProps> = ({
                         feedback: [
                             ...section.feedback,
                             {
-                                id: crypto.randomUUID(),
+                                id: uuidv4(),
                                 sectionId,
                                 audioBlob,
                                 timestamp: new Date(),

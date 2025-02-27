@@ -46,3 +46,11 @@ next-env.d.ts
 files.db
 
 .env*
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+
+eb-deploy

@@ -3,13 +3,13 @@ import { GitHubService } from "@/modules/github/GitHubService";
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { action } = body;
+        const { action, query, per_page } = body;
 
         const ghService = new GitHubService();
 
         // fetch repositories
         if (action == "list-repos") {
-            const repositories = await ghService.listRepos();
+            const repositories = await ghService.listRepos(query, per_page);
 
             return new Response(JSON.stringify(repositories), {
                 status: 200,

@@ -27,6 +27,10 @@ export const LLM_MODELS = {
         id: "gemini-1.5-flash",
         name: "Google Gemini 1.5 Flash",
     },
+    AWS_BEDROCK_CLAUDE_37_SONNET: {
+        id: "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        name: "AWS Bedrock Claude 3.7 Sonnet",
+    },
     AWS_BEDROCK_CLAUDE_35_SONNET_V2: {
         id: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         name: "AWS Bedrock Claude 3.5 Sonnet V2",
@@ -34,10 +38,6 @@ export const LLM_MODELS = {
     AWS_BEDROCK_CLAUDE_35_HAIKU_V2: {
         id: "us.anthropic.claude-3-5-haiku-20241022-v1:0",
         name: "AWS Bedrock Claude 3.5 Haiku V2",
-    },
-    OLLAMA_DEEPSEEK: {
-        id: "deepseek-r1:latest",
-        name: "OLLama DeepSeek",
     },
     OLLAMA_LLAMA: {
         id: "llama3:latest",
@@ -80,7 +80,7 @@ export const LLMS = [
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET_NEW.id,
         inputCost: 3,
         outputCost: 15,
-        maxInputTokens: 100000, //200000,
+        maxInputTokens: 50000, //200000,
         maxOutputTokens: 8192,
     },
     {
@@ -100,6 +100,13 @@ export const LLMS = [
     },
     // AWS Bedrock
     {
+        model: LLM_MODELS.AWS_BEDROCK_CLAUDE_37_SONNET.id,
+        inputCost: 3,
+        outputCost: 15,
+        maxInputTokens: 50000, //200000,
+        maxOutputTokens: 8192,
+    },
+    {
         model: LLM_MODELS.AWS_BEDROCK_CLAUDE_35_SONNET_V2.id,
         inputCost: 3,
         outputCost: 15,
@@ -114,13 +121,6 @@ export const LLMS = [
         maxOutputTokens: 8192,
     },
     // OLLama
-    {
-        model: LLM_MODELS.OLLAMA_DEEPSEEK.id,
-        inputCost: 0,
-        outputCost: 0,
-        maxInputTokens: 20000,
-        maxOutputTokens: 4096,
-    },
     {
         model: LLM_MODELS.OLLAMA_LLAMA.id,
         inputCost: 0,

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
-import { FeatureQuestions, PRDInput } from "@/types/prd";
+import { PRDInput } from "@/types/prd";
 import { GeneratePRD } from "@/modules/prd/GeneratePRD";
+import { v4 as uuidv4 } from "uuid";
 
 export async function POST(req: Request) {
     try {
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
                 return {
                     featureId,
                     screen: {
-                        id: crypto.randomUUID(),
+                        id: uuidv4(),
                         name: (file as File).name,
                         imageBuffer: buffer,
                     },

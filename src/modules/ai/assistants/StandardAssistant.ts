@@ -13,7 +13,7 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
         );
 
         const systemPrompt = this.getSystemPrompt();
-        const basePrompt = this.getPrompt();
+        const basePrompt = this.getPrompt(params);
 
         const userParams = {
             ...params,
