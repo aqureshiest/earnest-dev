@@ -5,12 +5,8 @@ import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 
 export class PlannerAssistant extends CodebaseAssistant<ImplementationPlan> {
-    private responseParser: ResponseParser<ImplementationPlan>;
-
     constructor() {
         super(new PromptBuilder(), new TokenLimiter());
-
-        this.responseParser = new ResponseParser<ImplementationPlan>();
     }
 
     getSystemPrompt(): string {
@@ -94,6 +90,12 @@ Now, using the task description, existing code files, and specifications generat
     }
 
     handleResponse(response: string): ImplementationPlan {
+        return PlannerAssistant.parseResponseToPlan(response);
+    }
+
+    static parseResponseToPlan(response: string): ImplementationPlan {
+        const responseParser = new ResponseParser<ImplementationPlan>();
+
         const options = {
             ignoreAttributes: false,
             isArray: (name: any, jpath: any) =>
@@ -105,7 +107,7 @@ Now, using the task description, existing code files, and specifications generat
         const matchedBlock = match ? match[0] : "";
 
         // Parse the response into an intermediate format
-        const parsedData = this.responseParser.parse(matchedBlock, options) as any;
+        const parsedData = responseParser.parse(matchedBlock, options) as any;
 
         try {
             const plan: ImplementationPlan = {

@@ -150,6 +150,13 @@ export class RepositoryDataService {
             given_ref: ref,
         });
 
+        // console.log(
+        //     data.map((file: any) => ({
+        //         path: file.path,
+        //         similarity: file.similarity,
+        //     }))
+        // );
+
         if (error) {
             throw new Error(`Error finding similar files: ${error.message}`);
         }

@@ -5,12 +5,8 @@ import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 
 export class CodingAssistant extends CodebaseAssistant<CodeChanges> {
-    private responseParser: ResponseParser<CodeChanges>;
-
     constructor() {
         super(new PromptBuilder(), new TokenLimiter());
-
-        this.responseParser = new ResponseParser<CodeChanges>();
     }
 
     getSystemPrompt(): string {
@@ -112,6 +108,12 @@ Now, using the task description, existing code files, and implementation plan ge
     }
 
     handleResponse(response: string): CodeChanges {
+        return CodingAssistant.parseResponseToCodeChanges(response);
+    }
+
+    static parseResponseToCodeChanges(response: string): CodeChanges {
+        const responseParser = new ResponseParser<CodeChanges>();
+
         const options = {
             ignoreAttributes: false,
             isArray: (name: any, jpath: any) => name === "file",
@@ -122,7 +124,7 @@ Now, using the task description, existing code files, and implementation plan ge
         const codeChangesBlock = match ? match[0] : "";
 
         // Parse the response into an intermediate format
-        const parsedData = this.responseParser.parse(codeChangesBlock, options) as any;
+        const parsedData = responseParser.parse(codeChangesBlock, options) as any;
 
         try {
             // Normalize the parsed data

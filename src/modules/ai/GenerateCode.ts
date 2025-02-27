@@ -3,16 +3,17 @@ import { CodingAssistant } from "@/modules/ai/assistants/generate-code/CodingAss
 import { PlannerAssistant } from "@/modules/ai/assistants/generate-code/PlannerAssistant";
 import { SpecificationsAssistant } from "@/modules/ai/assistants/generate-code/SpecificationsAssistant";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
+import { CodingAssistantV2 } from "./assistants/generate-code/CodingAssistantV2";
 
 export class GenerateCode {
     private specificationsAssistant: SpecificationsAssistant;
     private plannerAssistant: PlannerAssistant;
-    private codingAssistant: CodingAssistant;
+    private codingAssistant: CodingAssistantV2;
 
     constructor() {
         this.specificationsAssistant = new SpecificationsAssistant();
         this.plannerAssistant = new PlannerAssistant();
-        this.codingAssistant = new CodingAssistant();
+        this.codingAssistant = new CodingAssistantV2();
     }
 
     async runWorkflow(taskRequest: CodingTaskRequest): Promise<AIAssistantResponse<CodeChanges>> {

@@ -14,10 +14,12 @@ export abstract class BaseAIService {
     protected model: string;
     private cacheDir: string = ".ai_cache";
     private readonly debug: boolean;
+    private readonly useCache: boolean = true;
 
     constructor(model: string) {
         this.model = model;
         this.debug = process.env.AI_SERVICE_DEBUG === "true";
+        this.useCache = process.env.AI_SERVICE_USE_CACHE === "true";
     }
 
     abstract generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse>;
@@ -31,6 +33,8 @@ export abstract class BaseAIService {
     }
 
     protected async cacheResponse(key: string, response: AIResponse): Promise<void> {
+        if (!this.useCache) return;
+
         const cacheDir = path.join(process.cwd(), this.cacheDir);
         await fs.mkdir(cacheDir, { recursive: true });
         const cacheFile = path.join(cacheDir, `${key}.json`);
@@ -38,6 +42,8 @@ export abstract class BaseAIService {
     }
 
     protected async getCachedResponse(key: string): Promise<AIResponse | null> {
+        if (!this.useCache) return null;
+
         const cacheFile = path.join(process.cwd(), this.cacheDir, `${key}.json`);
         try {
             const data = await fs.readFile(cacheFile, "utf-8");
