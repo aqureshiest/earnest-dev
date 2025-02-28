@@ -1,16 +1,17 @@
-import { CODEFILES_PLACEHOLDER, PLAN_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
+import { CODEFILES_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { CodebaseAssistant } from "@/modules/ai/assistants/CodebaseAssistant";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
-import chalk from "chalk";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { formatXml } from "@/modules/utils/formatXml";
 import { saveRunInfo } from "@/modules/utils/saveRunInfo";
-import { PlannerAssistant } from "./PlannerAssistant";
 import { CodingAssistant } from "./CodingAssistant";
+import { parseXml } from "@/modules/utils/parseXml";
 
-export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
+import chalk from "chalk";
+
+export class CodingAssistantByFile extends CodebaseAssistant<CodeChanges> {
     private dataService: RepositoryDataService;
 
     constructor() {
@@ -33,7 +34,7 @@ export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
         );
 
         // Parse the implementation plan from the request
-        const implementationPlan = PlannerAssistant.parseResponseToPlan(params.implementationPlan);
+        const implementationPlan: ImplementationPlan = params.implementationPlan;
 
         if (!implementationPlan || !implementationPlan.steps) {
             console.error("Failed to parse implementation plan or no steps found");
@@ -41,18 +42,20 @@ export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
         }
 
         const aggregatedResponse: CodeChanges = {
-            title: "",
+            title: "Implementation of requested features",
             newFiles: [],
             modifiedFiles: [],
             deletedFiles: [],
         };
 
-        // Track total tokens and cost across files
-        let totalInputTokens = 0;
-        let totalOutputTokens = 0;
-        let totalCost = 0;
+        // Track metrics
+        let metrics = {
+            inputTokens: 0,
+            outputTokens: 0,
+            cost: 0,
+        };
 
-        // Total number of files to process
+        // Calculate total files to process for progress reporting
         const totalFileCount = implementationPlan.steps.reduce(
             (count, step) => count + step.files.length,
             0
@@ -81,88 +84,35 @@ export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
                     `Generating code for ${fileChange.path} (${progressPercent}%)`
                 );
 
-                // Prepare query for embedding search
-                const fileQuery = this.createFileSearchQuery(fileChange, step);
-
                 try {
-                    // Get relevant files using embedding similarity
-                    console.log(`Finding similar files for ${fileChange.path} using embeddings...`);
-
-                    // Find similar files for this step and file change
-                    const similarFiles = await this.dataService.findSimilar(
-                        fileQuery,
+                    // Get relevant files for this file change
+                    const filesToUse = await this.getRelevantFilesForChange(
+                        fileChange,
+                        step,
+                        files,
                         owner,
                         repo,
                         branch
                     );
 
-                    // keep relevant files as top 30 similar files
-                    const relevantFiles = similarFiles.slice(0, 30);
-
-                    // Check if we need to add target file for modification
-                    if (fileChange.operation === "modify") {
-                        const targetFile = files.find((f) => f.path === fileChange.path);
-                        if (targetFile && !relevantFiles.some((f) => f.path === targetFile.path)) {
-                            // Add target file at the beginning if it's not already included
-                            relevantFiles.unshift(targetFile);
-                            console.log(`Added target file ${fileChange.path} for modification`);
-                        }
-                    }
-
-                    // Generate code using relevant files
+                    // Process this file with relevant context
                     await this.processFileWithRelevantContext(
                         request,
                         model,
                         step,
                         fileChange,
-                        relevantFiles,
+                        filesToUse,
                         taskId,
                         aggregatedResponse,
-                        totalInputTokens,
-                        totalOutputTokens,
-                        totalCost
+                        metrics
                     );
                 } catch (error) {
-                    console.error(`Error finding similar files for ${fileChange.path}:`, error);
-                    console.log(`Falling back to using all files for ${fileChange.path}`);
-
-                    // Fallback: use all files but prioritize the target file
-                    let allFilesWithPriority = [...files];
-
-                    // If this is a modification, ensure the target file is first for context
-                    if (fileChange.operation === "modify") {
-                        const targetFileIndex = allFilesWithPriority.findIndex(
-                            (f) => f.path === fileChange.path
-                        );
-                        if (targetFileIndex > 0) {
-                            // Move target file to the beginning
-                            const targetFile = allFilesWithPriority.splice(targetFileIndex, 1)[0];
-                            allFilesWithPriority.unshift(targetFile);
-                        }
-                    }
-
-                    // Process with all files as context (token limiter will handle pruning)
-                    await this.processFileWithRelevantContext(
-                        request,
-                        model,
-                        step,
-                        fileChange,
-                        allFilesWithPriority,
-                        taskId,
-                        aggregatedResponse,
-                        totalInputTokens,
-                        totalOutputTokens,
-                        totalCost
-                    );
+                    console.error(`Error processing file ${fileChange.path}:`, error);
+                    sendTaskUpdate(taskId, "progress", `⚠️ Error processing ${fileChange.path}`);
                 }
             }
 
             sendTaskUpdate(taskId, "progress", `Completed step: ${step.title}`);
-        }
-
-        // Make sure we have a title for the PR
-        if (!aggregatedResponse.title) {
-            aggregatedResponse.title = "Implementation of requested features";
         }
 
         // Format the aggregated response as XML
@@ -176,11 +126,54 @@ export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
         return {
             response: aggregatedResponse,
             responseStr: responseStr,
-            inputTokens: totalInputTokens,
-            outputTokens: totalOutputTokens,
-            cost: totalCost,
-            calculatedTokens: totalInputTokens + totalOutputTokens, // Approximation
+            inputTokens: metrics.inputTokens,
+            outputTokens: metrics.outputTokens,
+            cost: metrics.cost,
+            calculatedTokens: metrics.inputTokens + metrics.outputTokens,
         };
+    }
+
+    private async getRelevantFilesForChange(
+        fileChange: FileChanges,
+        step: Step,
+        allFiles: FileDetails[],
+        owner: string,
+        repo: string,
+        branch: string
+    ): Promise<FileDetails[]> {
+        // Prepare query for embedding search
+        const fileQuery = this.createFileSearchQuery(fileChange, step);
+        let filesToUse: FileDetails[] = [];
+
+        try {
+            // Get relevant files using embedding similarity
+            console.log(`Finding similar files for: ---\n${fileQuery}\n--- using embeddings...`);
+            const relevantFiles = await this.dataService.findSimilar(
+                fileQuery,
+                owner,
+                repo,
+                branch
+            );
+            console.log(`Found ${relevantFiles.length} similar files`);
+
+            // Keep top 30 similar files
+            filesToUse = relevantFiles.slice(0, 30);
+        } catch (error) {
+            console.error(`Error finding similar files for ${fileChange.path}:`, error);
+            // Fallback to using all files if embedding search fails
+            filesToUse = [...allFiles];
+        }
+
+        // Ensure target file is included for modification operations
+        if (fileChange.operation === "modify") {
+            const targetFile = allFiles.find((f) => f.path === fileChange.path);
+            if (targetFile && !filesToUse.some((f) => f.path === targetFile.path)) {
+                filesToUse.unshift(targetFile);
+                console.log(`Added target file ${fileChange.path} for modification`);
+            }
+        }
+
+        return filesToUse;
     }
 
     private async processFileWithRelevantContext(
@@ -191,9 +184,7 @@ export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
         relevantFiles: FileDetails[],
         taskId: string,
         aggregatedResponse: CodeChanges,
-        totalInputTokens: number,
-        totalOutputTokens: number,
-        totalCost: number
+        metrics: { inputTokens: number; outputTokens: number; cost: number }
     ): Promise<void> {
         // Create a file-specific request with relevant context files
         const fileRequest: CodingTaskRequest = {
@@ -215,13 +206,13 @@ export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
             return;
         }
 
-        // Update the aggregated response
-        this.mergeFileResponse(aggregatedResponse, fileResponse.response);
+        // Update metrics
+        metrics.inputTokens += fileResponse.inputTokens;
+        metrics.outputTokens += fileResponse.outputTokens;
+        metrics.cost += fileResponse.cost;
 
-        // Track metrics
-        totalInputTokens += fileResponse.inputTokens;
-        totalOutputTokens += fileResponse.outputTokens;
-        totalCost += fileResponse.cost;
+        // Update the aggregated response directly
+        this.addFileResponseToAggregate(aggregatedResponse, fileResponse.response);
 
         sendTaskUpdate(
             taskId,
@@ -280,8 +271,11 @@ export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
 
         try {
             saveRunInfo(request, folder, "ai_response", aiResponse.response);
-            // Parse the response to capture code changes
-            const codeChanges = CodingAssistant.parseResponseToCodeChanges(aiResponse.response);
+            // Convert the simplified response format to CodeChanges
+            const codeChanges = this.convertFileChangeToCodeChanges(
+                aiResponse.response,
+                fileChange
+            );
 
             return {
                 ...aiResponse,
@@ -297,7 +291,7 @@ export class CodingAssistantV2 extends CodebaseAssistant<CodeChanges> {
     }
 
     private getFileSpecificPrompt(step: Step, fileChange: FileChanges): string {
-        // Create a prompt focused on a single file, but with step context
+        // Create a prompt focused on a single file with simpler response format
         return `
 Here are the existing code files you will be working with:
 <existing_codebase language="typescript">
@@ -311,69 +305,136 @@ ${TASK_PLACEHOLDER}
 
 Here is the implementation step to follow for this specific file:
 <implementation_step>
- <title>${step.title}</title>
- <thoughts>${step.thoughts}</thoughts>
- <file>
-  <path>${fileChange.path}</path>
-  <operation>${fileChange.operation}</operation>
-  <todos>
+    <title>${step.title}</title>
+    <thoughts>${step.thoughts}</thoughts>
+    <file>
+    <path>${fileChange.path}</path>
+    <operation>${fileChange.operation}</operation>
+    <todos>
 ${fileChange.todos.map((todo) => `   <todo>${todo}</todo>`).join("\n")}
-  </todos>
- </file>
+    </todos>
+    </file>
 </implementation_step>
 
 <file_focus>
 Please focus ONLY on implementing the following file:
 - Path: ${fileChange.path}
 - Operation: ${fileChange.operation}
+
+You must address ALL of the todos listed above in your implementation.
 </file_focus>
 
 <response_format_instructions>
-Respond in the following format:
+Respond in the following simplified format:
 
-<code_changes>
- <title>Brief title describing the change</title>
- <new_files>
-  <file>
-  <path>path/to/new/file1</path>
-  <thoughts>Your thoughts on implementing this file</thoughts>
-  <content>
+<file_change>
+    <title>Brief title describing this specific change</title>
+    <path>${fileChange.path}</path>
+    <operation>${fileChange.operation}</operation>
+    <thoughts>
+    Summary of your thoughts on this specific change
+    </thoughts>
+    ${
+        fileChange.operation !== "delete"
+            ? `<content>
 <![CDATA[
-// Full content of the new file goes here 
+// Complete file content goes here
 ]]>
-  </content>
-  </file>      
- </new_files>
- <modified_files>
-  <file>
-  <path>path/to/modified/file1</path>
-  <thoughts>Your thoughts on the modifications made to this file</thoughts>
-  <content>
-<![CDATA[
-// Full content of the modified file goes here, including all changes 
-]]>
-  </content>
-  </file>
- </modified_files>
- <deleted_files>
-  <file>
-   <path>path/to/deleted/file1</path>
-  </file>
- </deleted_files>
-</code_changes>
+    </content>`
+            : ""
+    }
+    <todo_completion>
+    <!-- For each todo item in the implementation_step above -->
+    <todo_item id="1">
+        <implementation>
+        Brief explanation of specifically how you implemented this todo item in the code
+        </implementation>
+    </todo_item>
+    <!-- Repeat for each todo with incrementing ids -->
+    </todo_completion>
+</file_change>
 </response_format_instructions>
 
-Now, generate the code for ONLY this file in the specified XML format. Include the COMPLETE content for the file.
-`;
+Now, generate the code ONLY for this specific file according to the format above. Make sure to:
+1. Address ALL todos in the implementation
+2. Provide complete file content (for new or modified files)
+3. Explain how each todo was implemented
+4. Ensure the code integrates well with the existing codebase
+    `;
     }
 
-    private mergeFileResponse(target: CodeChanges, source: CodeChanges): void {
-        // Update title if not already set
-        if (!target.title && source.title) {
-            target.title = source.title;
+    private convertFileChangeToCodeChanges(response: string, fileChange: FileChanges): CodeChanges {
+        try {
+            // Extract the file_change XML block
+            const match = response.match(/<file_change>[\s\S]*<\/file_change>/);
+            if (!match) {
+                throw new Error("Could not find file_change in response");
+            }
+
+            // Parse the XML
+            const xmlOptions = {
+                ignoreAttributes: false,
+                isArray: (name: string) => name === "todo_item",
+            };
+
+            const parsedData = parseXml<any>(match[0], xmlOptions);
+            const fileChangeData = parsedData.file_change;
+
+            // Create appropriate structure based on operation
+            const codeChanges: CodeChanges = {
+                title: fileChangeData.title || "",
+                newFiles: [],
+                modifiedFiles: [],
+                deletedFiles: [],
+            };
+
+            const operation = fileChangeData.operation;
+            const path = fileChangeData.path;
+            const thoughts = fileChangeData.thoughts || "";
+            const content = fileChangeData.content || "";
+
+            if (operation === "new") {
+                codeChanges.newFiles.push({ path, thoughts, content });
+            } else if (operation === "modify") {
+                codeChanges.modifiedFiles.push({ path, thoughts, content });
+            } else if (operation === "delete") {
+                codeChanges.deletedFiles.push({ path });
+            }
+
+            return codeChanges;
+        } catch (error: any) {
+            console.error(`Error parsing file_change response:`, error);
+
+            // just return a minimal structure with the file path and error message
+            return this.createMinimalCodeChange(
+                fileChange.path,
+                fileChange.operation,
+                error.message
+            );
+        }
+    }
+
+    private createMinimalCodeChange(path: string, opr: string, message: string = ""): CodeChanges {
+        const codeChanges: CodeChanges = {
+            title: "",
+            newFiles: [],
+            modifiedFiles: [],
+            deletedFiles: [],
+        };
+
+        if (opr === "new") {
+            codeChanges.newFiles.push({ path, thoughts: "", content: message });
+        } else if (opr === "modify") {
+            codeChanges.modifiedFiles.push({ path, thoughts: "", content: message });
+        } else if (opr === "delete") {
+            codeChanges.deletedFiles.push({ path });
         }
 
-        // Merge new files
+        return codeChanges;
+    }
+
+    private addFileResponseToAggregate(target: CodeChanges, source: CodeChanges): void {
+        // Add new files from source to target
         if (source.newFiles && source.newFiles.length > 0) {
             for (const newFile of source.newFiles) {
                 const existingIndex = target.newFiles.findIndex((f) => f.path === newFile.path);
@@ -387,7 +448,7 @@ Now, generate the code for ONLY this file in the specified XML format. Include t
             }
         }
 
-        // Merge modified files
+        // Add modified files from source to target
         if (source.modifiedFiles && source.modifiedFiles.length > 0) {
             for (const modFile of source.modifiedFiles) {
                 const existingIndex = target.modifiedFiles.findIndex(
@@ -403,7 +464,7 @@ Now, generate the code for ONLY this file in the specified XML format. Include t
             }
         }
 
-        // Merge deleted files
+        // Add deleted files from source to target
         if (source.deletedFiles && source.deletedFiles.length > 0) {
             for (const delFile of source.deletedFiles) {
                 if (!target.deletedFiles.some((f) => f.path === delFile.path)) {

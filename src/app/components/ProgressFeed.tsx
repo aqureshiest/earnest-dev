@@ -60,20 +60,20 @@ const ProgressFeed: React.FC<ProgressFeedProps> = ({ progress, slim = false }) =
                             >
                                 <div
                                     className={`p-2 ${
-                                        message.startsWith("*") ? "bg-muted" : "bg-muted"
+                                        message?.startsWith("*") ? "bg-muted" : "bg-muted"
                                     } rounded-md`}
                                 >
                                     <p
                                         className={`text-sm ${
-                                            message.toLowerCase().includes("error")
+                                            message?.toLowerCase().includes("error")
                                                 ? "text-red-500"
                                                 : "text-foreground"
                                         }`}
                                     >
-                                        {message.startsWith("*") ? (
+                                        {message?.startsWith("*") ? (
                                             <span className="flex items-center">
                                                 <span className="mr-2 text-primary">└─</span>
-                                                <span>{message.slice(1)}</span>
+                                                <span>{message?.slice(1)}</span>
                                             </span>
                                         ) : (
                                             message

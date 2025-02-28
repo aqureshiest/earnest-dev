@@ -122,3 +122,15 @@ body {
         @apply bg-gray-100 p-3 rounded-md;
     }
 }
+
+/* 
+---break--- */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+}

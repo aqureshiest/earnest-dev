@@ -26,11 +26,13 @@ const AIModelSelection = ({
 }: Props) => {
     // Group models by company
     const getGroupedModels = () => {
-        const models = Object.entries(LLM_MODELS).map(([key, value]) => ({
-            label: value.name,
-            value: value.id,
-            company: getCompanyFromName(value.name),
-        }));
+        const models = Object.entries(LLM_MODELS)
+            .filter(([_, value]) => !("deprecated" in value) || !value.deprecated)
+            .map(([key, value]) => ({
+                label: value.name,
+                value: value.id,
+                company: getCompanyFromName(value.name),
+            }));
 
         // Group by company
         const grouped = models.reduce((acc, model) => {

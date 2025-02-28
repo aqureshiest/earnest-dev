@@ -44,7 +44,7 @@ export class OpenAIService extends BaseAIService {
                 ],
                 model: this.model,
                 max_completion_tokens: LLM.maxOutputTokens,
-                temperature: 0,
+                temperature: this.model.startsWith("o") ? 1 : 0,
             });
 
             const response = completion.choices[0]?.message?.content?.trim();

@@ -1,14 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import SpecificationsCard from "../components/SpecificationsCard";
-import ImplementationPlanCard from "../components/ImplementationPlanCard";
-import AssistantWorkspace from "../components/AssistantWorkspace";
-import ProgressFeed from "../components/ProgressFeed";
+import ImplementationPlanCard from "../../components/ImplementationPlanCard";
+import ProgressFeed from "../../components/ProgressFeed";
 import { AnimatePresence, motion } from "framer-motion";
-import CodeViewer from "../components/CodeViewer";
-
-import { AssistantState, AssistantStates, useAssistantStates } from "./useAssistantStates";
+import CodeViewer from "../../components/CodeViewer";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,22 +20,27 @@ import {
     Maximize,
     Minimize,
     SearchCheck,
+    Sparkle,
+    Sparkles,
     Telescope,
     X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import RepoAndBranchSelection from "../components/RepoAndBranchSelection";
-import AIModelSelection from "../components/AIModelSelection";
+import RepoAndBranchSelection from "../../components/RepoAndBranchSelection";
+import AIModelSelection from "../../components/AIModelSelection";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
+import EnhancedProgressFeed, {
+    EnhancedProgressMessage,
+} from "@/app/components/EnhancedProgressFeed";
 
-const PullRequest: React.FC = () => {
+const PullRequestV2: React.FC = () => {
     const [taskId, setTaskId] = useState("");
 
     const [repo, setRepo] = useState<string>("");
     const [branch, setBranch] = useState<string>("");
     const [description, setDescription] = useState("");
 
-    const [progress, setProgress] = useState<string[]>([]);
+    const [progressMessages, setProgressMessages] = useState<EnhancedProgressMessage[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [acceptedChanges, setAcceptedChanges] = useState(false);
     const [showDiff, setShowDiff] = useState(false);
@@ -53,22 +54,11 @@ const PullRequest: React.FC = () => {
 
     const [excludedFiles, setExcludedFiles] = useState<Set<string>>(new Set());
 
-    const [specifications, setSpecifications] =
-        useState<AIAssistantResponse<Specifications> | null>(null);
     const [implementationPlan, setImplementationPlan] =
         useState<AIAssistantResponse<ImplementationPlan> | null>(null);
     const [generatedCodeResponse, setGeneratedCodeResponse] =
         useState<AIAssistantResponse<CodeChanges> | null>(null);
     const [generatedCode, setGeneratedCode] = useState<CodeChanges | null>(null);
-
-    const assistants = [
-        { name: "specifications", icon: FileSearch },
-        { name: "planning", icon: Telescope },
-        { name: "code", icon: Code },
-        { name: "PR", icon: GitPullRequest },
-    ];
-
-    const { assistantStates, resetAssistantStates, updateAssistantState } = useAssistantStates();
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
 
@@ -129,7 +119,7 @@ const PullRequest: React.FC = () => {
         description: string,
         selectedModel: string
     ) => {
-        const response = await fetch(`/api/generate`, {
+        const response = await fetch(`/api/generate/v2`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -173,6 +163,22 @@ const PullRequest: React.FC = () => {
         }
     };
 
+    const addProgressMessage = (
+        message: string,
+        type: string = "info",
+        isMarkdown: boolean = false
+    ) => {
+        setProgressMessages((prev) => [
+            ...prev,
+            {
+                message,
+                content: message,
+                type,
+                isMarkdown,
+            },
+        ]);
+    };
+
     const handleCreatePullRequest = async () => {
         setIsCreating(true);
         resetState();
@@ -181,7 +187,7 @@ const PullRequest: React.FC = () => {
             const newTaskId = Date.now().toString();
             setTaskId(newTaskId);
 
-            setProgress((prev) => [...prev, `Task ${newTaskId} started`]);
+            addProgressMessage(`Task ${newTaskId} started`);
 
             const response = await generateCode(
                 newTaskId,
@@ -204,18 +210,31 @@ const PullRequest: React.FC = () => {
         if (!reader) throw new Error("Failed to get stream reader");
 
         const decoder = new TextDecoder();
+        let buffer = ""; // Keep a buffer for incomplete messages
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
             const chunk = decoder.decode(value);
-            const lines = chunk.split("\n\n");
+            buffer += chunk; // Add new chunk to buffer
 
-            for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                    const data = JSON.parse(line.slice(6));
-                    handleResponseData(data);
+            // Split on SSE event boundaries
+            const events = buffer.split("\n\n");
+            buffer = events.pop() || ""; // Keep the last potentially incomplete event
+
+            for (const event of events) {
+                const dataLines = event.split("\n").filter((line) => line.startsWith("data: "));
+
+                for (const line of dataLines) {
+                    try {
+                        console.log(`Received data: ${line}`);
+                        const jsonStr = line.slice(6).trim();
+                        const data = JSON.parse(jsonStr);
+                        handleResponseData(data);
+                    } catch (error) {
+                        console.error("Error parsing JSON:", error, "in line:", line);
+                    }
                 }
             }
         }
@@ -226,11 +245,14 @@ const PullRequest: React.FC = () => {
             case "progress":
                 handleProgress(data);
                 break;
+            case "summary":
+                handleSummary(data);
+                break;
+            case "file":
+                handleFileUpdate(data);
+                break;
             case "error":
                 handleError(new Error(data.message));
-                break;
-            case "start":
-                updateAssistantState(data.message.assistant, AssistantState.Working);
                 break;
             case "complete":
                 handleComplete(data, data.message.assistant);
@@ -242,15 +264,21 @@ const PullRequest: React.FC = () => {
     };
 
     const handleProgress = (data: any) => {
-        setProgress((prev) => [...prev, data.message]);
+        addProgressMessage(data.message);
     };
 
-    const handleComplete = (data: any, assistant: keyof AssistantStates) => {
+    const handleSummary = (data: any) => {
+        addProgressMessage(`${data.message.summary}`, "success", true);
+    };
+
+    const handleFileUpdate = (data: any) => {
+        const { path, operation } = data.message;
+        addProgressMessage(`File: ${path} - ${operation}`);
+    };
+
+    const handleComplete = (data: any, assistant: string) => {
         const { response } = data.message;
         switch (assistant) {
-            case "specifications":
-                setSpecifications(response);
-                break;
             case "planning":
                 setImplementationPlan(response);
                 break;
@@ -259,33 +287,29 @@ const PullRequest: React.FC = () => {
                 setGeneratedCode(response.response);
                 break;
         }
-        updateAssistantState(assistant, AssistantState.Completed);
     };
 
     const handleFinal = (data: any) => {
         if (data.message.prLink) {
             setGeneratedPRLink(data.message.prLink);
         } else {
-            setProgress((prev) => [...prev, data.message]);
+            addProgressMessage(data.message);
         }
     };
 
     const handleError = (error: Error) => {
         console.error(error);
-        setProgress((prev) => [...prev, error.message]);
-        resetAssistantStates();
+        addProgressMessage(error.message, "error");
     };
 
     const resetState = () => {
-        setProgress([]);
+        setProgressMessages([]);
         setGeneratedPRLink(null);
         setAcceptedChanges(false);
-        setSpecifications(null);
         setImplementationPlan(null);
         setGeneratedCodeResponse(null);
         setGeneratedCode(null);
         setExcludedFiles(new Set());
-        resetAssistantStates();
     };
 
     const toggleCodeViewer = () => {
@@ -304,14 +328,22 @@ const PullRequest: React.FC = () => {
     return (
         <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
-                <motion.h1
-                    className="text-3xl font-semibold text-center mb-8 text-gray-800 dark:text-gray-100"
+                {/* Header */}
+                <motion.div
+                    className="text-center mb-12"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    Pull Request Generator
-                </motion.h1>
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                        <Sparkles className="w-6 h-6 text-primary" />
+                        <h1 className="text-3xl font-light">Earnest AI Code Generator</h1>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
+                        Generate code and create pull requests with AI assistance.
+                    </p>
+                </motion.div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Code Viewer Modal */}
                     <AnimatePresence>
@@ -501,14 +533,7 @@ const PullRequest: React.FC = () => {
                         transition={{ duration: 0.5, delay: 0.4 }}
                     >
                         <div className="space-y-6">
-                            <AssistantWorkspace
-                                assistants={assistants}
-                                assistantStates={assistantStates}
-                            />
-
-                            <ProgressFeed progress={progress} />
-
-                            <SpecificationsCard specifications={specifications} />
+                            <EnhancedProgressFeed messages={progressMessages} maxHeight="500px" />
 
                             <ImplementationPlanCard implementationPlan={implementationPlan} />
                         </div>
@@ -519,4 +544,4 @@ const PullRequest: React.FC = () => {
     );
 };
 
-export default PullRequest;
+export default PullRequestV2;
