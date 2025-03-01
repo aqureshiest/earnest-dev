@@ -5,7 +5,8 @@ import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTas
 
 export async function POST(req: Request) {
     try {
-        const { taskId, owner, repo, branch, description, selectedModel } = await req.json();
+        const { taskId, owner, repo, branch, description, selectedModel, params } =
+            await req.json();
         if (!taskId) {
             return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
         }
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
                         task: description,
                         model: selectedModel,
                         files: [],
-                        params: {},
+                        params: params || {},
                     };
 
                     // prepare codebase

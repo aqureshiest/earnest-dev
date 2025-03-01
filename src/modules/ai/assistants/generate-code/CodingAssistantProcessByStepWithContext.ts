@@ -228,8 +228,6 @@ Implemented **payment processing service** with validation rules and core transa
 Your response should ONLY contain these XML tags with your summaries, nothing else.
     `;
 
-            sendTaskUpdate(taskId, "progress", `Generating summary for step "${step.title}"...`);
-
             const summaryResponse = await this.generateResponse(model, systemPrompt, userPrompt);
             if (!summaryResponse) {
                 const defaultSummary = `- Completed ${step.title}`;
@@ -294,6 +292,12 @@ Your response should ONLY contain these XML tags with your summaries, nothing el
                 repo,
                 branch
             );
+            console.log(
+                ">> Found similar files:",
+                relevantFiles.length,
+                " and first file is ",
+                relevantFiles[0]?.path
+            );
 
             // Keep top 30 similar files
             filesToUse = relevantFiles.slice(0, 30);
@@ -337,11 +341,7 @@ Your response should ONLY contain these XML tags with your summaries, nothing el
 
         if (!stepResponse?.response) {
             console.error(`Failed to generate code for step: ${step.title}`);
-            sendTaskUpdate(
-                taskId,
-                "progress",
-                `⚠️ Failed to generate code for step: ${step.title}`
-            );
+            sendTaskUpdate(taskId, "error", `⚠️ Failed to generate code for step: ${step.title}`);
             return null;
         }
 
@@ -539,9 +539,13 @@ Now, generate the code for ALL files in this step according to the format above.
             prevStep.modifiedFiles.some((filePath) => currentStepFiles.has(filePath))
         );
 
-        // If we don't have any directly relevant steps, just include the most recent ones
-        const stepsToInclude =
-            relevantSteps.length > 0 ? relevantSteps : this.completedSteps.slice(-3); // Last 3 steps
+        let stepsToInclude = relevantSteps;
+        // we should have up to 3 steps, so add remaining
+        if (relevantSteps.length < 3) {
+            const remainingStepsCount = 3 - relevantSteps.length;
+            const remainingSteps = this.completedSteps.slice(-remainingStepsCount);
+            stepsToInclude.push(...remainingSteps);
+        }
 
         if (stepsToInclude.length === 0) {
             return "";

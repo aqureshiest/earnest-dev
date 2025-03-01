@@ -47,7 +47,6 @@ export class GenerateCodeV2 {
         }
 
         await this.emitMetrics(taskId, code);
-        console.log("Code generated:", JSON.stringify(code, null, 2));
         sendTaskUpdate(taskId, "complete", { assistant: "code", response: code });
 
         // calculate total cost

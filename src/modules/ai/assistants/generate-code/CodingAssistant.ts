@@ -3,6 +3,8 @@ import { CodebaseAssistant } from "@/modules/ai/assistants/CodebaseAssistant";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
+import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
+import { extractCompleteFilesFromTruncated, isResponseTruncated } from "./XmlResponseHelper";
 
 export class CodingAssistant extends CodebaseAssistant<CodeChanges> {
     constructor() {
@@ -107,11 +109,60 @@ Now, using the task description, existing code files, and implementation plan ge
 `;
     }
 
-    handleResponse(response: string): CodeChanges {
-        return CodingAssistant.parseResponseToCodeChanges(response);
+    handleResponse(response: string, taskId?: string): CodeChanges {
+        try {
+            return CodingAssistant.parseResponseToCodeChanges(response);
+        } catch (error: any) {
+            console.warn(
+                "Error in initial parsing, checking if response was truncated:",
+                error.message
+            );
+
+            // Check if response was truncated
+            if (isResponseTruncated(response)) {
+                console.warn("Detected truncated response, attempting to extract complete files");
+
+                console.log(taskId);
+                if (taskId) {
+                    sendTaskUpdate(
+                        taskId,
+                        "warning",
+                        "Response was truncated. Extracting whatever complete files were generated. Some files may be missing or incomplete."
+                    );
+                }
+
+                // Try to extract whatever complete files we can from the truncated response
+                const partialCodeChanges = extractCompleteFilesFromTruncated(response);
+
+                if (
+                    partialCodeChanges.newFiles.length > 0 ||
+                    partialCodeChanges.modifiedFiles.length > 0 ||
+                    partialCodeChanges.deletedFiles.length > 0
+                ) {
+                    console.log("Successfully extracted some content from truncated response");
+                    return partialCodeChanges;
+                } else {
+                    console.error("Could not extract any files from truncated response");
+                    throw new Error(
+                        "Response was truncated and no complete files could be extracted. Please try a simpler task."
+                    );
+                }
+            }
+
+            console.error("Error parsing code changes response:", error);
+            throw new Error(`Failed to parse code changes response. ${error.message}.`);
+        }
     }
 
     static parseResponseToCodeChanges(response: string): CodeChanges {
+        // First check if we have a valid code_changes block
+        const match = response.match(/<code_changes>[\s\S]*<\/code_changes>/);
+        const codeChangesBlock = match ? match[0] : "";
+
+        if (!codeChangesBlock) {
+            throw new Error("No valid code_changes block found in response");
+        }
+
         const responseParser = new ResponseParser<CodeChanges>();
 
         const options = {
@@ -119,40 +170,35 @@ Now, using the task description, existing code files, and implementation plan ge
             isArray: (name: any, jpath: any) => name === "file",
         };
 
-        // extract the code_changes block
-        const match = response.match(/<code_changes>[\s\S]*<\/code_changes>/);
-        const codeChangesBlock = match ? match[0] : "";
-
         // Parse the response into an intermediate format
         const parsedData = responseParser.parse(codeChangesBlock, options) as any;
 
-        try {
-            // Normalize the parsed data
-            const codeChanges: CodeChanges = {
-                title: parsedData.code_changes.title,
-                newFiles:
-                    parsedData.code_changes.new_files?.file?.map((file: any) => ({
-                        path: file.path,
-                        thoughts: file.thoughts,
-                        content: file.content.trim(),
-                    })) || [],
-                modifiedFiles:
-                    parsedData.code_changes.modified_files?.file?.map((file: any) => ({
-                        path: file.path,
-                        thoughts: file.thoughts,
-                        content: file.content.trim(),
-                    })) || [],
-                deletedFiles:
-                    parsedData.code_changes.deleted_files?.file?.map((file: any) => ({
-                        path: file.path,
-                    })) || [],
-            };
-
-            return codeChanges;
-        } catch (error: any) {
-            console.error("Error parsing code", error);
-            console.error("Parsed data", JSON.stringify(parsedData, null, 2));
-            throw new Error(error);
+        // Check if we have valid parsed data
+        if (!parsedData || !parsedData.code_changes) {
+            throw new Error("Failed to parse code_changes block");
         }
+
+        // Normalize the parsed data
+        const codeChanges: CodeChanges = {
+            title: parsedData.code_changes.title || "Code Changes",
+            newFiles:
+                parsedData.code_changes.new_files?.file?.map((file: any) => ({
+                    path: file.path,
+                    thoughts: file.thoughts,
+                    content: file.content.trim(),
+                })) || [],
+            modifiedFiles:
+                parsedData.code_changes.modified_files?.file?.map((file: any) => ({
+                    path: file.path,
+                    thoughts: file.thoughts,
+                    content: file.content.trim(),
+                })) || [],
+            deletedFiles:
+                parsedData.code_changes.deleted_files?.file?.map((file: any) => ({
+                    path: file.path,
+                })) || [],
+        };
+
+        return codeChanges;
     }
 }

@@ -3,12 +3,8 @@
 import React, { useState } from "react";
 import SpecificationsCard from "../components/SpecificationsCard";
 import ImplementationPlanCard from "../components/ImplementationPlanCard";
-import AssistantWorkspace from "../components/AssistantWorkspace";
-import ProgressFeed from "../components/ProgressFeed";
 import { AnimatePresence, motion } from "framer-motion";
 import CodeViewer from "../components/CodeViewer";
-
-import { AssistantState, AssistantStates, useAssistantStates } from "./useAssistantStates";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import RepoAndBranchSelection from "../components/RepoAndBranchSelection";
 import AIModelSelection from "../components/AIModelSelection";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
+import EnhancedProgressFeed, { EnhancedProgressMessage } from "../components/EnhancedProgressFeed";
 
 const PullRequest: React.FC = () => {
     const [taskId, setTaskId] = useState("");
@@ -39,7 +36,7 @@ const PullRequest: React.FC = () => {
     const [branch, setBranch] = useState<string>("");
     const [description, setDescription] = useState("");
 
-    const [progress, setProgress] = useState<string[]>([]);
+    const [progressMessages, setProgressMessages] = useState<EnhancedProgressMessage[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [acceptedChanges, setAcceptedChanges] = useState(false);
     const [showDiff, setShowDiff] = useState(false);
@@ -61,16 +58,25 @@ const PullRequest: React.FC = () => {
         useState<AIAssistantResponse<CodeChanges> | null>(null);
     const [generatedCode, setGeneratedCode] = useState<CodeChanges | null>(null);
 
-    const assistants = [
-        { name: "specifications", icon: FileSearch },
-        { name: "planning", icon: Telescope },
-        { name: "code", icon: Code },
-        { name: "PR", icon: GitPullRequest },
-    ];
-
-    const { assistantStates, resetAssistantStates, updateAssistantState } = useAssistantStates();
+    const [skipSpecifications, setSkipSpecifications] = useState(true);
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
+
+    const addProgressMessage = (
+        message: string,
+        type: string = "info",
+        isMarkdown: boolean = false
+    ) => {
+        setProgressMessages((prev) => [
+            ...prev,
+            {
+                message,
+                content: message,
+                type,
+                isMarkdown,
+            },
+        ]);
+    };
 
     // Create a pull request
     const createPullRequest = async (
@@ -139,6 +145,9 @@ const PullRequest: React.FC = () => {
                 branch,
                 description: description.trim(),
                 selectedModel,
+                params: {
+                    skipSpecifications,
+                },
             }),
         });
 
@@ -181,7 +190,7 @@ const PullRequest: React.FC = () => {
             const newTaskId = Date.now().toString();
             setTaskId(newTaskId);
 
-            setProgress((prev) => [...prev, `Task ${newTaskId} started`]);
+            addProgressMessage(`Task ${newTaskId} started`);
 
             const response = await generateCode(
                 newTaskId,
@@ -226,11 +235,11 @@ const PullRequest: React.FC = () => {
             case "progress":
                 handleProgress(data);
                 break;
+            case "warning":
+                handleWarnings(data);
+                break;
             case "error":
                 handleError(new Error(data.message));
-                break;
-            case "start":
-                updateAssistantState(data.message.assistant, AssistantState.Working);
                 break;
             case "complete":
                 handleComplete(data, data.message.assistant);
@@ -242,10 +251,14 @@ const PullRequest: React.FC = () => {
     };
 
     const handleProgress = (data: any) => {
-        setProgress((prev) => [...prev, data.message]);
+        addProgressMessage(data.message);
     };
 
-    const handleComplete = (data: any, assistant: keyof AssistantStates) => {
+    const handleWarnings = (data: any) => {
+        addProgressMessage(data.message, "warning");
+    };
+
+    const handleComplete = (data: any, assistant: string) => {
         const { response } = data.message;
         switch (assistant) {
             case "specifications":
@@ -259,25 +272,22 @@ const PullRequest: React.FC = () => {
                 setGeneratedCode(response.response);
                 break;
         }
-        updateAssistantState(assistant, AssistantState.Completed);
     };
 
     const handleFinal = (data: any) => {
         if (data.message.prLink) {
             setGeneratedPRLink(data.message.prLink);
         } else {
-            setProgress((prev) => [...prev, data.message]);
+            addProgressMessage(data.message);
         }
     };
 
     const handleError = (error: Error) => {
-        console.error(error);
-        setProgress((prev) => [...prev, error.message]);
-        resetAssistantStates();
+        addProgressMessage(error.message, "error");
     };
 
     const resetState = () => {
-        setProgress([]);
+        setProgressMessages([]);
         setGeneratedPRLink(null);
         setAcceptedChanges(false);
         setSpecifications(null);
@@ -285,7 +295,6 @@ const PullRequest: React.FC = () => {
         setGeneratedCodeResponse(null);
         setGeneratedCode(null);
         setExcludedFiles(new Set());
-        resetAssistantStates();
     };
 
     const toggleCodeViewer = () => {
@@ -428,6 +437,19 @@ const PullRequest: React.FC = () => {
                                         recommendedModel={LLM_MODELS.ANTHROPIC_CLAUDE_3_7_SONNET}
                                     />
 
+                                    {/* Skip Specifications Checkbox */}
+                                    <div className="flex items-center space-x-2 justify-end">
+                                        <Switch
+                                            id="skip-specifications"
+                                            checked={skipSpecifications}
+                                            onCheckedChange={() =>
+                                                setSkipSpecifications((prev) => !prev)
+                                            }
+                                            disabled={isCreating}
+                                        />
+                                        <Label htmlFor="accept-changes">Skip Specifications</Label>
+                                    </div>
+
                                     {/* Task Description */}
                                     <div>
                                         <Label htmlFor="description">Task Description</Label>
@@ -501,12 +523,7 @@ const PullRequest: React.FC = () => {
                         transition={{ duration: 0.5, delay: 0.4 }}
                     >
                         <div className="space-y-6">
-                            <AssistantWorkspace
-                                assistants={assistants}
-                                assistantStates={assistantStates}
-                            />
-
-                            <ProgressFeed progress={progress} />
+                            <EnhancedProgressFeed messages={progressMessages} maxHeight="500px" />
 
                             <SpecificationsCard specifications={specifications} />
 

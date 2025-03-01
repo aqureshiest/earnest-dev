@@ -44,7 +44,7 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
 
         // parse the response
         saveRunInfo(request, caller, "ai_response", aiResponse.response);
-        const parsed = this.handleResponse(aiResponse.response);
+        const parsed = this.handleResponse(aiResponse.response, taskId);
         saveRunInfo(request, caller, "ai_response_parsed", parsed, this.responseType);
 
         return {

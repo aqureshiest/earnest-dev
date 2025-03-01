@@ -109,9 +109,9 @@ const EnhancedProgressFeed: React.FC<EnhancedProgressFeedProps> = ({
                                 className="mb-3"
                             >
                                 <div
-                                    className={`p-3 rounded-lg border ${getMessageStyle(
+                                    className={`p-2 rounded-lg border ${getMessageStyle(
                                         message.type
-                                    )} ${message.content?.startsWith("*") ? "ml-4" : ""}`}
+                                    )} ${message.content?.startsWith("*") ? "pl-6" : ""}`}
                                 >
                                     {message.timestamp && (
                                         <div className="text-xs text-muted-foreground mb-1">
@@ -121,16 +121,15 @@ const EnhancedProgressFeed: React.FC<EnhancedProgressFeedProps> = ({
 
                                     {message.content?.startsWith("*") ? (
                                         <div className="flex items-start">
-                                            <span className="mr-2 text-primary mt-1">└─</span>
                                             <div
                                                 className={`text-sm ${getTextStyle(message.type)}`}
                                             >
                                                 {message.isMarkdown ? (
                                                     <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
-                                                        {message.content.slice(1)}
+                                                        {message.content.replace(/^\*\s*/, "- ")}
                                                     </ReactMarkdown>
                                                 ) : (
-                                                    message.content.slice(1)
+                                                    message.content.replace(/^\*\s*/, "- ")
                                                 )}
                                             </div>
                                         </div>

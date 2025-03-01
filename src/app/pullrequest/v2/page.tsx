@@ -298,7 +298,6 @@ const PullRequestV2: React.FC = () => {
     };
 
     const handleError = (error: Error) => {
-        console.error(error);
         addProgressMessage(error.message, "error");
     };
 

@@ -476,7 +476,7 @@ const PRDGenerator: React.FC = () => {
                                                 </div>
                                                 <Select
                                                     value={feature.priority}
-                                                    onValueChange={(value) =>
+                                                    onValueChange={(value: any) =>
                                                         handleFeatureChange(
                                                             feature.id,
                                                             "priority",

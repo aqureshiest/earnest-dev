@@ -1,8 +1,8 @@
 import { displayTime } from "../utils/displayTime";
-import { CodingAssistant } from "@/modules/ai/assistants/generate-code/CodingAssistant";
 import { PlannerAssistant } from "@/modules/ai/assistants/generate-code/PlannerAssistant";
 import { SpecificationsAssistant } from "@/modules/ai/assistants/generate-code/SpecificationsAssistant";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
+import { CodingAssistant } from "./assistants/generate-code/CodingAssistant";
 
 export class GenerateCode {
     private specificationsAssistant: SpecificationsAssistant;
@@ -16,27 +16,33 @@ export class GenerateCode {
     }
 
     async runWorkflow(taskRequest: CodingTaskRequest): Promise<AIAssistantResponse<CodeChanges>> {
-        const { taskId } = taskRequest;
+        const { taskId, params } = taskRequest;
 
         // track start time
         const startTime = new Date().getTime();
+        let totalCost = 0;
 
-        sendTaskUpdate(taskId, "start", { assistant: "specifications" });
-        sendTaskUpdate(taskId, "progress", "Generating specifications...");
+        if (params?.skipSpecifications) {
+            sendTaskUpdate(taskId, "progress", "Skipping specifications generation...");
+        } else {
+            sendTaskUpdate(taskId, "start", { assistant: "specifications" });
+            sendTaskUpdate(taskId, "progress", "Generating specifications...");
 
-        // generate specifications
-        const specs = await this.specificationsAssistant.process(taskRequest);
+            // generate specifications
+            const specs = await this.specificationsAssistant.process(taskRequest);
 
-        if (!specs) {
-            throw new Error("Specifications not generated.");
+            if (!specs) {
+                throw new Error("Specifications not generated.");
+            }
+
+            // add specifications to request params
+            params.specifications = specs.responseStr;
+
+            await this.emitMetrics(taskId, specs);
+            sendTaskUpdate(taskId, "complete", { assistant: "specifications", response: specs });
+
+            totalCost += specs.cost;
         }
-
-        // add specifications to request params
-        const { params } = taskRequest;
-        params.specifications = specs.responseStr;
-
-        await this.emitMetrics(taskId, specs);
-        sendTaskUpdate(taskId, "complete", { assistant: "specifications", response: specs });
 
         sendTaskUpdate(taskId, "start", { assistant: "planning" });
         sendTaskUpdate(taskId, "progress", "Generating implementation plan...");
@@ -54,6 +60,8 @@ export class GenerateCode {
         await this.emitMetrics(taskId, plan);
         sendTaskUpdate(taskId, "complete", { assistant: "planning", response: plan });
 
+        totalCost += plan.cost;
+
         sendTaskUpdate(taskId, "start", { assistant: "code" });
         sendTaskUpdate(taskId, "progress", "Generating code...");
 
@@ -67,8 +75,8 @@ export class GenerateCode {
         await this.emitMetrics(taskId, code);
         sendTaskUpdate(taskId, "complete", { assistant: "code", response: code });
 
-        // calculate total cost
-        const totalCost = specs.cost + plan.cost + code.cost;
+        totalCost += code.cost;
+
         sendTaskUpdate(taskId, "progress", `Total Cost: $${totalCost.toFixed(6)}`);
 
         // report time taken
