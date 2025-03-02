@@ -79,13 +79,12 @@ export class TokenLimiter {
                 allowedFiles.push(file);
             } else {
                 console.log(`Skipping files past ${index} index in files list due to token limit`);
-                console.log(`Total tokens: ${totalTokens}, Allowed tokens: ${allowedTokens}`);
                 break;
             }
-
             index++;
         }
 
+        console.log(`Total tokens: ${totalTokens}, Allowed tokens: ${allowedTokens}`);
         return {
             totalTokens,
             allowedFiles,

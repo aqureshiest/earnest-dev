@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { ExtensionConfig } from "@/types/extension";
-import AIModelSelection from "./AIModelSelection";
-import DynamicSchemaViewer from "./DynamicSchemaViewer";
-import ProgressFeed from "./ProgressFeed";
-import RepoAndBranchSelection from "./RepoAndBranchSelection";
+import AIModelSelection from "../AIModelSelection";
+import DynamicSchemaViewer from "../DynamicSchemaViewer";
+import ProgressFeed from "../ProgressFeed";
+import RepoAndBranchSelection from "../RepoAndBranchSelection";
 
 interface ExtensionDetailProps {
     extensionId: string;

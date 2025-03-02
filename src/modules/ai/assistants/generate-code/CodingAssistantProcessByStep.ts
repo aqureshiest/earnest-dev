@@ -1,7 +1,4 @@
 import { CODEFILES_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
-import { CodebaseAssistant } from "@/modules/ai/assistants/CodebaseAssistant";
-import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
-import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { formatXml } from "@/modules/utils/formatXml";
@@ -10,17 +7,12 @@ import { CodingAssistant } from "./CodingAssistant";
 
 import chalk from "chalk";
 
-export class CodingAssistantProcessByStep extends CodebaseAssistant<CodeChanges> {
+export class CodingAssistantProcessByStep extends CodingAssistant {
     private dataService: RepositoryDataService;
 
     constructor() {
-        super(new PromptBuilder(), new TokenLimiter());
+        super();
         this.dataService = new RepositoryDataService();
-    }
-
-    getSystemPrompt(): string {
-        // use v1 system prompt
-        return new CodingAssistant().getSystemPrompt();
     }
 
     async process(request: CodingTaskRequest): Promise<AIAssistantResponse<CodeChanges> | null> {
@@ -433,13 +425,5 @@ Now, generate the code for ALL files in this step according to the format above.
                 operation: "delete",
             });
         }
-    }
-
-    getPrompt(params?: any): string {
-        throw new Error("Method not used.");
-    }
-
-    handleResponse(response: string): CodeChanges {
-        throw new Error("Method not used.");
     }
 }

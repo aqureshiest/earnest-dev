@@ -29,8 +29,8 @@ import ReactMarkdown from "react-markdown";
 import SwaggerUI from "swagger-ui-react";
 import "swagger-ui-react/swagger-ui.css";
 import _ from "lodash";
-import { jsonToMarkdown } from "./GenericMarkdownViewer";
 import remarkGfm from "remark-gfm";
+import { jsonToMarkdown } from "./GenericMarkdownViewer";
 
 interface VisualizationProps {
     data: any;

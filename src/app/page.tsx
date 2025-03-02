@@ -36,24 +36,24 @@ const HomePage: React.FC = () => {
 
     const devTools = [
         {
-            href: "/pullrequest/v2",
+            href: "/pullrequest",
             icon: <CodeIcon className="h-6 w-6 text-blue-500" />,
             title: "Generate Code And PR",
-            description: "Can handle complex tasks",
+            description: "Ideal for low complexity tasks",
             content:
                 "Generate code and pull requests for your tasks using AI-powered code generation.",
             buttonText: "Create Pull Request",
             status: "ready" as const,
         },
         {
-            href: "/pullrequest",
+            href: "/pullrequest/v2",
             icon: <CodeIcon className="h-6 w-6 text-blue-500" />,
-            title: "Generate Code And PR (light)",
-            description: "Can handle simple tasks",
+            title: "Enhanced Generate Code And PR",
+            description: "Can handle complex tasks",
             content:
                 "Generate code and pull requests for your tasks using AI-powered code generation.",
             buttonText: "Create Pull Request",
-            status: "ready" as const,
+            status: "development" as const,
         },
         {
             href: "/code-analysis",

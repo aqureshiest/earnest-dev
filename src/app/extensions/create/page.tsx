@@ -10,7 +10,7 @@ import { Loader2, Send, GitBranch, CheckCircle, Save } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ExtensionConfig } from "@/types/extension";
 import { Badge } from "@/components/ui/badge";
-import PreviewExtension from "@/app/components/PreviewExtension";
+import PreviewExtension from "@/app/components/extensions/PreviewExtension";
 import { useRouter } from "next/navigation";
 
 interface Message {

@@ -3,15 +3,16 @@ import { PlannerAssistant } from "@/modules/ai/assistants/generate-code/PlannerA
 import { SpecificationsAssistant } from "@/modules/ai/assistants/generate-code/SpecificationsAssistant";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 import { CodingAssistant } from "./assistants/generate-code/CodingAssistant";
+import { PlannerAssistantV2 } from "./assistants/generate-code/PlannerAssistantV2";
 
 export class GenerateCode {
     private specificationsAssistant: SpecificationsAssistant;
-    private plannerAssistant: PlannerAssistant;
+    private plannerAssistant: PlannerAssistantV2;
     private codingAssistant: CodingAssistant;
 
     constructor() {
         this.specificationsAssistant = new SpecificationsAssistant();
-        this.plannerAssistant = new PlannerAssistant();
+        this.plannerAssistant = new PlannerAssistantV2();
         this.codingAssistant = new CodingAssistant();
     }
 

@@ -1,7 +1,4 @@
 import { CODEFILES_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
-import { CodebaseAssistant } from "@/modules/ai/assistants/CodebaseAssistant";
-import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
-import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { formatXml } from "@/modules/utils/formatXml";
@@ -10,7 +7,7 @@ import { CodingAssistant } from "./CodingAssistant";
 
 import chalk from "chalk";
 
-export class CodingAssistantProcessByStepWithContext extends CodebaseAssistant<CodeChanges> {
+export class CodingAssistantProcessByStepWithContext extends CodingAssistant {
     private dataService: RepositoryDataService;
     private completedSteps: Array<{
         title: string;
@@ -19,13 +16,8 @@ export class CodingAssistantProcessByStepWithContext extends CodebaseAssistant<C
     }> = [];
 
     constructor() {
-        super(new PromptBuilder(), new TokenLimiter());
+        super();
         this.dataService = new RepositoryDataService();
-    }
-
-    getSystemPrompt(): string {
-        // use v1 system prompt
-        return new CodingAssistant().getSystemPrompt();
     }
 
     async process(request: CodingTaskRequest): Promise<AIAssistantResponse<CodeChanges> | null> {
@@ -92,37 +84,34 @@ export class CodingAssistantProcessByStepWithContext extends CodebaseAssistant<C
                 );
 
                 // Process this step with relevant context
-                const stepResponse = await this.processStepWithRelevantContext(
+                const { codeChanges, summary } = await this.processStepWithRelevantContext(
                     request,
                     model,
                     step,
                     filesToUse,
                     taskId,
-                    aggregatedResponse,
                     metrics
                 );
 
-                if (stepResponse) {
-                    // Generate a summary of what was done in this step
-                    const stepSummary = await this.generateStepSummary(
-                        model,
-                        step,
-                        stepResponse,
-                        taskId
-                    );
-
-                    // Track completed step with its summary
+                // Track completed step with its summary
+                if (codeChanges && summary) {
                     this.completedSteps.push({
                         title: step.title,
-                        summary: stepSummary.backendSummary,
-                        modifiedFiles: this.getStepModifiedFiles(stepResponse),
+                        summary: summary.technicalSummary,
+                        modifiedFiles: this.getStepModifiedFiles(codeChanges),
                     });
 
                     // Send summary to frontend
                     sendTaskUpdate(taskId, "summary", {
                         step: step.title,
-                        summary: stepSummary.markdownSummary,
+                        summary: summary.markdownSummary,
                     });
+
+                    // update aggregated response
+                    this.addStepResponseToAggregate(aggregatedResponse, codeChanges);
+
+                    // send file upadtes
+                    this.sendFileUpdates(taskId, codeChanges);
                 }
 
                 sendTaskUpdate(taskId, "progress", `Completed step: ${step.title}`);
@@ -151,125 +140,11 @@ export class CodingAssistantProcessByStepWithContext extends CodebaseAssistant<C
     }
 
     private getStepModifiedFiles(stepResponse: CodeChanges): string[] {
-        const files: string[] = [];
-
-        if (stepResponse.newFiles) {
-            files.push(...stepResponse.newFiles.map((f) => f.path));
-        }
-
-        if (stepResponse.modifiedFiles) {
-            files.push(...stepResponse.modifiedFiles.map((f) => f.path));
-        }
-
-        if (stepResponse.deletedFiles) {
-            files.push(...stepResponse.deletedFiles.map((f) => f.path));
-        }
-
-        return files;
-    }
-
-    private async generateStepSummary(
-        model: string,
-        step: Step,
-        stepResponse: CodeChanges,
-        taskId: string
-    ): Promise<{ backendSummary: string; markdownSummary: string }> {
-        try {
-            // Create a prompt for generating a summary in XML format
-            const systemPrompt = `You are an expert software developer creating a concise summary of completed code changes.
-    Your task is to summarize the specific actions completed in an implementation step.
-    You must return your response in XML format exactly as specified.`;
-
-            // Prepare information about file changes
-            const newFilesList = stepResponse.newFiles?.map((f) => f.path).join(", ") || "None";
-            const modifiedFilesList =
-                stepResponse.modifiedFiles?.map((f) => f.path).join(", ") || "None";
-            const deletedFilesList =
-                stepResponse.deletedFiles?.map((f) => f.path).join(", ") || "None";
-
-            const userPrompt = `
-Step: ${step.title}
-
-Original step instructions:
-${step.thoughts}
-
-Files changed:
-- Created: ${newFilesList}
-- Modified: ${modifiedFilesList}
-- Deleted: ${deletedFilesList}
-
-Create TWO distinct summaries:
-
-1. A backend summary consisting of 4-6 points max that lists the specific actions completed in this step.
-    Each point should be a single sentence starting with a verb in past tense (Created, Added, Modified, Refactored, etc.).
-    Focus on WHAT was done, not WHY or architectural explanations.
-
-2. A concise, human-friendly markdown summary that explains what was accomplished.
-    This should be 1-2 sentences that clearly state what changed or was implemented.
-    Use markdown formatting for emphasis, and keep it brief but informative.
-    Focus on the "what" rather than the "how" or "why".
-
-RESPONSE FORMAT:
-You must return your response in this exact XML format:
-
-<response>
-    <backend_summary>
-        <point>Created PaymentService interface with core methods</point>
-        <point>Implemented validation logic for payment operations</point>
-        <point>Added helper methods for date and amount validation</point>
-    </backend_summary>
-    <markdown_summary>
-## ${step.title}
-
-Implemented **payment processing service** with validation rules and core transaction handling methods.
-    </markdown_summary>
-</response>
-
-Your response should ONLY contain these XML tags with your summaries, nothing else.
-    `;
-
-            const summaryResponse = await this.generateResponse(model, systemPrompt, userPrompt);
-            if (!summaryResponse) {
-                const defaultSummary = `- Completed ${step.title}`;
-                return {
-                    backendSummary: defaultSummary,
-                    markdownSummary: `## ${step.title}\n\nCompleted step successfully.`,
-                };
-            }
-
-            // Extract the summaries from the XML
-            const xmlString = summaryResponse.response.trim();
-
-            // Parse backend summary
-            const backendMatch = xmlString.match(/<backend_summary>([\s\S]*?)<\/backend_summary>/);
-            let backendSummary = `- Completed ${step.title}`;
-
-            if (backendMatch && backendMatch[1]) {
-                const pointMatches = backendMatch[1].match(/<point>([\s\S]*?)<\/point>/g) || [];
-                const points = pointMatches.map(
-                    (p) => `- ${p.replace(/<point>([\s\S]*?)<\/point>/, "$1").trim()}`
-                );
-                backendSummary = points.join("\n");
-            }
-
-            // Parse markdown summary
-            const markdownMatch = xmlString.match(
-                /<markdown_summary>([\s\S]*?)<\/markdown_summary>/
-            );
-            let markdownSummary = `## ${step.title}\n\nCompleted step successfully.`;
-
-            if (markdownMatch && markdownMatch[1]) {
-                markdownSummary = markdownMatch[1].trim();
-            }
-
-            return { backendSummary, markdownSummary };
-        } catch (error) {
-            console.error("Error generating step summary:", error);
-            return {
-                backendSummary: `• Completed ${step.title}`,
-                markdownSummary: `## ${step.title} Completed\n\nThis step has been finished successfully.`,
-            };
-        }
+        return [
+            ...(stepResponse.newFiles?.map((f) => f.path) || []),
+            ...(stepResponse.modifiedFiles?.map((f) => f.path) || []),
+            ...(stepResponse.deletedFiles?.map((f) => f.path) || []),
+        ];
     }
 
     private async getRelevantFilesForStep(
@@ -279,45 +154,55 @@ Your response should ONLY contain these XML tags with your summaries, nothing el
         repo: string,
         branch: string
     ): Promise<FileDetails[]> {
-        // Prepare query for embedding search based on the entire step
-        const stepQuery = this.createStepSearchQuery(step);
-        let filesToUse: FileDetails[] = [];
+        // Maximum number of files to include per step
+        const MAX_FILES_PER_STEP = 15;
 
-        try {
-            // Get relevant files using embedding similarity
-            console.log(`Finding similar files for step "${step.title}" using embeddings...`);
-            const relevantFiles = await this.dataService.findSimilar(
-                stepQuery,
-                owner,
-                repo,
-                branch
-            );
-            console.log(
-                ">> Found similar files:",
-                relevantFiles.length,
-                " and first file is ",
-                relevantFiles[0]?.path
-            );
+        // First, add all files explicitly mentioned in the step
+        const targetFiles = new Set<string>();
+        const filesToUse: FileDetails[] = [];
 
-            // Keep top 30 similar files
-            filesToUse = relevantFiles.slice(0, 30);
-        } catch (error) {
-            console.error(`Error finding similar files for step "${step.title}":`, error);
-            // Fallback to using all files if embedding search fails
-            filesToUse = [...allFiles];
-        }
-
-        // Ensure all target files for modification are included
+        // Always include files explicitly mentioned for modification or deletion
         for (const fileChange of step.files) {
-            if (fileChange.operation === "modify") {
+            if (fileChange.operation === "modify" || fileChange.operation === "delete") {
                 const targetFile = allFiles.find((f) => f.path === fileChange.path);
-                if (targetFile && !filesToUse.some((f) => f.path === targetFile.path)) {
-                    filesToUse.unshift(targetFile);
-                    console.log(`Added target file ${fileChange.path} for modification`);
+                if (targetFile && !targetFiles.has(targetFile.path)) {
+                    filesToUse.push(targetFile);
+                    targetFiles.add(targetFile.path);
                 }
             }
         }
 
+        // If we still have room for more files, get relevant files by similarity
+        if (filesToUse.length < MAX_FILES_PER_STEP) {
+            try {
+                // Create a concise query for similarity search
+                const stepQuery = `${step.title}. ${step.thoughts}`;
+
+                // Get relevant files using embedding similarity
+                const similarFiles = await this.dataService.findSimilar(
+                    stepQuery,
+                    owner,
+                    repo,
+                    branch
+                );
+
+                // Add top similar files that aren't already included (up to our limit)
+                for (const file of similarFiles) {
+                    if (!targetFiles.has(file.path) && filesToUse.length < MAX_FILES_PER_STEP) {
+                        filesToUse.push(file);
+                        targetFiles.add(file.path);
+                    }
+
+                    // Stop once we've reached our limit
+                    if (filesToUse.length >= MAX_FILES_PER_STEP) break;
+                }
+            } catch (error) {
+                console.error(`Error finding similar files for step "${step.title}":`, error);
+                // If similarity search fails, we'll just use the explicitly mentioned files
+            }
+        }
+
+        console.log(`Selected ${filesToUse.length} files for step "${step.title}"`);
         return filesToUse;
     }
 
@@ -327,64 +212,19 @@ Your response should ONLY contain these XML tags with your summaries, nothing el
         step: Step,
         relevantFiles: FileDetails[],
         taskId: string,
-        aggregatedResponse: CodeChanges,
         metrics: { inputTokens: number; outputTokens: number; cost: number }
-    ): Promise<CodeChanges | null> {
-        // Create a step-specific request with relevant context files
-        const stepRequest: CodingTaskRequest = {
-            ...request,
-            files: relevantFiles,
-        };
-
-        // Generate code for this step
-        const stepResponse = await this.generateStepCode(model, stepRequest, step);
-
-        if (!stepResponse?.response) {
-            console.error(`Failed to generate code for step: ${step.title}`);
-            sendTaskUpdate(taskId, "error", `⚠️ Failed to generate code for step: ${step.title}`);
-            return null;
-        }
-
-        // Update metrics
-        metrics.inputTokens += stepResponse.inputTokens;
-        metrics.outputTokens += stepResponse.outputTokens;
-        metrics.cost += stepResponse.cost;
-
-        // Update the aggregated response directly
-        this.addStepResponseToAggregate(aggregatedResponse, stepResponse.response);
-
-        // Send individual file updates for the frontend
-        this.sendFileUpdates(taskId, stepResponse.response);
-
+    ): Promise<{
+        codeChanges: CodeChanges | null;
+        summary: { technicalSummary: string; markdownSummary: string } | null;
+    }> {
+        console.log(`Processing step "${step.title}" with ${relevantFiles.length} files`);
         sendTaskUpdate(
             taskId,
             "progress",
-            `Completed step "${step.title}" (Cost: $${stepResponse.cost.toFixed(6)})`
+            `Processing step with ${relevantFiles.length} relevant files`
         );
 
-        return stepResponse.response;
-    }
-
-    private createStepSearchQuery(step: Step): string {
-        // Create a search query that captures the essence of the entire step
-        const fileDescriptions = step.files
-            .map((file) => `${file.operation} ${file.path}: ${file.todos.join(", ")}`)
-            .join("\n");
-
-        return [
-            `Step: ${step.title}`,
-            `Context: ${step.thoughts}`,
-            `Files:`,
-            fileDescriptions,
-        ].join("\n");
-    }
-
-    private async generateStepCode(
-        model: string,
-        request: CodingTaskRequest,
-        step: Step
-    ): Promise<AIAssistantResponse<CodeChanges> | null> {
-        // Prepare a step-specific prompt
+        // Prepare a step-specific prompt that includes summary request
         const systemPrompt = this.getSystemPrompt();
         const stepPrompt = this.getStepSpecificPrompt(step);
 
@@ -400,35 +240,36 @@ Your response should ONLY contain these XML tags with your summaries, nothing el
         const { totalTokens, allowedFiles } = this.tokenLimiter.applyTokenLimit(
             model,
             systemPrompt + userPrompt,
-            request.files
+            relevantFiles
         );
-
         // Add files to prompt
         const finalPromptWithFiles = this.promptBuilder.addFilesToPrompt(userPrompt, allowedFiles);
 
+        // Save info for debugging
         const folder = `${this.constructor.name}/${step.title.replace(/\s+/g, "_")}`;
         saveRunInfo(request, folder, "system_prompt", systemPrompt);
         saveRunInfo(request, folder, "step_prompt", finalPromptWithFiles);
 
         // Generate response
         const aiResponse = await this.generateResponse(model, systemPrompt, finalPromptWithFiles);
-        if (!aiResponse) return null;
+        if (!aiResponse) return { codeChanges: null, summary: null };
 
         try {
             saveRunInfo(request, folder, "ai_response", aiResponse.response);
-            // Parse the response to capture code changes
-            const codeChanges = CodingAssistant.parseResponseToCodeChanges(aiResponse.response);
 
-            return {
-                ...aiResponse,
-                response: codeChanges,
-                responseStr: aiResponse.response,
-                calculatedTokens: totalTokens,
-            };
+            // Extract code changes and summary from the combined response
+            const { codeChanges, summary } = this.extractResponse(aiResponse.response, step);
+
+            // Update metrics
+            metrics.inputTokens += aiResponse.inputTokens;
+            metrics.outputTokens += aiResponse.outputTokens;
+            metrics.cost += aiResponse.cost;
+
+            return { codeChanges, summary };
         } catch (error) {
             console.error(`Error parsing response for step "${step.title}":`, error);
             console.error("Response excerpt:", aiResponse.response.substring(0, 500) + "...");
-            return null;
+            return { codeChanges: null, summary: null };
         }
     }
 
@@ -437,39 +278,35 @@ Your response should ONLY contain these XML tags with your summaries, nothing el
         const filesList = step.files
             .map((file) => {
                 return `<file>
-    <path>${file.path}</path>
-    <operation>${file.operation}</operation>
-    <todos>
-${file.todos.map((todo) => `        <todo>${todo}</todo>`).join("\n")}
-    </todos>
+<path>${file.path}</path>
+<operation>${file.operation}</operation>
+<todos>
+${file.todos.map((todo) => `    <todo>${todo}</todo>`).join("\n")}
+</todos>
 </file>`;
             })
             .join("\n    ");
 
-        // Generate context from previously completed steps
-        const previousStepsContext = this.getPreviousStepsContext(step);
-
-        // Create a prompt that focuses on a complete step with context from previous steps
         return `
 Here are the existing code files you will be working with:
 <existing_codebase language="typescript">
 ${CODEFILES_PLACEHOLDER}
 </existing_codebase>
-        
+    
 Here is the task description:
 <task_description>
 ${TASK_PLACEHOLDER}
 </task_description>
 
-${previousStepsContext}
+${this.getPreviousStepsContext()}
 
 Here is the implementation step to follow:
 <implementation_step>
-    <title>${step.title}</title>
-    <thoughts>${step.thoughts}</thoughts>
-    <files>
-    ${filesList}
-    </files>
+<title>${step.title}</title>
+<thoughts>${step.thoughts}</thoughts>
+<files>
+${filesList}
+</files>
 </implementation_step>
 
 <step_focus>
@@ -481,37 +318,45 @@ This step involves ${step.files.length} file change(s).
 Respond in the following format:
 
 <code_changes>
- <title>Brief title describing the implementation of this step</title>
- <new_files>
-  <file>
-  <path>path/to/new/file1</path>
-  <thoughts>Thoughts on the creation of this file</thoughts>
-  <content>
+<title>Brief title describing the implementation of this step</title>
+<new_files>
+<file>
+<path>path/to/new/file1</path>
+<thoughts>Thoughts on the creation of this file</thoughts>
+<content>
 <![CDATA[
 // Full content of the new file goes here 
 ]]>
-  </content>
-  </file>
-  <!-- Add more new files as needed -->        
- </new_files>
- <modified_files>
-  <file>
-  <path>path/to/modified/file1</path>
-  <thoughts>Thoughts on the modifications made to this file</thoughts>
-  <content>
+</content>
+</file>
+<!-- Add more new files as needed -->        
+</new_files>
+<modified_files>
+<file>
+<path>path/to/modified/file1</path>
+<thoughts>Thoughts on the modifications made to this file</thoughts>
+<content>
 <![CDATA[
 // Full content of the modified file goes here, including all changes 
 ]]>
-  </content>
-  </file>
-  <!-- Add more modified files as needed -->
- </modified_files>
- <deleted_files>
-  <file>
-   <path>path/to/deleted/file1</path>
-  </file>
-  <!-- Add more deleted files as needed -->
- </deleted_files>
+</content>
+</file>
+<!-- Add more modified files as needed -->
+</modified_files>
+<deleted_files>
+<file>
+<path>path/to/deleted/file1</path>
+</file>
+<!-- Add more deleted files as needed -->
+</deleted_files>
+<technical_summary>
+<!-- points briefly describing what was implemented in this step -->
+<point>First specific action taken</point>
+<point>Second specific action taken</point>
+</technical_summary>
+<markdown_summary>
+Human readable brief summary of what was implemented in this step.
+</markdown_summary>
 </code_changes>
 </response_format_instructions>
 
@@ -520,89 +365,63 @@ Now, generate the code for ALL files in this step according to the format above.
 2. Provide complete file content for each new or modified file
 3. Ensure the code integrates well with the existing codebase
 4. Maintain consistency with previous implementation steps
+5. Include concise summary points describing what you did
 `;
     }
 
-    private getPreviousStepsContext(currentStep: Step): string {
+    private getPreviousStepsContext(): string {
         if (this.completedSteps.length === 0) {
             return ""; // No previous steps
         }
 
-        // Find files in the current step
-        const currentStepFiles = new Set(currentStep.files.map((f) => f.path));
-
-        // Get relevant previous steps - either:
-        // 1. Steps that modified files relevant to the current step
-        // 2. The most recent steps (up to 3)
-        const relevantSteps = this.completedSteps.filter((prevStep) =>
-            // Check if any files in this previous step are also in the current step
-            prevStep.modifiedFiles.some((filePath) => currentStepFiles.has(filePath))
-        );
-
-        let stepsToInclude = relevantSteps;
-        // we should have up to 3 steps, so add remaining
-        if (relevantSteps.length < 3) {
-            const remainingStepsCount = 3 - relevantSteps.length;
-            const remainingSteps = this.completedSteps.slice(-remainingStepsCount);
-            stepsToInclude.push(...remainingSteps);
-        }
-
-        if (stepsToInclude.length === 0) {
-            return "";
-        }
-
-        // Generate the context section
         return `
 <previous_implementations>
-${stepsToInclude
+${this.completedSteps
     .map(
-        (step) => `    <step>
-        <title>${step.title}</title>
-        <summary>${step.summary}</summary>
-        <files>${step.modifiedFiles.join(", ")}</files>
-    </step>`
+        (step) => `<step>
+<title>${step.title}</title>
+<summary>${step.summary}</summary>
+<files>${step.modifiedFiles.join(", ")}</files>
+</step>`
     )
     .join("\n")}
 </previous_implementations>
-`;
+    `;
     }
 
     private addStepResponseToAggregate(target: CodeChanges, source: CodeChanges): void {
-        // Add new files from source to target
-        if (source.newFiles && source.newFiles.length > 0) {
-            for (const newFile of source.newFiles) {
-                const existingIndex = target.newFiles.findIndex((f) => f.path === newFile.path);
-                if (existingIndex >= 0) {
-                    // Replace existing entry
-                    target.newFiles[existingIndex] = newFile;
-                } else {
-                    // Add new entry
-                    target.newFiles.push(newFile);
-                }
-            }
-        }
+        // Helper function to merge files with path-based deduplication
+        const mergeFiles = <T extends { path: string }>(
+            targetArray: T[],
+            sourceArray: T[] | undefined
+        ): void => {
+            if (!sourceArray || sourceArray.length === 0) return;
 
-        // Add modified files from source to target
-        if (source.modifiedFiles && source.modifiedFiles.length > 0) {
-            for (const modFile of source.modifiedFiles) {
-                const existingIndex = target.modifiedFiles.findIndex(
-                    (f) => f.path === modFile.path
-                );
-                if (existingIndex >= 0) {
-                    // Replace existing entry
-                    target.modifiedFiles[existingIndex] = modFile;
-                } else {
-                    // Add new entry
-                    target.modifiedFiles.push(modFile);
-                }
-            }
-        }
+            // Create a map for faster lookups instead of using findIndex/some in loops
+            const targetMap = new Map(targetArray.map((file) => [file.path, file]));
+            sourceArray.forEach((sourceFile) => {
+                targetMap.set(sourceFile.path, sourceFile);
+            });
 
-        // Add deleted files from source to target
+            // Update the target array with the merged results
+            targetArray.length = 0;
+            targetArray.push(...Array.from(targetMap.values()));
+        };
+
+        // Merge new files
+        mergeFiles(target.newFiles, source.newFiles);
+
+        // Merge modified files
+        mergeFiles(target.modifiedFiles, source.modifiedFiles);
+
+        // Handle deleted files (these are typically just paths without content)
         if (source.deletedFiles && source.deletedFiles.length > 0) {
+            const existingPaths = new Set(target.deletedFiles.map((file) => file.path));
+
             for (const delFile of source.deletedFiles) {
-                if (!target.deletedFiles.some((f) => f.path === delFile.path)) {
+                if (!existingPaths.has(delFile.path)) {
                     target.deletedFiles.push(delFile);
+                    existingPaths.add(delFile.path);
                 }
             }
         }
@@ -639,11 +458,63 @@ ${stepsToInclude
         }
     }
 
-    getPrompt(params?: any): string {
-        throw new Error("Method not used.");
-    }
+    private extractResponse(
+        response: string,
+        step: Step
+    ): {
+        codeChanges: CodeChanges;
+        summary: { technicalSummary: string; markdownSummary: string } | null;
+    } {
+        try {
+            // Get code_changes block
+            const match = response.match(/<code_changes>[\s\S]*?<\/code_changes>/);
+            if (!match) {
+                throw new Error("No code_changes block found in response");
+            }
 
-    handleResponse(response: string): CodeChanges {
-        throw new Error("Method not used.");
+            const fullContents = match[0];
+
+            // Extract all parts in a more streamlined way
+            const codeChangesXml = fullContents.replace(
+                /<(markdown_summary|technical_summary)>[\s\S]*?<\/\1>/g,
+                ""
+            );
+
+            // Parse code changes
+            const codeChanges = CodingAssistant.parseResponseToCodeChanges(codeChangesXml);
+
+            // Extract summaries with simplified approach
+            const techSummary = (fullContents.match(
+                /<technical_summary>([\s\S]*?)<\/technical_summary>/
+            ) || [])[1];
+            const markdownSummary = (response.match(
+                /<markdown_summary>([\s\S]*?)<\/markdown_summary>/
+            ) || [])[1];
+
+            // Format technical summary
+            const technicalSummary = techSummary
+                ? (techSummary.match(/<point>([\s\S]*?)<\/point>/g) || [])
+                      .map((p) => `- ${p.replace(/<point>([\s\S]*?)<\/point>/, "$1").trim()}`)
+                      .join("\n") || `- Completed ${step.title}`
+                : `- Completed ${step.title}`;
+
+            // Format markdown summary
+            let formattedMarkdownSummary =
+                markdownSummary?.trim() || `## ${step.title}\n\nCompleted step successfully.`;
+            if (!formattedMarkdownSummary.startsWith("#")) {
+                formattedMarkdownSummary = `## ${step.title}\n\n${formattedMarkdownSummary}`;
+            }
+
+            return {
+                codeChanges,
+                summary: {
+                    technicalSummary,
+                    markdownSummary: formattedMarkdownSummary,
+                },
+            };
+        } catch (error) {
+            console.error("Error extracting code changes:", error);
+            throw error;
+        }
     }
 }

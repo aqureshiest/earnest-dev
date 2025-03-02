@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ReactMarkdown from "react-markdown";
+import MarkdownViewer from "./MarkdownViewer";
 
 export interface EnhancedProgressMessage {
     content: string;
@@ -13,21 +13,19 @@ export interface EnhancedProgressMessage {
 
 interface EnhancedProgressFeedProps {
     messages: EnhancedProgressMessage[];
-    slim?: boolean;
     title?: string;
     maxHeight?: string;
 }
 
 const EnhancedProgressFeed: React.FC<EnhancedProgressFeedProps> = ({
     messages,
-    slim = false,
     title = "Progress Feed",
     maxHeight = "240px",
 }) => {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (scrollAreaRef.current && !slim) {
+        if (scrollAreaRef.current) {
             const scrollElement = scrollAreaRef.current.querySelector(
                 "[data-radix-scroll-area-viewport]"
             );
@@ -35,9 +33,8 @@ const EnhancedProgressFeed: React.FC<EnhancedProgressFeedProps> = ({
                 scrollElement.scrollTop = scrollElement.scrollHeight;
             }
         }
-    }, [messages, slim]);
+    }, [messages]);
 
-    // Helper function to get message style based on type
     const getMessageStyle = (type?: string) => {
         switch (type) {
             case "error":
@@ -51,7 +48,6 @@ const EnhancedProgressFeed: React.FC<EnhancedProgressFeedProps> = ({
         }
     };
 
-    // Helper function to get text style based on type
     const getTextStyle = (type?: string) => {
         switch (type) {
             case "error":
@@ -65,28 +61,6 @@ const EnhancedProgressFeed: React.FC<EnhancedProgressFeedProps> = ({
         }
     };
 
-    if (slim) {
-        // Slim view: Show only the latest message
-        const latestMessage = messages[messages.length - 1];
-
-        if (!latestMessage) {
-            return (
-                <Card className="flex items-center h-12 px-4">
-                    <p className="text-sm text-muted-foreground">No progress yet</p>
-                </Card>
-            );
-        }
-
-        return (
-            <Card className="flex items-center h-12 px-4">
-                <p className={`text-sm truncate ${getTextStyle(latestMessage.type)}`}>
-                    {latestMessage.content}
-                </p>
-            </Card>
-        );
-    }
-
-    // Full view: Show the complete progress feed
     return (
         <Card>
             <CardHeader className="pb-2">
@@ -124,21 +98,16 @@ const EnhancedProgressFeed: React.FC<EnhancedProgressFeedProps> = ({
                                             <div
                                                 className={`text-sm ${getTextStyle(message.type)}`}
                                             >
-                                                {message.isMarkdown ? (
-                                                    <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
-                                                        {message.content.replace(/^\*\s*/, "- ")}
-                                                    </ReactMarkdown>
-                                                ) : (
-                                                    message.content.replace(/^\*\s*/, "- ")
-                                                )}
+                                                {message.content.replace(/^\*\s*/, "- ")}
                                             </div>
                                         </div>
                                     ) : (
                                         <div className={`text-sm ${getTextStyle(message.type)}`}>
                                             {message.isMarkdown ? (
-                                                <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
-                                                    {message.content}
-                                                </ReactMarkdown>
+                                                <MarkdownViewer
+                                                    content={message.content}
+                                                    className="p-2"
+                                                />
                                             ) : (
                                                 message.content
                                             )}

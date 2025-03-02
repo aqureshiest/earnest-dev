@@ -1,14 +1,14 @@
 import { displayTime } from "../utils/displayTime";
-import { PlannerAssistant } from "@/modules/ai/assistants/generate-code/PlannerAssistant";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 import { CodingAssistantProcessByStepWithContext } from "./assistants/generate-code/CodingAssistantProcessByStepWithContext";
+import { PlannerAssistantV2 } from "./assistants/generate-code/PlannerAssistantV2";
 
 export class GenerateCodeV2 {
-    private plannerAssistant: PlannerAssistant;
+    private plannerAssistant: PlannerAssistantV2;
     private codingAssistant: CodingAssistantProcessByStepWithContext;
 
     constructor() {
-        this.plannerAssistant = new PlannerAssistant();
+        this.plannerAssistant = new PlannerAssistantV2();
         this.codingAssistant = new CodingAssistantProcessByStepWithContext();
     }
 
