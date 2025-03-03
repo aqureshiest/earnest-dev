@@ -29,7 +29,6 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
             systemPrompt + userPrompt,
             files
         );
-        console.log("Total tokens after applying limit:", totalTokens);
 
         // Now add the allowed files to the prompt
         const finalPromptWithFiles = this.promptBuilder.addFilesToPrompt(userPrompt, allowedFiles);

@@ -11,7 +11,6 @@ import { CA } from "./assistants/ca";
 import { misc } from "./misc";
 import { codeanalysis } from "./audit/codeanalysis";
 import { rds } from "./rds";
-import { vectorsearch } from "./vectorsearch";
 import { ext } from "./exts/ext";
 import { prd } from "./prd/prd";
 
@@ -29,7 +28,6 @@ program.command("ca").action(CA);
 program.command("misc").action(misc);
 program.command("audit-analyze").action(codeanalysis);
 program.command("rds").action(rds);
-program.command("vectorsearch").action(vectorsearch);
 
 program.command("ext").action(ext);
 

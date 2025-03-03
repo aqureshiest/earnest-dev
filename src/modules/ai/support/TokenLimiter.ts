@@ -11,7 +11,6 @@ import { formatFiles } from "@/modules/utils/formatFiles";
 
 export class TokenLimiter {
     BUFFER = 500;
-    PADDING = 1.4;
 
     tokenizeFiles(files: FileDetails[]) {
         return files
@@ -21,7 +20,6 @@ export class TokenLimiter {
                     return file;
                 }
 
-                // console.log("Tokenizing file >>", file.path);
                 const tokens = encode(`${file.path}\n${file.content}`);
                 return {
                     ...file,
@@ -84,7 +82,7 @@ export class TokenLimiter {
             index++;
         }
 
-        console.log(`Total tokens: ${totalTokens}, Allowed tokens: ${allowedTokens}`);
+        console.log(`Using tokens: ${totalTokens}, Allowed tokens: ${allowedTokens}`);
         return {
             totalTokens,
             allowedFiles,
@@ -164,6 +162,8 @@ export class TokenLimiter {
         return chunks;
     }
 
+    PADDING = 1.4;
+
     private getFileTokens(file: FileDetails): number {
         if (file.tokenCount !== undefined) return file.tokenCount * this.PADDING;
         const contents = formatFiles([file]);
@@ -172,5 +172,9 @@ export class TokenLimiter {
 
     private getTokenCount(text: string): number {
         return encode(text).length * this.PADDING;
+    }
+
+    static getTokenCount(text: string): number {
+        return encode(text).length * 1.4;
     }
 }

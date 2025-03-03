@@ -146,31 +146,47 @@ const HomePage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-slate-50 to-white dark:from-gray-900 dark:via-indigo-950/10 dark:to-gray-950">
-            {/* Hero Section */}
-            <section className="relative overflow-hidden py-12 md:py-20 border-b border-border/20">
-                <div className="absolute inset-0 bg-grid-pattern opacity-3"></div>
+            {/* Hero Section - REDUCED HEIGHT */}
+            <section className="relative overflow-hidden py-8 md:py-12 border-b border-border/20">
+                {/* Light mode grid pattern using inline styles */}
+                <div
+                    className="absolute inset-0 dark:hidden"
+                    style={{
+                        backgroundSize: "40px 40px",
+                        backgroundImage: `
+                            linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+                        `,
+                        opacity: 0.7,
+                    }}
+                ></div>
+
+                {/* Dark mode grid pattern using the original class */}
+                <div className="absolute inset-0 hidden dark:block bg-grid-pattern opacity-3"></div>
+
+                {/* Gradient orbs */}
                 <div className="absolute -top-40 right-0 w-96 h-96 bg-indigo-500 opacity-10 rounded-full blur-3xl"></div>
                 <div className="absolute -bottom-20 left-0 w-80 h-80 bg-cyan-500 opacity-8 rounded-full blur-3xl"></div>
                 <div className="absolute top-60 left-1/3 w-64 h-64 bg-violet-500 opacity-5 rounded-full blur-3xl"></div>
 
                 <div className="container max-w-6xl mx-auto px-6 relative z-10">
-                    <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+                    <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
                         <div className="flex-1 text-left">
-                            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 inline-block text-transparent bg-clip-text">
+                            <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400 inline-block text-transparent bg-clip-text">
                                 Earnest AI Tools
                             </h1>
 
-                            <div className="inline-flex items-center ml-3 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 mb-6">
+                            <div className="inline-flex items-center ml-3 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 mb-4">
                                 <Sparkles className="h-4 w-4 mr-2" />
                                 <span className="text-sm font-medium">Powered by AI</span>
                             </div>
 
-                            <p className="text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed">
+                            <p className="text-base text-muted-foreground mb-5 max-w-xl leading-relaxed">
                                 AI powered tools to automate and streamline your development and
                                 project management workflows.
                             </p>
 
-                            <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex flex-col sm:flex-row gap-3">
                                 <Button
                                     size="lg"
                                     className="gap-2 px-6"
@@ -191,12 +207,12 @@ const HomePage: React.FC = () => {
                         </div>
 
                         <div className="flex-1 hidden md:block">
-                            <div className="relative h-72 w-full rounded-xl border border-border/30 bg-white/70 dark:bg-gray-900/60 p-6 backdrop-blur-sm overflow-hidden shadow-lg">
+                            <div className="relative h-60 w-full rounded-xl border border-border/30 bg-white/70 dark:bg-gray-900/60 p-6 backdrop-blur-sm overflow-hidden shadow-lg">
                                 {/* Background elements */}
                                 <div className="absolute opacity-20 w-24 h-24 bg-blue-500 rounded-full top-12 -right-8 blur-xl"></div>
                                 <div className="absolute opacity-15 w-32 h-32 bg-green-500 rounded-full -bottom-10 left-20 blur-xl"></div>
 
-                                {/* Selected floating elements - reduced for less crowding */}
+                                {/* Selected floating elements */}
                                 <div className="absolute top-6 left-6 w-60 p-4 rounded-lg bg-white/80 dark:bg-gray-900/80 border border-border/40 shadow-md backdrop-blur-sm">
                                     <div className="flex items-center mb-2">
                                         <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
@@ -240,20 +256,20 @@ const HomePage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Main Content */}
-            <section className="py-10 md:py-16">
+            {/* Main Content - No padding between hero and tools */}
+            <section className="py-6 md:py-8">
                 <div className="container max-w-6xl mx-auto px-6">
                     <div>
                         <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
-                            <TabsContent value="developer" className="space-y-8">
-                                <div className="text-center max-w-2xl mx-auto mb-10">
-                                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 mb-4">
+                            <TabsContent value="developer" className="space-y-6">
+                                <div className="text-center max-w-2xl mx-auto mb-6">
+                                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 mb-3">
                                         <Code className="h-4 w-4 mr-2" />
                                         <span className="text-sm font-medium">
                                             Developer Workspace
                                         </span>
                                     </div>
-                                    <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                                    <h2 className="text-2xl md:text-3xl font-bold mb-3">
                                         Streamline Your Development Workflow
                                     </h2>
                                     <p className="text-muted-foreground">
@@ -261,20 +277,20 @@ const HomePage: React.FC = () => {
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {devTools.map((tool, index) => (
                                         <ToolCard key={index} tool={tool} />
                                     ))}
                                 </div>
                             </TabsContent>
 
-                            <TabsContent value="management" className="space-y-8">
-                                <div className="text-center max-w-2xl mx-auto mb-10">
-                                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 mb-4">
+                            <TabsContent value="management" className="space-y-6">
+                                <div className="text-center max-w-2xl mx-auto mb-6">
+                                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 mb-3">
                                         <Ticket className="h-4 w-4 mr-2" />
                                         <span className="text-sm font-medium">PM Workspace</span>
                                     </div>
-                                    <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                                    <h2 className="text-2xl md:text-3xl font-bold mb-3">
                                         Accelerate Project Planning & Execution
                                     </h2>
                                     <p className="text-muted-foreground">
@@ -282,7 +298,7 @@ const HomePage: React.FC = () => {
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {pmTools.map((tool, index) => (
                                         <ToolCard key={index} tool={tool} />
                                     ))}
@@ -294,9 +310,9 @@ const HomePage: React.FC = () => {
             </section>
 
             {/* Footer */}
-            <footer className="border-t border-border/30 py-8 mt-12 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
+            <footer className="border-t border-border/30 py-8 mt-8 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
                 <div className="container max-w-6xl mx-auto px-6">
-                    <div className="mt-6 text-center text-sm text-muted-foreground">
+                    <div className="text-center text-sm text-muted-foreground">
                         © {new Date().getFullYear()} Earnest. All rights reserved.
                     </div>
                 </div>

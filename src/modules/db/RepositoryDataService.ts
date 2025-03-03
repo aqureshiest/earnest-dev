@@ -1,16 +1,22 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { EmbeddingService } from "../ai/support/EmbeddingService";
+import { FileChunk } from "../ai/support/CodeIndexer";
 
 export class RepositoryDataService {
-    private supabase: SupabaseClient;
-    private embeddingService: EmbeddingService;
+    protected supabase: SupabaseClient;
 
     constructor() {
-        this.supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-        this.embeddingService = new EmbeddingService();
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error("Missing Supabase environment variables");
+        }
+
+        this.supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                persistSession: false, // Since we're using service role, we don't need to persist sessions
+            },
+        });
     }
 
     async saveBranchCommit(owner: string, repo: string, ref: string, commitHash: string) {
@@ -58,7 +64,6 @@ export class RepositoryDataService {
                 ref: file.ref,
                 commithash: file.commitHash,
                 tokencount: file.tokenCount,
-                embeddings: file.embeddings,
             },
             {
                 onConflict: "owner,repo,ref,path",
@@ -130,37 +135,123 @@ export class RepositoryDataService {
                     ref: file.ref,
                     commitHash: file.commithash,
                     tokenCount: file.tokencount,
-                    embeddings: file.embeddings,
                 } as FileDetails)
         );
     }
 
-    async findSimilar(
-        text: string,
-        owner: string,
-        repo: string,
-        ref: string
-    ): Promise<FileDetails[]> {
-        const embeddings = await this.embeddingService.generateEmbeddings(text);
+    // async findSimilar(
+    //     text: string,
+    //     owner: string,
+    //     repo: string,
+    //     ref: string,
+    //     embeddings?: number[]
+    // ): Promise<FileDetails[]> {
+    //     const { data, error } = await this.supabase.rpc("find_similar_files", {
+    //         query_embeddings: embeddings,
+    //         given_owner: owner,
+    //         given_repo: repo,
+    //         given_ref: ref,
+    //     });
 
-        const { data, error } = await this.supabase.rpc("find_similar_files", {
-            query_embeddings: embeddings,
-            given_owner: owner,
-            given_repo: repo,
-            given_ref: ref,
-        });
+    //     if (error) {
+    //         throw new Error(`Error finding similar files: ${error.message}`);
+    //     }
 
-        // console.log(
-        //     data.map((file: any) => ({
-        //         path: file.path,
-        //         similarity: file.similarity,
-        //     }))
-        // );
+    //     return data as FileDetails[];
+    // }
+
+    async getAllFileChunks(owner: string, repo: string, ref: string): Promise<FileChunk[]> {
+        const { data, error } = await this.supabase
+            .from("filechunks")
+            .select("*")
+            .eq("owner", owner)
+            .eq("repo", repo)
+            .eq("ref", ref);
 
         if (error) {
-            throw new Error(`Error finding similar files: ${error.message}`);
+            console.error(`Error fetching all file chunks:`, error);
+            return [];
         }
 
-        return data as FileDetails[];
+        return data;
+    }
+
+    async deleteAllFileChunks(owner: string, repo: string, ref: string): Promise<void> {
+        const { error } = await this.supabase
+            .from("filechunks")
+            .delete()
+            .eq("owner", owner)
+            .eq("repo", repo)
+            .eq("ref", ref);
+
+        if (error) {
+            console.error(`Error deleting all file chunks:`, error);
+        }
+    }
+
+    async findSimilarFilesByChunks(
+        query: string,
+        owner: string,
+        repo: string,
+        ref: string,
+        embeddings: number[],
+        similarityThreshold = 0.1
+    ): Promise<FileDetails[]> {
+        try {
+            console.log("Searching for similar chunks in", owner, repo, ref, "for query:", query);
+
+            // Use RPC function to find similar chunks grouped by file
+            const { data: similarFiles, error } = await this.supabase.rpc("find_similar_chunks", {
+                given_owner: owner,
+                given_repo: repo,
+                given_ref: ref,
+                query_embeddings: embeddings,
+            });
+
+            if (error) {
+                console.error("Error finding similar chunks:", error);
+                throw new Error(`Error finding similar chunks: ${error.message}`);
+            }
+
+            if (!similarFiles || similarFiles.length === 0) {
+                console.log("No similar chunks found");
+                return [];
+            }
+
+            // Fetch full file details for the similar files
+            const fileIds = similarFiles
+                .filter((f: any) => f.similarity > similarityThreshold)
+                .map((f: any) => f.file_id);
+            const { data: files, error: filesError } = await this.supabase
+                .from("filedetails")
+                .select("*")
+                .in("id", fileIds);
+
+            if (filesError || !files) {
+                console.error("Error fetching full files:", filesError);
+                return [];
+            }
+
+            // Map similarity scores to the files
+            const filesToUse = files
+                .map((file) => {
+                    const similarityMatch = similarFiles.find((sf: any) => sf.file_id === file.id);
+                    return {
+                        ...file,
+                        similarity: similarityMatch ? similarityMatch.similarity : 0,
+                    };
+                })
+                .sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+
+            console.log(
+                "\n-- Files to use based on similarity search:---\n",
+                filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
+            );
+
+            return filesToUse;
+        } catch (error) {
+            console.error("Error in chunked similarity search:", error);
+            throw error;
+        }
     }
 }

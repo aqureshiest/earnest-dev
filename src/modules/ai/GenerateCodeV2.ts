@@ -1,15 +1,15 @@
 import { displayTime } from "../utils/displayTime";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
-import { CodingAssistantProcessByStepWithContext } from "./assistants/generate-code/CodingAssistantProcessByStepWithContext";
+import { CodingAssistantProcessByStep } from "./assistants/generate-code/CodingAssistantProcessByStep";
 import { PlannerAssistantV2 } from "./assistants/generate-code/PlannerAssistantV2";
 
 export class GenerateCodeV2 {
     private plannerAssistant: PlannerAssistantV2;
-    private codingAssistant: CodingAssistantProcessByStepWithContext;
+    private codingAssistant: CodingAssistantProcessByStep;
 
     constructor() {
         this.plannerAssistant = new PlannerAssistantV2();
-        this.codingAssistant = new CodingAssistantProcessByStepWithContext();
+        this.codingAssistant = new CodingAssistantProcessByStep();
     }
 
     async runWorkflow(taskRequest: CodingTaskRequest): Promise<AIAssistantResponse<CodeChanges>> {
