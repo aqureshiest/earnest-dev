@@ -1,12 +1,12 @@
 import { CODEFILES_PLACEHOLDER, TASK_PLACEHOLDER } from "@/constants";
 import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
-import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { formatXml } from "@/modules/utils/formatXml";
 import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 import { CodingAssistant } from "./CodingAssistant";
 
 import chalk from "chalk";
 import { CodeIndexer } from "../../support/CodeIndexer";
+import { sendTaskUpdate } from "@/modules/redis/RedisTaskManager";
 
 export class CodingAssistantProcessByStep extends CodingAssistant {
     private indexer: CodeIndexer;

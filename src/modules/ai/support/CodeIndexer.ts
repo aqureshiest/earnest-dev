@@ -7,7 +7,7 @@ import {
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { EMBEDDINGS_DIMENSIONS, EMBEDDINGS_MODEL } from "@/constants";
-import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
+import { sendTaskUpdate } from "@/modules/redis/RedisTaskManager";
 
 export interface FileChunk {
     fileId: number;

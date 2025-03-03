@@ -3,8 +3,8 @@ import { CodebaseAssistant } from "@/modules/ai/assistants/CodebaseAssistant";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
-import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { extractCompleteFilesFromTruncated, isResponseTruncated } from "./XmlResponseHelper";
+import { sendTaskUpdate } from "@/modules/redis/RedisTaskManager";
 
 export class CodingAssistant extends CodebaseAssistant<CodeChanges> {
     constructor() {

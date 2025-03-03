@@ -1,4 +1,4 @@
-import { EmbeddingService } from "@/modules/ai/support/EmbeddingService";
+import { CodeIndexer } from "@/modules/ai/support/CodeIndexer";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { GitHubService } from "@/modules/github/GitHubService";
 import { RepositoryService } from "@/modules/github/RepositoryService";
@@ -139,19 +139,20 @@ module.exports = {
         const totalTokens = tokenizedFiles.reduce((acc, file) => acc + file.tokenCount, 0);
         console.log("total tokens", totalTokens);
 
-        const embeddingService = new EmbeddingService();
-        let embeddedFiles: any[] = [];
-        // embed the files
-        await runWithTime("embed files", async () => {
-            embeddedFiles = await embeddingService.generateEmbeddingsForFilesInChunks(
-                tokenizedFiles
-            );
-        });
+        // TODO fix this
+        // const indexer = new CodeIndexer();
+        // let embeddedFiles: any[] = [];
+        // // embed the files
+        // await runWithTime("embed files", async () => {
+        //     embeddedFiles = await indexer.processFilesIntoChunks(
+        //         tokenizedFiles
+        //     );
+        // });
 
         // save everything
-        await runWithTime("save files", async () => {
-            await repositoryService.syncBranch("aqureshiest", repo, "main", embeddedFiles);
-        });
+        // await runWithTime("save files", async () => {
+        //     await repositoryService.syncBranch("aqureshiest", repo, "main", embeddedFiles);
+        // });
 
         console.log("-------------------");
         sleep(1000);

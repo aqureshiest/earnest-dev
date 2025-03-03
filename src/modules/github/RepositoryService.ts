@@ -93,7 +93,6 @@ export class RepositoryService {
                     ref,
                     content: "",
                     commitHash: file.sha,
-                    embeddings: [],
                     tokenCount: 0,
                 });
             }

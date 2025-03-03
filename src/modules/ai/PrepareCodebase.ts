@@ -1,8 +1,8 @@
 import { RepositoryService } from "../github/RepositoryService";
-import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 import { TokenLimiter } from "./support/TokenLimiter";
 import { RepositoryDataService } from "../db/RepositoryDataService";
 import { CodeIndexer } from "./support/CodeIndexer";
+import { sendTaskUpdate } from "../redis/RedisTaskManager";
 
 export class PrepareCodebase {
     private repositoryService: RepositoryService;

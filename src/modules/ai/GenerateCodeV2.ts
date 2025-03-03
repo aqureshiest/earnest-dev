@@ -1,5 +1,5 @@
+import { sendTaskUpdate } from "../redis/RedisTaskManager";
 import { displayTime } from "../utils/displayTime";
-import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 import { CodingAssistantProcessByStep } from "./assistants/generate-code/CodingAssistantProcessByStep";
 import { PlannerAssistantV2 } from "./assistants/generate-code/PlannerAssistantV2";
 
