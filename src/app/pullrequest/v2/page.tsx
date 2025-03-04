@@ -1,25 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import ImplementationPlanCard from "../../components/ImplementationPlanCard";
 import { AnimatePresence, motion } from "framer-motion";
 import CodeViewer from "../../components/CodeViewer";
-import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 import {
     Check,
@@ -38,35 +27,18 @@ import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import EnhancedProgressFeed, {
     EnhancedProgressMessage,
 } from "@/app/components/EnhancedProgressFeed";
-import { v4 as uuidv4 } from "uuid";
-
-const TASK_STATUS = {
-    IDLE: "idle", // Client-side only, not in backend
-    PENDING: "pending",
-    IN_PROGRESS: "in_progress",
-    COMPLETED: "completed",
-    ERROR: "error",
-};
 
 const PullRequestV2: React.FC = () => {
-    const router = useRouter();
-    const searchParams = useSearchParams();
+    const [taskId, setTaskId] = useState("");
 
-    // Get task ID from URL if it exists
-    const urlTaskId = searchParams.get("taskId");
-
-    const [taskId, setTaskId] = useState<string>(urlTaskId || "");
-    const [taskStatus, setTaskStatus] = useState<string>(TASK_STATUS.IDLE);
     const [repo, setRepo] = useState<string>("");
     const [branch, setBranch] = useState<string>("");
     const [description, setDescription] = useState("");
 
     const [progressMessages, setProgressMessages] = useState<EnhancedProgressMessage[]>([]);
     const [isCreating, setIsCreating] = useState(false);
-    const [isNewTask, setIsNewTask] = useState(false);
     const [acceptedChanges, setAcceptedChanges] = useState(false);
     const [showDiff, setShowDiff] = useState(false);
-    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     const [selectedModel, setSelectedModel] = useState<string>("");
 
@@ -84,63 +56,6 @@ const PullRequestV2: React.FC = () => {
     const [generatedCode, setGeneratedCode] = useState<CodeChanges | null>(null);
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
-
-    // Check if there's an active task when the component mounts or URL changes
-    useEffect(() => {
-        if (urlTaskId && !isNewTask) {
-            checkTaskStatus(urlTaskId);
-        }
-    }, [urlTaskId, isNewTask]);
-
-    // Check task status
-    const checkTaskStatus = async (taskId: string) => {
-        try {
-            const response = await fetch(`/api/generate/v2?taskId=${taskId}`);
-
-            if (response.ok) {
-                const data = await response.json();
-
-                setTaskId(taskId);
-
-                // If the task data includes description/repo/branch, restore it
-                if (data.description) setDescription(data.description);
-                if (data.repo) setRepo(data.repo);
-                if (data.branch) setBranch(data.branch);
-                if (data.model) setSelectedModel(data.model);
-
-                // Update task status
-                // Map backend status to our frontend status
-                if (data.status === "pending") {
-                    setTaskStatus(TASK_STATUS.PENDING);
-                    addProgressMessage(`Resuming task ${taskId}...`, "info");
-                    resumeTask(taskId);
-                } else if (data.status === "in_progress") {
-                    setTaskStatus(TASK_STATUS.IN_PROGRESS);
-                    addProgressMessage(`Resuming task ${taskId}...`, "info");
-                    resumeTask(taskId);
-                } else if (data.status === "completed") {
-                    setTaskStatus(TASK_STATUS.COMPLETED);
-
-                    if (data.completedAt) {
-                        const completionDate = new Date(data.completedAt);
-                        addProgressMessage(
-                            `Task completed on ${completionDate.toLocaleString()}`,
-                            "info"
-                        );
-                    }
-
-                    resumeTask(taskId);
-                } else if (data.status === "error") {
-                    setTaskStatus(TASK_STATUS.ERROR);
-                    addProgressMessage(`Task encountered an error`, "error");
-                    resumeTask(taskId);
-                }
-            }
-        } catch (error) {
-            console.error("Error checking task status:", error);
-            setTaskStatus(TASK_STATUS.ERROR);
-        }
-    };
 
     // Create a pull request
     const createPullRequest = async (
@@ -197,8 +112,7 @@ const PullRequestV2: React.FC = () => {
         repo: string,
         branch: string,
         description: string,
-        selectedModel: string,
-        resume: boolean = false
+        selectedModel: string
     ) => {
         const response = await fetch(`/api/generate/v2`, {
             method: "POST",
@@ -210,35 +124,11 @@ const PullRequestV2: React.FC = () => {
                 branch,
                 description: description.trim(),
                 selectedModel,
-                resume,
             }),
         });
 
         if (!response.ok) throw new Error("Failed to start task");
         return response;
-    };
-
-    // Resume a task
-    const resumeTask = async (taskId: string) => {
-        try {
-            setIsCreating(true);
-
-            // Use current form values when resuming a task
-            const response = await generateCode(
-                taskId,
-                owner,
-                repo,
-                branch,
-                description,
-                selectedModel,
-                true // resume
-            );
-            await handleStreamResponse(response);
-        } catch (error: any) {
-            handleError(error.message);
-        } finally {
-            setIsCreating(false);
-        }
     };
 
     const handleAcceptChanges = async () => {
@@ -284,44 +174,13 @@ const PullRequestV2: React.FC = () => {
         ]);
     };
 
-    const handleCreatePullRequest = useCallback(async () => {
-        // Check if there's already a task that would be overridden
-        if (taskId) {
-            setShowConfirmDialog(true);
-            return;
-        }
-
-        proceedWithTaskCreation();
-    }, [taskId, repo, branch, description, selectedModel]);
-
-    const resetSession = () => {
-        // Clear the task ID from URL and start fresh
-        router.push(window.location.pathname);
-
-        // Reset all state
-        resetState();
-        setTaskId("");
-        setTaskStatus(TASK_STATUS.IDLE);
-        setIsCreating(false);
-        setShowConfirmDialog(false);
-    };
-
-    const proceedWithTaskCreation = async () => {
-        setIsNewTask(true);
+    const handleCreatePullRequest = async () => {
         setIsCreating(true);
         resetState();
-        setShowConfirmDialog(false);
-        setTaskStatus(TASK_STATUS.PENDING); // Start with PENDING, backend will update to IN_PROGRESS
 
         try {
-            // Generate a new UUID for the task
-            const newTaskId = uuidv4();
+            const newTaskId = Date.now().toString();
             setTaskId(newTaskId);
-
-            // Update URL with the new task ID
-            const params = new URLSearchParams();
-            params.set("taskId", newTaskId);
-            router.push(`?${params.toString()}`);
 
             addProgressMessage(`Task ${newTaskId} started`);
 
@@ -336,10 +195,8 @@ const PullRequestV2: React.FC = () => {
             await handleStreamResponse(response);
         } catch (error: any) {
             handleError(error.message);
-            setTaskStatus(TASK_STATUS.ERROR);
         } finally {
             setIsCreating(false);
-            setIsNewTask(false);
         }
     };
 
@@ -382,10 +239,6 @@ const PullRequestV2: React.FC = () => {
         switch (data.type) {
             case "progress":
                 handleProgress(data);
-                // If we get any progress update, make sure we're in IN_PROGRESS state
-                if (taskStatus === TASK_STATUS.PENDING) {
-                    setTaskStatus(TASK_STATUS.IN_PROGRESS);
-                }
                 break;
             case "summary":
                 handleSummary(data);
@@ -395,14 +248,12 @@ const PullRequestV2: React.FC = () => {
                 break;
             case "error":
                 handleError(new Error(data.message));
-                setTaskStatus(TASK_STATUS.ERROR);
                 break;
             case "complete":
                 handleComplete(data, data.message.assistant);
                 break;
             case "final":
                 handleFinal(data);
-                setTaskStatus(TASK_STATUS.COMPLETED);
                 break;
         }
     };
@@ -468,37 +319,9 @@ const PullRequestV2: React.FC = () => {
         setDescription(e.target.value);
     };
 
-    // Determine if form inputs should be disabled
-    const areInputsDisabled =
-        isCreating || taskStatus === TASK_STATUS.IN_PROGRESS || taskStatus === TASK_STATUS.PENDING;
-
-    // Determine if Generate Code button should be disabled
-    const isGenerateButtonDisabled = areInputsDisabled || !repo || !branch || !description;
-
     return (
         <div className="min-h-screen py-8 px-6">
             <div className="max-w-7xl mx-auto">
-                {/* Confirmation Dialog */}
-                <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Reset Session</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {taskStatus === TASK_STATUS.IN_PROGRESS ||
-                                taskStatus === TASK_STATUS.PENDING
-                                    ? "There is an active task in progress. Starting a new task will cancel the current task."
-                                    : "Are you sure you want to reset the session?"}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={resetSession}>
-                                Reset Session
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-
                 {/* Header */}
                 <motion.div
                     className="text-center mb-12"
@@ -513,7 +336,6 @@ const PullRequestV2: React.FC = () => {
                     <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
                         Generate code and create pull requests with AI assistance.
                     </p>
-                    {/* Task ID display removed as requested */}
                 </motion.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -621,14 +443,14 @@ const PullRequestV2: React.FC = () => {
                                         setRepo={setRepo}
                                         branch={branch}
                                         setBranch={setBranch}
-                                        loading={areInputsDisabled}
+                                        loading={isCreating}
                                     />
 
                                     {/* AI Model Selection */}
                                     <AIModelSelection
                                         selectedModel={selectedModel}
                                         setSelectedModel={setSelectedModel}
-                                        loading={areInputsDisabled}
+                                        loading={isCreating}
                                         recommendedModel={LLM_MODELS.ANTHROPIC_CLAUDE_3_7_SONNET}
                                     />
 
@@ -641,7 +463,7 @@ const PullRequestV2: React.FC = () => {
                                             placeholder="Describe the task..."
                                             value={description}
                                             onChange={handleDescriptionChange}
-                                            disabled={areInputsDisabled}
+                                            disabled={isCreating}
                                         />
                                     </div>
 
@@ -650,19 +472,17 @@ const PullRequestV2: React.FC = () => {
                                         <Button
                                             onClick={handleCreatePullRequest}
                                             className="w-full"
-                                            disabled={isGenerateButtonDisabled}
+                                            disabled={
+                                                isCreating || !repo || !branch || !description
+                                            }
                                         >
                                             <Code className="mr-2 h-4 w-4" />
-                                            {isCreating
-                                                ? "Processing..."
-                                                : taskStatus == TASK_STATUS.COMPLETED ||
-                                                  taskStatus == TASK_STATUS.ERROR
-                                                ? "Reset Session"
-                                                : "Generate Code"}
+                                            {isCreating ? "Processing..." : "Generate Code"}
                                         </Button>
 
                                         {generatedCode && !acceptedChanges && (
                                             <div className="mt-6 border-t pt-4">
+                                                {/* add a spacer */}
                                                 <span className="text-sm">
                                                     The code has been generated successfully
                                                 </span>
@@ -678,6 +498,7 @@ const PullRequestV2: React.FC = () => {
 
                                         {generatedPRLink && (
                                             <div className="mt-6 border-t pt-4">
+                                                {/* add a spacer */}
                                                 <span className="text-sm">
                                                     The PR has been created successfully
                                                 </span>

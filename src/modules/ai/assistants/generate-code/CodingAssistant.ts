@@ -4,7 +4,7 @@ import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { extractCompleteFilesFromTruncated, isResponseTruncated } from "./XmlResponseHelper";
-import { sendTaskUpdate } from "@/modules/redis/RedisTaskManager";
+import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 
 export class CodingAssistant extends CodebaseAssistant<CodeChanges> {
     constructor() {

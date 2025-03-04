@@ -6,7 +6,7 @@ import { CodingAssistant } from "./CodingAssistant";
 
 import chalk from "chalk";
 import { CodeIndexer } from "../../support/CodeIndexer";
-import { sendTaskUpdate } from "@/modules/redis/RedisTaskManager";
+import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 
 export class CodingAssistantProcessByStep extends CodingAssistant {
     private indexer: CodeIndexer;

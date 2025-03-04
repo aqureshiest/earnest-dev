@@ -26,11 +26,14 @@ import { Badge } from "@/components/ui/badge";
 
 const HomePage: React.FC = () => {
     const [activeTab, setActiveTab] = useState(() => {
+        if (typeof window === "undefined") return "developer";
+
         const saved = localStorage.getItem("earnest-ai-active-tab");
         return saved || "developer";
     });
 
     useEffect(() => {
+        if (typeof window === "undefined") return;
         localStorage.setItem("earnest-ai-active-tab", activeTab);
     }, [activeTab]);
 
@@ -147,7 +150,7 @@ const HomePage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-slate-50 to-white dark:from-gray-900 dark:via-indigo-950/10 dark:to-gray-950">
             {/* Hero Section - REDUCED HEIGHT */}
-            <section className="relative overflow-hidden py-8 md:py-12 border-b border-border/20">
+            <section className="relative overflow-hidden py-12 md:py-20 border-b border-border/20">
                 {/* Light mode grid pattern using inline styles */}
                 <div
                     className="absolute inset-0 dark:hidden"
@@ -269,12 +272,6 @@ const HomePage: React.FC = () => {
                                             Developer Workspace
                                         </span>
                                     </div>
-                                    <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                                        Streamline Your Development Workflow
-                                    </h2>
-                                    <p className="text-muted-foreground">
-                                        Powerful AI tools that help you write better code, faster.
-                                    </p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -290,12 +287,6 @@ const HomePage: React.FC = () => {
                                         <Ticket className="h-4 w-4 mr-2" />
                                         <span className="text-sm font-medium">PM Workspace</span>
                                     </div>
-                                    <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                                        Accelerate Project Planning & Execution
-                                    </h2>
-                                    <p className="text-muted-foreground">
-                                        Save time and increase efficiency with AI-powered tools.
-                                    </p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

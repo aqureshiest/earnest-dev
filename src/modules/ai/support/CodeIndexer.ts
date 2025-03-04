@@ -5,9 +5,9 @@ import {
     TokenTextSplitter,
 } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { EMBEDDINGS_DIMENSIONS, EMBEDDINGS_MODEL } from "@/constants";
-import { sendTaskUpdate } from "@/modules/redis/RedisTaskManager";
+import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
+import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 
 export interface FileChunk {
     fileId: number;
@@ -22,22 +22,11 @@ export interface FileChunk {
 }
 
 export class CodeIndexer {
-    private embeddings;
-    private supabase: SupabaseClient;
+    private embeddings: OpenAIEmbeddings;
+    private dataService: RepositoryDataService;
 
     constructor() {
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!supabaseUrl || !supabaseKey) {
-            throw new Error("Missing Supabase environment variables");
-        }
-
-        this.supabase = createClient(supabaseUrl, supabaseKey, {
-            auth: {
-                persistSession: false, // Since we're using service role, we don't need to persist sessions
-            },
-        });
+        this.dataService = new RepositoryDataService();
 
         this.embeddings = new OpenAIEmbeddings({
             model: EMBEDDINGS_MODEL,
@@ -92,35 +81,10 @@ export class CodeIndexer {
 
             try {
                 // First make sure the file is in FileDetails table
-                const { data: fileRecord, error: fileError } = await this.supabase
-                    .from("filedetails")
-                    .upsert(
-                        {
-                            name: file.name,
-                            path: file.path,
-                            content: file.content,
-                            owner: owner,
-                            repo: repo,
-                            ref: ref,
-                            commithash: file.commitHash,
-                            tokencount: file.tokenCount,
-                        },
-                        {
-                            onConflict: "owner,repo,ref,path",
-                        }
-                    )
-                    .select("id")
-                    .single();
-
-                if (fileError) {
-                    console.error(`Error upserting file ${file.path}:`, fileError.message);
-                    continue;
-                }
-
-                const fileId = fileRecord.id;
+                const fileId = await this.dataService.saveFileDetails(file);
 
                 // Delete existing chunks for this file
-                await this.supabase.from("filechunks").delete().match({ fileid: fileId });
+                await this.dataService.deleteFileChunks(owner, repo, ref, file.path);
 
                 // Split the file into chunks
                 const splitter = this.getSplitterForFile(file);
@@ -132,14 +96,14 @@ export class CodeIndexer {
 
                 // Create chunk records
                 const chunks: any[] = docs.map((chunk, index) => ({
-                    fileid: fileId,
-                    chunkindex: index,
+                    fileId,
+                    chunkIndex: index,
                     path: file.path,
                     content: chunk.pageContent,
                     owner: owner,
                     repo: repo,
                     ref: ref,
-                    tokencount: encode(chunk.pageContent).length,
+                    tokenCount: encode(chunk.pageContent).length,
                     embeddings: contentEmbeddings[index],
                 }));
 
@@ -147,19 +111,11 @@ export class CodeIndexer {
                 const CHUNK_BATCH_SIZE = 20;
                 for (let i = 0; i < chunks.length; i += CHUNK_BATCH_SIZE) {
                     const chunkBatch = chunks.slice(i, i + CHUNK_BATCH_SIZE);
-                    const { error: chunkError } = await this.supabase
-                        .from("filechunks")
-                        .insert(chunkBatch);
-
-                    if (chunkError) {
-                        console.error(
-                            `Error inserting chunks for file ${file.path}:`,
-                            chunkError.message
-                        );
-                    }
+                    await this.dataService.saveFileChunks(chunkBatch);
                 }
             } catch (error) {
                 console.error(`Error processing file ${file.path} into chunks:`, error);
+                throw error;
             }
         }
     }

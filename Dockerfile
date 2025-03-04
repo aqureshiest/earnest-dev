@@ -1,6 +1,9 @@
 # Stage 1: Build stage
 FROM node:20-alpine AS builder
 
+ARG NEXT_PUBLIC_GITHUB_OWNER
+ENV NEXT_PUBLIC_GITHUB_OWNER=$NEXT_PUBLIC_GITHUB_OWNER
+
 # Set working directory
 WORKDIR /app
 

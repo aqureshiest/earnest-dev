@@ -1,76 +1,83 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { chunk } from "lodash";
 import { FileChunk } from "../ai/support/CodeIndexer";
+import { Pool } from "pg";
 
 export class RepositoryDataService {
-    protected supabase: SupabaseClient;
+    private pool: Pool;
 
     constructor() {
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        this.pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            max: 20,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 5000,
+        });
 
-        if (!supabaseUrl || !supabaseKey) {
-            throw new Error("Missing Supabase environment variables");
-        }
-
-        this.supabase = createClient(supabaseUrl, supabaseKey, {
-            auth: {
-                persistSession: false, // Since we're using service role, we don't need to persist sessions
-            },
+        // Add event listener for connection errors
+        this.pool.on("error", (err) => {
+            console.error("Unexpected error on idle client", err);
         });
     }
 
     async saveBranchCommit(owner: string, repo: string, ref: string, commitHash: string) {
-        const { data, error } = await this.supabase.from("branchcommits").upsert(
-            {
-                owner,
-                repo,
-                ref,
-                commithash: commitHash,
-            },
-            {
-                onConflict: "owner,repo,ref",
-            }
-        );
+        const query = `
+      INSERT INTO branchcommits (owner, repo, ref, commithash)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (owner, repo, ref) DO UPDATE
+      SET commithash = $4
+    `;
 
-        if (error) {
+        try {
+            await this.pool.query(query, [owner, repo, ref, commitHash]);
+        } catch (error: any) {
             throw new Error(`Error saving branch commit: ${error.message}`);
         }
     }
 
     async getBranchCommit(owner: string, repo: string, ref: string): Promise<string | null> {
-        const { data, error } = await this.supabase
-            .from("branchcommits")
-            .select("commithash")
-            .eq("owner", owner)
-            .eq("repo", repo)
-            .eq("ref", ref)
-            .single();
+        const query = `
+      SELECT commithash
+      FROM branchcommits
+      WHERE owner = $1 AND repo = $2 AND ref = $3
+    `;
 
-        if (error || !data) {
+        try {
+            const result = await this.pool.query(query, [owner, repo, ref]);
+            if (result.rows.length === 0) {
+                return null;
+            }
+            return result.rows[0].commithash || null;
+        } catch (error) {
             return null;
         }
-
-        return data.commithash ?? null;
     }
 
-    async saveFileDetails(file: FileDetails): Promise<void> {
-        const { data, error } = await this.supabase.from("filedetails").upsert(
-            {
-                name: file.name,
-                path: file.path,
-                content: file.content,
-                owner: file.owner,
-                repo: file.repo,
-                ref: file.ref,
-                commithash: file.commitHash,
-                tokencount: file.tokenCount,
-            },
-            {
-                onConflict: "owner,repo,ref,path",
-            }
-        );
+    async saveFileDetails(file: FileDetails): Promise<number> {
+        const query = `
+          INSERT INTO filedetails (name, path, content, owner, repo, ref, commithash, tokencount)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ON CONFLICT (owner, repo, ref, path) DO UPDATE
+          SET name = EXCLUDED.name, 
+              content = EXCLUDED.content, 
+              commithash = EXCLUDED.commithash, 
+              tokencount = EXCLUDED.tokencount
+          RETURNING id
+        `;
 
-        if (error) {
+        try {
+            const result = await this.pool.query(query, [
+                file.name,
+                file.path,
+                file.content,
+                file.owner,
+                file.repo,
+                file.ref,
+                file.commitHash,
+                file.tokenCount,
+            ]);
+
+            return result.rows[0].id;
+        } catch (error: any) {
             throw new Error(`Error saving file details ${file.path}: ${error.message}`);
         }
     }
@@ -81,31 +88,33 @@ export class RepositoryDataService {
         ref: string = "main",
         path: string
     ): Promise<FileDetails | null> {
-        const { data, error } = await this.supabase
-            .from("filedetails")
-            .select("*")
-            .eq("owner", owner)
-            .eq("repo", repo)
-            .eq("ref", ref)
-            .eq("path", path)
-            .single();
+        const query = `
+      SELECT *
+      FROM filedetails
+      WHERE owner = $1 AND repo = $2 AND ref = $3 AND path = $4
+    `;
 
-        if (error) {
-            // console.error(`Error fetching file ${repo}:${ref}:${path} details: ${error.message}`);
+        try {
+            const result = await this.pool.query(query, [owner, repo, ref, path]);
+            if (result.rows.length === 0) {
+                return null;
+            }
+
+            const data = result.rows[0];
+            return {
+                name: data.name,
+                path: data.path,
+                content: data.content,
+                owner: data.owner,
+                repo: data.repo,
+                ref: data.ref,
+                commitHash: data.commithash,
+                tokenCount: data.tokencount,
+                embeddings: data.embeddings,
+            } as FileDetails;
+        } catch (error) {
             return null;
         }
-
-        return {
-            name: data.name,
-            path: data.path,
-            content: data.content,
-            owner: data.owner,
-            repo: data.repo,
-            ref: data.ref,
-            commitHash: data.commithash,
-            tokenCount: data.tokencount,
-            embeddings: data.embeddings,
-        } as FileDetails;
     }
 
     async getAllFileDetails(
@@ -113,78 +122,106 @@ export class RepositoryDataService {
         repo: string,
         ref: string = "main"
     ): Promise<FileDetails[]> {
-        const { data, error } = await this.supabase
-            .from("filedetails")
-            .select("*")
-            .eq("owner", owner)
-            .eq("repo", repo)
-            .eq("ref", ref);
+        const query = `
+      SELECT *
+      FROM filedetails
+      WHERE owner = $1 AND repo = $2 AND ref = $3
+    `;
 
-        if (error) {
-            throw new Error(`Error fetching all file details: ${error.message}`);
+        try {
+            const result = await this.pool.query(query, [owner, repo, ref]);
+
+            return result.rows.map(
+                (file) =>
+                    ({
+                        name: file.name,
+                        path: file.path,
+                        content: file.content,
+                        owner: file.owner,
+                        repo: file.repo,
+                        ref: file.ref,
+                        commitHash: file.commithash,
+                        tokenCount: file.tokencount,
+                    } as FileDetails)
+            );
+        } catch (error: any) {
+            console.error(`Error fetching all file details: ${error}, ${owner}, ${repo}, ${ref}`);
+            throw new Error(`Error fetching all file details: ${error}`);
         }
-
-        return data.map(
-            (file) =>
-                ({
-                    name: file.name,
-                    path: file.path,
-                    content: file.content,
-                    owner: file.owner,
-                    repo: file.repo,
-                    ref: file.ref,
-                    commitHash: file.commithash,
-                    tokenCount: file.tokencount,
-                } as FileDetails)
-        );
     }
 
-    // async findSimilar(
-    //     text: string,
-    //     owner: string,
-    //     repo: string,
-    //     ref: string,
-    //     embeddings?: number[]
-    // ): Promise<FileDetails[]> {
-    //     const { data, error } = await this.supabase.rpc("find_similar_files", {
-    //         query_embeddings: embeddings,
-    //         given_owner: owner,
-    //         given_repo: repo,
-    //         given_ref: ref,
-    //     });
+    async saveFileChunks(chunks: FileChunk[]): Promise<void> {
+        try {
+            // For bulk inserts, use a client to handle the transaction
+            const client = await this.pool.connect();
+            try {
+                await client.query("BEGIN");
 
-    //     if (error) {
-    //         throw new Error(`Error finding similar files: ${error.message}`);
-    //     }
+                for (const chunk of chunks) {
+                    const query = `
+                    INSERT INTO filechunks (fileid, chunkindex, path, content, owner, repo, ref, tokencount, embeddings)    
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::vector)
+                    `;
 
-    //     return data as FileDetails[];
-    // }
+                    // Format embeddings array as string with square brackets
+                    const embedArray = `[${chunk.embeddings?.join(",")}]`;
 
-    async getAllFileChunks(owner: string, repo: string, ref: string): Promise<FileChunk[]> {
-        const { data, error } = await this.supabase
-            .from("filechunks")
-            .select("*")
-            .eq("owner", owner)
-            .eq("repo", repo)
-            .eq("ref", ref);
+                    await client.query(query, [
+                        chunk.fileId,
+                        chunk.chunkIndex,
+                        chunk.path,
+                        chunk.content,
+                        chunk.owner,
+                        chunk.repo,
+                        chunk.ref,
+                        chunk.tokenCount,
+                        embedArray,
+                    ]);
+                }
 
-        if (error) {
+                await client.query("COMMIT");
+            } catch (error) {
+                await client.query("ROLLBACK");
+                throw error;
+            } finally {
+                client.release();
+            }
+        } catch (error: any) {
+            console.error(`Error saving file chunks:`, error);
+            throw new Error(`Error saving file chunks: ${error.message}`);
+        }
+    }
+
+    async getFileChunks(
+        owner: string,
+        repo: string,
+        ref: string,
+        path: string
+    ): Promise<FileChunk[]> {
+        const query = `
+      SELECT *
+      FROM filechunks
+      WHERE owner = $1 AND repo = $2 AND ref = $3 AND path = $4
+    `;
+
+        try {
+            const result = await this.pool.query(query, [owner, repo, ref, path]);
+            return result.rows;
+        } catch (error: any) {
             console.error(`Error fetching all file chunks:`, error);
             return [];
         }
-
-        return data;
     }
 
-    async deleteAllFileChunks(owner: string, repo: string, ref: string): Promise<void> {
-        const { error } = await this.supabase
-            .from("filechunks")
-            .delete()
-            .eq("owner", owner)
-            .eq("repo", repo)
-            .eq("ref", ref);
+    async deleteFileChunks(owner: string, repo: string, ref: string, path: string): Promise<void> {
+        const query = `
+      DELETE FROM filechunks
+      WHERE owner = $1 AND repo = $2 AND ref = $3 AND path = $4
+    `;
 
-        if (error) {
+        try {
+            await this.pool.query(query, [owner, repo, ref, path]);
+        } catch (error: any) {
             console.error(`Error deleting all file chunks:`, error);
         }
     }
@@ -200,18 +237,22 @@ export class RepositoryDataService {
         try {
             console.log("Searching for similar chunks in", owner, repo, ref, "for query:", query);
 
-            // Use RPC function to find similar chunks grouped by file
-            const { data: similarFiles, error } = await this.supabase.rpc("find_similar_chunks", {
-                given_owner: owner,
-                given_repo: repo,
-                given_ref: ref,
-                query_embeddings: embeddings,
-            });
+            // Use the function to find similar chunks grouped by file
+            const findSimilarChunksQuery = `
+        SELECT * FROM find_similar_chunks($1, $2, $3, $4::vector)
+      `;
 
-            if (error) {
-                console.error("Error finding similar chunks:", error);
-                throw new Error(`Error finding similar chunks: ${error.message}`);
-            }
+            // Convert the embeddings array properly for PostgreSQL vector type
+            const embedArray = `[${embeddings.join(",")}]`;
+
+            const similarFilesResult = await this.pool.query(findSimilarChunksQuery, [
+                owner,
+                repo,
+                ref,
+                embedArray,
+            ]);
+
+            const similarFiles = similarFilesResult.rows;
 
             if (!similarFiles || similarFiles.length === 0) {
                 console.log("No similar chunks found");
@@ -222,13 +263,21 @@ export class RepositoryDataService {
             const fileIds = similarFiles
                 .filter((f: any) => f.similarity > similarityThreshold)
                 .map((f: any) => f.file_id);
-            const { data: files, error: filesError } = await this.supabase
-                .from("filedetails")
-                .select("*")
-                .in("id", fileIds);
 
-            if (filesError || !files) {
-                console.error("Error fetching full files:", filesError);
+            if (fileIds.length === 0) {
+                return [];
+            }
+
+            const filesQuery = `
+        SELECT *
+        FROM filedetails
+        WHERE id = ANY($1)
+      `;
+
+            const filesResult = await this.pool.query(filesQuery, [fileIds]);
+            const files = filesResult.rows;
+
+            if (!files || files.length === 0) {
                 return [];
             }
 
@@ -249,8 +298,8 @@ export class RepositoryDataService {
             );
 
             return filesToUse;
-        } catch (error) {
-            console.error("Error in chunked similarity search:", error);
+        } catch (error: any) {
+            console.error("Error in chunked similarity search:", error.message);
             throw error;
         }
     }
