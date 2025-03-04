@@ -10,6 +10,7 @@ import { formatFiles } from "@/modules/utils/formatFiles";
 // const allowedTokens = Math.floor(llmInfo.maxInputTokens * (1 - bufferPercentage));
 
 export class TokenLimiter {
+    PADDING = 1.4;
     BUFFER = 500;
 
     tokenizeFiles(files: FileDetails[]) {
@@ -162,8 +163,6 @@ export class TokenLimiter {
         return chunks;
     }
 
-    PADDING = 1.4;
-
     private getFileTokens(file: FileDetails): number {
         if (file.tokenCount !== undefined) return file.tokenCount * this.PADDING;
         const contents = formatFiles([file]);
@@ -172,9 +171,5 @@ export class TokenLimiter {
 
     private getTokenCount(text: string): number {
         return encode(text).length * this.PADDING;
-    }
-
-    static getTokenCount(text: string): number {
-        return encode(text).length * 1.4;
     }
 }

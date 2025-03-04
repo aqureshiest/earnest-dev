@@ -71,11 +71,13 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                     stepIndex + 1
                 }/${totalStepCount}): ${step.title}`
             );
-            sendTaskUpdate(
-                taskId,
-                "progress",
-                `Starting step: ${step.title} (${progressPercent}%)`
-            );
+            sendTaskUpdate(taskId, "step_status", {
+                title: step.title,
+                status: "started",
+                stepIndex: stepIndex,
+                totalSteps: totalStepCount,
+                progressPercent,
+            });
 
             try {
                 // Get relevant files for this step
@@ -105,9 +107,12 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                         modifiedFiles: this.getStepModifiedFiles(codeChanges),
                     });
 
-                    // Send summary to frontend
-                    sendTaskUpdate(taskId, "summary", {
-                        step: step.title,
+                    // Send completed step update
+                    sendTaskUpdate(taskId, "step_status", {
+                        title: step.title,
+                        status: "completed",
+                        stepIndex: stepIndex,
+                        totalSteps: totalStepCount,
                         summary: summary.markdownSummary,
                     });
 
@@ -119,9 +124,17 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                 }
 
                 sendTaskUpdate(taskId, "progress", `Completed step: ${step.title}`);
-            } catch (error) {
+            } catch (error: any) {
                 console.error(`Error processing step "${step.title}":`, error);
-                sendTaskUpdate(taskId, "progress", `⚠️ Error processing step: ${step.title}`);
+
+                sendTaskUpdate(taskId, "step_status", {
+                    title: step.title,
+                    status: "error",
+                    stepIndex: stepIndex,
+                    totalSteps: totalStepCount,
+                    error: error.message,
+                });
+
                 throw error;
             }
         }

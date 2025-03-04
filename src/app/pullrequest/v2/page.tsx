@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import ImplementationPlanCard from "../../components/ImplementationPlanCard";
+import React, { useState, useEffect } from "react";
+import EnhancedImplementationPlanCard, {
+    StepStatus,
+} from "../../components/EnhancedImplementationPlanCard";
 import { AnimatePresence, motion } from "framer-motion";
 import CodeViewer from "../../components/CodeViewer";
 
@@ -27,6 +29,10 @@ import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import EnhancedProgressFeed, {
     EnhancedProgressMessage,
 } from "@/app/components/EnhancedProgressFeed";
+
+interface StepStatusMap {
+    [stepTitle: string]: StepStatus;
+}
 
 const PullRequestV2: React.FC = () => {
     const [taskId, setTaskId] = useState("");
@@ -55,7 +61,18 @@ const PullRequestV2: React.FC = () => {
         useState<AIAssistantResponse<CodeChanges> | null>(null);
     const [generatedCode, setGeneratedCode] = useState<CodeChanges | null>(null);
 
+    const [stepStatus, setStepStatus] = useState<StepStatusMap>({});
+    const [activeStep, setActiveStep] = useState<string | null>(null);
+    const [currentOpenStep, setCurrentOpenStep] = useState<string | null>(null);
+
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
+
+    // Hook to auto-expand the active step when it changes
+    useEffect(() => {
+        if (activeStep) {
+            setCurrentOpenStep(activeStep);
+        }
+    }, [activeStep]);
 
     // Create a pull request
     const createPullRequest = async (
@@ -223,7 +240,6 @@ const PullRequestV2: React.FC = () => {
 
                 for (const line of dataLines) {
                     try {
-                        console.log(`Received data: ${line}`);
                         const jsonStr = line.slice(6).trim();
                         const data = JSON.parse(jsonStr);
                         handleResponseData(data);
@@ -240,8 +256,8 @@ const PullRequestV2: React.FC = () => {
             case "progress":
                 handleProgress(data);
                 break;
-            case "summary":
-                handleSummary(data);
+            case "step_status":
+                handleStepStatus(data);
                 break;
             case "file":
                 handleFileUpdate(data);
@@ -262,8 +278,35 @@ const PullRequestV2: React.FC = () => {
         addProgressMessage(data.message);
     };
 
-    const handleSummary = (data: any) => {
-        addProgressMessage(`${data.message.summary}`, "success", true);
+    const handleStepStatus = (data: any) => {
+        const { title, status, stepIndex, totalSteps, summary, error } = data.message;
+
+        // Update step status map
+        setStepStatus((prevStatus) => ({
+            ...prevStatus,
+            [title]: status === "started" ? "active" : status,
+        }));
+
+        // Set active step or clear it if completed/error
+        if (status === "started") {
+            setActiveStep(title);
+        } else if (activeStep === title) {
+            setActiveStep(null);
+        }
+
+        // Add appropriate message to progress feed
+        if (status === "started") {
+            addProgressMessage(`Starting step: ${title} (${stepIndex + 1}/${totalSteps})`);
+        } else if (status === "completed") {
+            addProgressMessage(`Completed step: ${title}`);
+
+            // If summary is provided, add it to progress feed as markdown
+            if (summary) {
+                addProgressMessage(summary, "success", true);
+            }
+        } else if (status === "error") {
+            addProgressMessage(`Error in step: ${title} - ${error}`, "error");
+        }
     };
 
     const handleFileUpdate = (data: any) => {
@@ -276,10 +319,28 @@ const PullRequestV2: React.FC = () => {
         switch (assistant) {
             case "planning":
                 setImplementationPlan(response);
+
+                // Initialize step status for all steps as pending
+                if (response.response && response.response.steps) {
+                    const initialStepStatus: StepStatusMap = {};
+                    response.response.steps.forEach((step: Step) => {
+                        initialStepStatus[step.title] = "pending";
+                    });
+                    setStepStatus(initialStepStatus);
+                }
                 break;
             case "code":
                 setGeneratedCodeResponse(response);
                 setGeneratedCode(response.response);
+
+                // Mark all remaining steps as completed
+                if (implementationPlan?.response?.steps) {
+                    const finalStepStatus: StepStatusMap = {};
+                    implementationPlan.response.steps.forEach((step: Step) => {
+                        finalStepStatus[step.title] = "completed";
+                    });
+                    setActiveStep(null);
+                }
                 break;
         }
     };
@@ -294,6 +355,14 @@ const PullRequestV2: React.FC = () => {
 
     const handleError = (error: Error) => {
         addProgressMessage(error.message, "error");
+
+        // If we have an active step, mark it as error
+        if (activeStep) {
+            setStepStatus((prevStatus) => ({
+                ...prevStatus,
+                [activeStep]: "error",
+            }));
+        }
     };
 
     const resetState = () => {
@@ -304,6 +373,9 @@ const PullRequestV2: React.FC = () => {
         setGeneratedCodeResponse(null);
         setGeneratedCode(null);
         setExcludedFiles(new Set());
+        setStepStatus({});
+        setActiveStep(null);
+        setCurrentOpenStep(null);
     };
 
     const toggleCodeViewer = () => {
@@ -527,9 +599,13 @@ const PullRequestV2: React.FC = () => {
                         transition={{ duration: 0.5, delay: 0.4 }}
                     >
                         <div className="space-y-6">
+                            <EnhancedImplementationPlanCard
+                                implementationPlan={implementationPlan}
+                                stepStatus={stepStatus}
+                                activeStep={activeStep}
+                                defaultOpenStep={currentOpenStep}
+                            />
                             <EnhancedProgressFeed messages={progressMessages} maxHeight="500px" />
-
-                            <ImplementationPlanCard implementationPlan={implementationPlan} />
                         </div>
                     </motion.div>
                 </div>

@@ -13,6 +13,7 @@ export function sendTaskUpdate(taskId: string, type: string, message: any) {
     } else {
         console.log(`Message for task ${taskId}, type ${type}:`, message);
     }
+    console.log(`Message for task ${taskId}, type ${type}:`, message);
 }
 
 export function setClient(taskId: string, controller: ReadableStreamDefaultController<any>) {
