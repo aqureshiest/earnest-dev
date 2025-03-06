@@ -1,6 +1,11 @@
 import { deprecate } from "util";
 
-export const LLM_MODELS = {
+export type LLMModel = {
+    id: string;
+    name: string;
+};
+
+export const LLM_MODELS: { [key: string]: LLMModel } = {
     OPENAI_O3_MINI: {
         id: "o3-mini",
         name: "OpenAI O3 Mini",
@@ -13,21 +18,6 @@ export const LLM_MODELS = {
         id: "gpt-4o-mini",
         name: "OpenAI GPT-4.0 Mini",
     },
-    ANTHROPIC_CLAUDE_3_5_SONNET: {
-        id: "claude-3-5-sonnet-20240620",
-        name: "Anthropic Claude 3.5 Sonnet",
-        deprecated: true,
-    },
-    ANTHROPIC_CLAUDE_3_HAIKU: {
-        id: "claude-3-haiku-20240307",
-        name: "Anthropic Claude 3 Haiku",
-        deprecated: true,
-    },
-    ANTHROPIC_CLAUDE_3_5_SONNET_NEW: {
-        id: "claude-3-5-sonnet-20241022",
-        name: "Anthropic Claude 3.5 Sonnet New",
-        deprecated: true,
-    },
     ANTHROPIC_CLAUDE_3_7_SONNET: {
         id: "claude-3-7-sonnet-20250219",
         name: "Anthropic Claude 3.7 Sonnet",
@@ -39,11 +29,6 @@ export const LLM_MODELS = {
     AWS_BEDROCK_CLAUDE_37_SONNET: {
         id: "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
         name: "AWS Bedrock Claude 3.7 Sonnet",
-    },
-    AWS_BEDROCK_CLAUDE_35_SONNET_V2: {
-        id: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-        name: "AWS Bedrock Claude 3.5 Sonnet V2",
-        deprecated: true,
     },
     AWS_BEDROCK_CLAUDE_35_HAIKU_V2: {
         id: "us.anthropic.claude-3-5-haiku-20241022-v1:0",
@@ -59,94 +44,83 @@ export const LLM_MODELS = {
     },
 };
 
-export const LLMS = [
+export type LLM = {
+    model: string;
+    inputCost: number;
+    outputCost: number;
+    maxInputTokens: number;
+    maxOutputTokens: number;
+    tokenPaddingFactor?: number;
+};
+
+export const LLMS: LLM[] = [
     // OpenAI
     {
         model: LLM_MODELS.OPENAI_O3_MINI.id,
         inputCost: 1.1,
         outputCost: 4.4,
-        maxInputTokens: 50000, //128000
-        maxOutputTokens: 4096,
+        maxInputTokens: 200000,
+        maxOutputTokens: 32000, // actually its 100,000
+        tokenPaddingFactor: 1.05,
     },
     {
         model: LLM_MODELS.OPENAI_GPT_4O.id,
         inputCost: 2.5,
         outputCost: 10,
-        maxInputTokens: 50000, //128000
-        maxOutputTokens: 4096,
+        maxInputTokens: 128000,
+        maxOutputTokens: 16384,
+        tokenPaddingFactor: 1.05,
     },
     {
         model: LLM_MODELS.OPENAI_GPT_4O_MINI.id,
         inputCost: 0.15,
         outputCost: 0.6,
-        maxInputTokens: 50000, //128000
+        maxInputTokens: 128000,
         maxOutputTokens: 16384,
+        tokenPaddingFactor: 1.05,
     },
     // Anthropic
-    {
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET.id,
-        inputCost: 3,
-        outputCost: 15,
-        maxInputTokens: 50000, //200000,
-        maxOutputTokens: 4096,
-    },
-    {
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU.id,
-        inputCost: 0.25,
-        outputCost: 1.25,
-        maxInputTokens: 50000, //200000,
-        maxOutputTokens: 4096,
-    },
-    {
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET_NEW.id,
-        inputCost: 3,
-        outputCost: 15,
-        maxInputTokens: 50000, //200000,
-        maxOutputTokens: 8192,
-    },
     {
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW.id,
         inputCost: 0.8,
         outputCost: 4,
-        maxInputTokens: 50000, //200000,
+        maxInputTokens: 200000,
         maxOutputTokens: 8192,
+        tokenPaddingFactor: 1.15,
     },
     {
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_7_SONNET.id,
         inputCost: 3,
         outputCost: 15,
-        maxInputTokens: 50000, //200000,
+        maxInputTokens: 200000,
         maxOutputTokens: 8192,
+        tokenPaddingFactor: 1.15,
     },
     // Gemini
     {
         model: LLM_MODELS.GEMINI_1_5_FLASH.id,
         inputCost: 0,
         outputCost: 0,
-        maxInputTokens: 200000, //200000,
+        maxInputTokens: 200000,
         maxOutputTokens: 4096,
+        tokenPaddingFactor: 1,
     },
     // AWS Bedrock
     {
         model: LLM_MODELS.AWS_BEDROCK_CLAUDE_37_SONNET.id,
         inputCost: 3,
         outputCost: 15,
-        maxInputTokens: 50000, //200000,
+        maxInputTokens: 200000,
         maxOutputTokens: 8192,
-    },
-    {
-        model: LLM_MODELS.AWS_BEDROCK_CLAUDE_35_SONNET_V2.id,
-        inputCost: 3,
-        outputCost: 15,
-        maxInputTokens: 50000, //200000,
-        maxOutputTokens: 8192,
+        tokenPaddingFactor: 1.15,
     },
     {
         model: LLM_MODELS.AWS_BEDROCK_CLAUDE_35_HAIKU_V2.id,
         inputCost: 1,
         outputCost: 5,
-        maxInputTokens: 50000, //200000,
+        maxInputTokens: 200000,
         maxOutputTokens: 8192,
+        tokenPaddingFactor: 1.15,
     },
     // OLLama
     {
@@ -155,5 +129,6 @@ export const LLMS = [
         outputCost: 0,
         maxInputTokens: 20000,
         maxOutputTokens: 4096,
+        tokenPaddingFactor: 1,
     },
 ];

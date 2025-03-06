@@ -29,6 +29,6 @@ export const trimPrompt = async () => {
     // --
 
     const limiter = new TokenLimiter();
-    const result: any = limiter.applyTokenLimit(request.model, "Noop", request.files);
+    const result: any = limiter.applyTokenLimit("Noop", request.files, request.model);
     console.log(`can fit ${result.allowedFiles.length} files in ${result.totalTokens} tokens`);
 };

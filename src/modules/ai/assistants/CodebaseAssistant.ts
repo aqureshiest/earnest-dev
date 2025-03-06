@@ -25,9 +25,10 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
 
         // Apply token limit to system prompt + user prompt, and get allowed files
         const { totalTokens, allowedFiles } = this.tokenLimiter.applyTokenLimit(
-            model,
             systemPrompt + userPrompt,
-            files
+            files,
+            model,
+            this.tokenAllocation
         );
 
         // Now add the allowed files to the prompt

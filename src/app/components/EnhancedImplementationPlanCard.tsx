@@ -137,15 +137,15 @@ const EnhancedImplementationPlanCard: React.FC<EnhancedImplementationPlanCardPro
                             const status = stepStatus[step.title] || "pending";
                             const hasSummary = stepSummaries[step.title] && status === "completed";
 
-                            const stepClassName = `${
-                                isActive ? "border-l-4 border-primary pl-2" : ""
-                            }`;
+                            // const stepClassName = `${
+                            //     isActive ? "border-l-4 border-primary pl-2" : ""
+                            // }`;
 
                             return (
                                 <AccordionItem
                                     key={index}
                                     value={step.title}
-                                    className={stepClassName}
+                                    // className={stepClassName}
                                 >
                                     <AccordionTrigger className="hover:no-underline">
                                         <div className="flex items-center justify-between w-full pr-4">

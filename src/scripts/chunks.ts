@@ -118,7 +118,7 @@ export const chunks = async () => {
         repo: "laps-snapshot",
         branch: "main",
         task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU.id,
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW.id,
         files: [],
         params: {},
     };
@@ -130,7 +130,7 @@ export const chunks = async () => {
 
     // split into chunks
     const limiter = new TokenLimiter();
-    const chunks = limiter.splitInChunks(request.model, "Process these files", files);
+    const chunks = limiter.splitInChunks("Process these files", files, request.model, 50, 10000);
 
     const verifier = new ChunkingVerifier();
     console.log(`max tokens: ${maxTokens}`);

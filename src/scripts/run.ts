@@ -129,7 +129,10 @@ module.exports = {
         // tokenize the files
         await runWithTime("tokenize files", async () => {
             const tokenLimiter = new TokenLimiter();
-            tokenizedFiles = tokenLimiter.tokenizeFiles(fetchedFiles);
+            tokenizedFiles = tokenLimiter.tokenizeFiles(
+                fetchedFiles,
+                LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW.id
+            );
         });
         // print file name and tokens
         tokenizedFiles.forEach((file) => {

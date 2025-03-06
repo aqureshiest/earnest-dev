@@ -18,7 +18,7 @@ export class PrepareCodebase {
     }
 
     async prepare(taskRequest: CodingTaskRequest) {
-        const { owner, repo, branch, task: description, taskId } = taskRequest;
+        const { owner, repo, branch, task: description, taskId, model } = taskRequest;
 
         // Check if branch is already synced
         sendTaskUpdate(taskId, "progress", "Checking branch sync status...");
@@ -26,7 +26,7 @@ export class PrepareCodebase {
 
         if (!isSynced) {
             // Branch is not synced, we need to do a full sync and index
-            await this.syncAndIndexRepository(owner, repo, branch, taskId);
+            await this.syncAndIndexRepository(owner, repo, branch, taskId, model);
         }
 
         // Find similar files based on description or return all files
@@ -51,7 +51,8 @@ export class PrepareCodebase {
         owner: string,
         repo: string,
         branch: string,
-        taskId: string
+        taskId: string,
+        model: string
     ): Promise<void> {
         // 1. Fetch repository files
         sendTaskUpdate(taskId, "progress", "Indexing repository...");
@@ -67,7 +68,10 @@ export class PrepareCodebase {
         const filesWithContent: FileDetails[] = await this.repositoryService.fetchFiles(files);
 
         // 3. Tokenize files
-        const tokenizedFiles: FileDetails[] = this.tokenLimiter.tokenizeFiles(filesWithContent);
+        const tokenizedFiles: FileDetails[] = this.tokenLimiter.tokenizeFiles(
+            filesWithContent,
+            model
+        );
 
         // 4. Process and index chunks for all files
         sendTaskUpdate(taskId, "progress", "Processing files into chunks...");

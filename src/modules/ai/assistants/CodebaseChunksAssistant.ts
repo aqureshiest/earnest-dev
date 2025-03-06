@@ -23,9 +23,10 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
 
         // Split files into chunks
         const chunks = this.tokenLimiter.splitInChunks(
-            model,
             systemPrompt + userPrompt,
             files,
+            model,
+            this.tokenAllocation,
             params.maxTokensPerChunk
         );
 

@@ -1,19 +1,38 @@
 import { encode, decode } from "gpt-tokenizer";
 import { LLMS } from "../../utils/llmInfo";
-import { formatFiles } from "@/modules/utils/formatFiles";
-
-// TODO might have to do something about 70/30 IO ratio
-// for now padding is helping
-
-// dynamic buffer
-// const bufferPercentage = 0.05; // 5% buffer
-// const allowedTokens = Math.floor(llmInfo.maxInputTokens * (1 - bufferPercentage));
 
 export class TokenLimiter {
-    PADDING = 1.4;
-    BUFFER = 500;
+    BUFFER = 1000;
 
-    tokenizeFiles(files: FileDetails[]) {
+    getTokenCount(text: string, model: string): number {
+        if (!text || text.length === 0) return 0;
+
+        const LLM = LLMS.find((m) => m.model === model);
+        if (!LLM) {
+            throw new Error(`LLM ${model} not found`);
+        }
+
+        // Basic tokenization with gpt-tokenizer
+        const baseTokenCount = encode(text).length;
+
+        return Math.ceil(baseTokenCount * (LLM.tokenPaddingFactor || 1));
+    }
+
+    calculateTokenLimit(model: string, allocatedPercentage: number = 100): number {
+        const LLM = LLMS.find((m) => m.model === model);
+        if (!LLM) {
+            throw new Error(`LLM ${model} not found`);
+        }
+
+        // Calculate tokens based on percentage of max input tokens
+        const percentage = Math.max(0, Math.min(100, allocatedPercentage)) / 100;
+        const allocatedTokens = Math.floor(LLM.maxInputTokens * percentage);
+
+        // Still apply buffer to the allocated tokens
+        return Math.max(0, allocatedTokens - this.BUFFER);
+    }
+
+    tokenizeFiles(files: FileDetails[], model: string): FileDetails[] {
         return files
             .map((file) => {
                 // no need to tokenize if token count is already there
@@ -21,58 +40,84 @@ export class TokenLimiter {
                     return file;
                 }
 
-                const tokens = encode(`${file.path}\n${file.content}`);
+                const tokens = this.getTokenCount(`${file.path}\n${file.content}`, model);
                 return {
                     ...file,
-                    tokenCount: tokens.length,
+                    tokenCount: tokens,
                 };
             })
             .filter((file) => file.tokenCount > 0);
     }
 
-    applyTokenLimitToPrompt(model: string, systemPrompt: string, userPrompt: string) {
-        // get LLM info
-        const LLM: any = LLMS.find((m) => m.model === model);
+    applyTokenLimitToPrompt(
+        systemPrompt: string,
+        userPrompt: string,
+        model: string,
+        allocatedPercentage: number = 100
+    ) {
+        // Calculate allowed tokens based on allocation percentage
+        const allowedTokens = this.calculateTokenLimit(model, allocatedPercentage);
 
-        const allowedTokens = LLM.maxInputTokens - this.BUFFER;
-
-        const systemPromptTokens = this.getTokenCount(systemPrompt);
-        const userPromptTokens = this.getTokenCount(userPrompt);
+        const systemPromptTokens = this.getTokenCount(systemPrompt, model);
+        const userPromptTokens = this.getTokenCount(userPrompt, model);
         const totalTokens = systemPromptTokens + userPromptTokens;
 
-        // encode the prompt and slice it to the allowed tokens
+        // If under limit, return unchanged
+        if (totalTokens <= allowedTokens) {
+            return {
+                totalTokens,
+                prompt: userPrompt,
+                truncated: false,
+            };
+        }
+
+        console.log(
+            `Truncating prompt due to token limit and allocation (${allocatedPercentage}%)`
+        );
+        console.log(`Total tokens: ${totalTokens}, Allocated tokens: ${allowedTokens}`);
+
+        // Simple truncation approach that maintains compatibility
         const encodedPrompt = encode(userPrompt);
         const updatedPrompt =
             totalTokens > allowedTokens
                 ? decode(encodedPrompt.slice(0, allowedTokens - systemPromptTokens))
                 : userPrompt;
 
-        // indicate if prompt was truncated
-        if (totalTokens > allowedTokens) {
-            console.log(`Truncated prompt due to token limit`);
-            console.log(`Total tokens: ${totalTokens}, Allowed tokens: ${allowedTokens}`);
-        }
-
         return {
             totalTokens,
             prompt: updatedPrompt,
+            truncated: true,
         };
     }
 
-    applyTokenLimit(model: string, prompt: string, files: FileDetails[]) {
-        // get LLM info
-        const LLM: any = LLMS.find((m) => m.model === model);
+    applyTokenLimit(
+        prompt: string,
+        files: FileDetails[],
+        model: string,
+        allocatedPercentage: number = 100
+    ) {
+        // Calculate allowed tokens based on allocation percentage
+        const allowedTokens = this.calculateTokenLimit(model, allocatedPercentage);
+        const promptTokens = this.getTokenCount(prompt, model);
 
-        const allowedTokens = LLM.maxInputTokens - this.BUFFER;
-        let totalTokens = this.getTokenCount(prompt);
+        // Log allocation info
+        console.log(`Token allocation: ${allocatedPercentage}% of maximum context`);
+        console.log(`Allocated tokens: ${allowedTokens} (after buffer)`);
+        console.log(`Prompt tokens: ${promptTokens}`);
+        console.log(`Available for files: ${allowedTokens - promptTokens} tokens`);
+
+        // Tokenize files with model-specific estimation
+        const tokenizedFiles = this.tokenizeFiles(files, model);
 
         const allowedFiles = [];
+        let totalTokens = promptTokens;
         let index = 0;
-        // add files to the prompt
-        for (const file of files) {
-            const fileTokens = this.getFileTokens(file);
 
-            // keep adding to token length
+        // Add files until we hit the limit
+        for (const file of tokenizedFiles) {
+            const fileTokens = file.tokenCount || 0;
+
+            // Keep adding to token length
             if (totalTokens + fileTokens < allowedTokens) {
                 totalTokens += fileTokens;
                 allowedFiles.push(file);
@@ -90,22 +135,31 @@ export class TokenLimiter {
         };
     }
 
-    splitInChunks(model: string, prompt: string, files: FileDetails[], maxTokensPerChunk?: number) {
-        // get LLM info
-        const LLM: any = LLMS.find((m) => m.model === model);
+    splitInChunks(
+        prompt: string,
+        files: FileDetails[],
+        model: string,
+        allocatedPercentage: number = 100,
+        maxTokensPerChunk?: number
+    ) {
+        // Calculate allowed tokens based on allocation percentage
+        const allowedTokens = this.calculateTokenLimit(model, allocatedPercentage);
+        const promptTokens = this.getTokenCount(prompt, model);
+        const availableTokens = allowedTokens - promptTokens;
 
-        const promptTokens = this.getTokenCount(prompt);
-        const allowedTokens = LLM.maxInputTokens - this.BUFFER - promptTokens;
+        // Tokenize files with better estimation
+        const tokenizedFiles = this.tokenizeFiles(files, model);
 
-        // for balanced chunking
-        const totalTokens = files.reduce((sum, file) => sum + this.getFileTokens(file), 0);
+        // For balanced chunking
+        const totalTokens = tokenizedFiles.reduce((sum, file) => sum + (file.tokenCount || 0), 0);
         let tokensPerChunk: number;
+
         if (maxTokensPerChunk) {
-            // Use the override value, but ensure it doesn't exceed allowed tokens
-            tokensPerChunk = Math.min(maxTokensPerChunk, allowedTokens);
+            // Use the override value, but ensure it doesn't exceed available tokens
+            tokensPerChunk = Math.min(maxTokensPerChunk, availableTokens);
         } else {
             // Use optimal chunking strategy
-            const optimalChunkCount = Math.ceil(totalTokens / allowedTokens);
+            const optimalChunkCount = Math.ceil(totalTokens / availableTokens);
             tokensPerChunk = Math.ceil(totalTokens / optimalChunkCount);
         }
 
@@ -113,14 +167,15 @@ export class TokenLimiter {
         let chunk: FileDetails[] = [];
         let chunkTokens = 0;
 
-        for (const file of files) {
-            const fileTokens = this.getFileTokens(file);
+        for (const file of tokenizedFiles) {
+            const fileTokens = file.tokenCount || 0;
 
             if (chunkTokens + fileTokens > tokensPerChunk && chunk.length > 0) {
+                // Use the same heuristic as the original code for compatibility
                 const diffIfAdded = Math.abs(chunkTokens + fileTokens - tokensPerChunk);
                 const diffIfNotAdded = Math.abs(chunkTokens - tokensPerChunk);
 
-                if (diffIfAdded <= diffIfNotAdded && chunkTokens + fileTokens <= allowedTokens) {
+                if (diffIfAdded <= diffIfNotAdded && chunkTokens + fileTokens <= availableTokens) {
                     // add to current chunk
                     chunk.push(file);
                     chunkTokens += fileTokens;
@@ -144,32 +199,18 @@ export class TokenLimiter {
             });
         }
 
-        // output stats
+        // Output stats (same as original for consistency plus allocation info)
         console.log("------------- Token Limiter Stats -------------");
-        console.log(`Total tokens: ${totalTokens}`);
+        console.log(`Allocation: ${allocatedPercentage}% of max context`);
+        console.log(`Total file tokens: ${totalTokens}`);
         console.log(`Tokens per chunk: ${tokensPerChunk}`);
         console.log(`Total chunks: ${chunks.length}`);
-        // console.log(`Tokens per chunk: ${chunks.map((c) => c.tokens.toFixed(0)).join(", ")}`);
-        // console.log(`Files per chunk: ${chunks.map((c) => c.files.length).join(", ")}`);
-        // console.log(`Total tokens in chunks: ${chunks.reduce((sum, c) => sum + c.tokens, 0)}`);
-        // console.log(`Total files in chunks: ${chunks.reduce((sum, c) => sum + c.files.length, 0)}`);
         console.log(`Total files: ${files.length}`);
-        // console.log(`Total tokens in files: ${totalTokens}`);
         console.log(`Allowed tokens: ${allowedTokens}`);
         console.log(`Prompt tokens: ${promptTokens}`);
         console.log(`Buffer: ${this.BUFFER}`);
         console.log("------------- Token Limiter Stats -------------");
 
         return chunks;
-    }
-
-    private getFileTokens(file: FileDetails): number {
-        if (file.tokenCount !== undefined) return file.tokenCount * this.PADDING;
-        const contents = formatFiles([file]);
-        return this.getTokenCount(contents) * this.PADDING;
-    }
-
-    private getTokenCount(text: string): number {
-        return encode(text).length * this.PADDING;
     }
 }

@@ -39,24 +39,26 @@ const HomePage: React.FC = () => {
 
     const devTools = [
         {
-            href: "/pullrequest",
+            href: "/pullrequest/v2",
             icon: <CodeIcon className="h-6 w-6 text-blue-500" />,
             title: "Generate Code And PR",
-            description: "Ideal for low complexity tasks",
+            description: "can handle complex tasks",
             content:
                 "Generate code and pull requests for your tasks using AI-powered code generation.",
             buttonText: "Create Pull Request",
             status: "ready" as const,
+            variant: "default" as const,
         },
         {
-            href: "/pullrequest/v2",
+            href: "/pullrequest",
             icon: <CodeIcon className="h-6 w-6 text-blue-500" />,
-            title: "Enhanced Generate Code And PR",
-            description: "Can handle complex tasks",
+            title: "Generate Code And PR (legacy)",
+            description: "for low complexity tasks",
             content:
                 "Generate code and pull requests for your tasks using AI-powered code generation.",
             buttonText: "Create Pull Request",
-            status: "development" as const,
+            status: "ready" as const,
+            variant: "outline" as const,
         },
         {
             href: "/code-analysis",
@@ -67,6 +69,7 @@ const HomePage: React.FC = () => {
                 "Analyze your codebase for design patterns and get insights on how to improve your code quality",
             buttonText: "Audit Repository",
             status: "development" as const,
+            variant: "outline" as const,
         },
     ];
 
@@ -79,6 +82,7 @@ const HomePage: React.FC = () => {
             content: "Generate PRD documents from design files and feature descriptions using AI.",
             buttonText: "Generate PRD",
             status: "ready" as const,
+            variant: "default" as const,
         },
         {
             href: "/jiratickets",
@@ -89,6 +93,7 @@ const HomePage: React.FC = () => {
                 "Transform technical design documents into well-structured Jira epics and tickets with intelligent task breakdown and estimation.",
             buttonText: "Generate Tickets",
             status: "development" as const,
+            variant: "outline" as const,
         },
     ];
 
@@ -136,7 +141,13 @@ const HomePage: React.FC = () => {
                 <Link href={tool.href} className="w-full">
                     <Button
                         className="w-full gap-2 font-medium"
-                        variant={tool.status === "ready" ? "default" : "secondary"}
+                        variant={
+                            tool.variant
+                                ? tool.variant
+                                : tool.status === "ready"
+                                ? "default"
+                                : "secondary"
+                        }
                         disabled={tool.status === "coming-soon"}
                     >
                         {tool.buttonText}
@@ -149,7 +160,7 @@ const HomePage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-slate-50 to-white dark:from-gray-900 dark:via-indigo-950/10 dark:to-gray-950">
-            {/* Hero Section - REDUCED HEIGHT */}
+            {/* Hero Section */}
             <section className="relative overflow-hidden py-12 md:py-20 border-b border-border/20">
                 {/* Light mode grid pattern using inline styles */}
                 <div
@@ -274,7 +285,7 @@ const HomePage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-12">
                                     {devTools.map((tool, index) => (
                                         <ToolCard key={index} tool={tool} />
                                     ))}
@@ -289,7 +300,7 @@ const HomePage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-12">
                                     {pmTools.map((tool, index) => (
                                         <ToolCard key={index} tool={tool} />
                                     ))}

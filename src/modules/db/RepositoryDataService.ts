@@ -238,9 +238,7 @@ export class RepositoryDataService {
             console.log("Searching for similar chunks in", owner, repo, ref, "for query:", query);
 
             // Use the function to find similar chunks grouped by file
-            const findSimilarChunksQuery = `
-        SELECT * FROM find_similar_chunks($1, $2, $3, $4::vector)
-      `;
+            const findSimilarChunksQuery = `SELECT * FROM find_similar_chunks($1, $2, $3, $4::vector)`;
 
             // Convert the embeddings array properly for PostgreSQL vector type
             const embedArray = `[${embeddings.join(",")}]`;
@@ -292,10 +290,10 @@ export class RepositoryDataService {
                 })
                 .sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
 
-            console.log(
-                "\n-- Files to use based on similarity search:---\n",
-                filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
-            );
+            // console.log(
+            //     "\n-- Files to use based on similarity search:---\n",
+            //     filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
+            // );
 
             return filesToUse;
         } catch (error: any) {

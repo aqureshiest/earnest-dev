@@ -3,6 +3,9 @@ import { TokenLimiter } from "../support/TokenLimiter";
 import { AIServiceFactory } from "../clients/AIServiceFactory";
 
 abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T, R> {
+    // how much of the token context window should be used for the user prompt
+    protected tokenAllocation: number = 50;
+
     constructor(protected promptBuilder: PromptBuilder, protected tokenLimiter: TokenLimiter) {}
 
     responseType: string = "xml";

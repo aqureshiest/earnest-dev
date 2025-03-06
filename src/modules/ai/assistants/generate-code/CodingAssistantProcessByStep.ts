@@ -9,6 +9,8 @@ import { CodeIndexer } from "../../support/CodeIndexer";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 
 export class CodingAssistantProcessByStep extends CodingAssistant {
+    tokenAllocation: number = 25;
+
     private indexer: CodeIndexer;
     private dataService: RepositoryDataService;
 
@@ -266,9 +268,10 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
 
         // Apply token limit to available files
         const { totalTokens, allowedFiles } = this.tokenLimiter.applyTokenLimit(
-            model,
             systemPrompt + userPrompt,
-            relevantFiles
+            relevantFiles,
+            model,
+            this.tokenAllocation
         );
         // Add files to prompt
         const finalPromptWithFiles = this.promptBuilder.addFilesToPrompt(userPrompt, allowedFiles);
