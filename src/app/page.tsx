@@ -25,21 +25,31 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const HomePage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState(() => {
-        if (typeof window === "undefined") return "developer";
+    const [activeTab, setActiveTab] = useState("developer"); // Default to "developer"
+    const [mounted, setMounted] = useState(false);
 
-        const saved = localStorage.getItem("earnest-ai-active-tab");
-        return saved || "developer";
-    });
-
+    // Load the active tab from localStorage after the component mounts
     useEffect(() => {
         if (typeof window === "undefined") return;
-        localStorage.setItem("earnest-ai-active-tab", activeTab);
-    }, [activeTab]);
+
+        const saved = localStorage.getItem("earnest-ai-active-tab");
+        if (saved) setActiveTab(saved);
+
+        setMounted(true); // Mark as mounted to prevent flickering
+    }, []);
+
+    useEffect(() => {
+        if (mounted) {
+            localStorage.setItem("earnest-ai-active-tab", activeTab);
+        }
+    }, [activeTab, mounted]);
+
+    if (!mounted) return null; // Prevents mismatched SSR and client rendering
 
     const devTools = [
         {
             href: "/pullrequest/v2",
+            dashboardHref: "/pullrequest/v2/dashboard",
             icon: <CodeIcon className="h-6 w-6 text-blue-500" />,
             title: "Generate Code And PR",
             description: "can handle complex tasks",
@@ -48,17 +58,6 @@ const HomePage: React.FC = () => {
             buttonText: "Create Pull Request",
             status: "ready" as const,
             variant: "default" as const,
-        },
-        {
-            href: "/pullrequest",
-            icon: <CodeIcon className="h-6 w-6 text-blue-500" />,
-            title: "Generate Code And PR (legacy)",
-            description: "for low complexity tasks",
-            content:
-                "Generate code and pull requests for your tasks using AI-powered code generation.",
-            buttonText: "Create Pull Request",
-            status: "ready" as const,
-            variant: "outline" as const,
         },
         {
             href: "/code-analysis",
@@ -138,22 +137,32 @@ const HomePage: React.FC = () => {
                 <p className="text-muted-foreground text-sm">{tool.content}</p>
             </CardContent>
             <CardFooter className="pt-3 pb-3">
-                <Link href={tool.href} className="w-full">
-                    <Button
-                        className="w-full gap-2 font-medium"
-                        variant={
-                            tool.variant
-                                ? tool.variant
-                                : tool.status === "ready"
-                                ? "default"
-                                : "secondary"
-                        }
-                        disabled={tool.status === "coming-soon"}
-                    >
-                        {tool.buttonText}
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                </Link>
+                <div className="flex items-center w-full gap-x-4">
+                    <Link href={tool.href} className="w-full">
+                        <Button
+                            className="w-full gap-2 font-medium"
+                            variant={
+                                tool.variant
+                                    ? tool.variant
+                                    : tool.status === "ready"
+                                    ? "default"
+                                    : "secondary"
+                            }
+                            disabled={tool.status === "coming-soon"}
+                        >
+                            {tool.buttonText}
+                            <ArrowRight className="h-4 w-4" />
+                        </Button>
+                    </Link>
+                    {/* link to dashboard */}
+                    {tool.dashboardHref && (
+                        <Link href={tool.dashboardHref} className="w-full">
+                            <Button className="w-full gap-2 font-medium" variant="secondary">
+                                Dashboard
+                            </Button>
+                        </Link>
+                    )}
+                </div>
             </CardFooter>
         </Card>
     );
@@ -166,7 +175,7 @@ const HomePage: React.FC = () => {
                 <div
                     className="absolute inset-0 dark:hidden"
                     style={{
-                        backgroundSize: "40px 40px",
+                        backgroundSize: "80px 80px",
                         backgroundImage: `
                             linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
                             linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
@@ -203,16 +212,22 @@ const HomePage: React.FC = () => {
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <Button
                                     size="lg"
-                                    className="gap-2 px-6"
-                                    variant={activeTab === "developer" ? "default" : "outline"}
+                                    className={`gap-2 px-6 ${
+                                        activeTab === "developer"
+                                            ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white dark:from-indigo-600 dark:to-cyan-600 dark:text-white"
+                                            : "bg-gray-200 text-gray-700 dark:bg-neutral-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-800"
+                                    }`}
                                     onClick={() => setActiveTab("developer")}
                                 >
                                     Developer Workspace <Terminal className="h-4 w-4 ml-1" />
                                 </Button>
                                 <Button
                                     size="lg"
-                                    variant={activeTab === "management" ? "default" : "outline"}
-                                    className="gap-2 px-6"
+                                    className={`gap-2 px-6 ${
+                                        activeTab === "management"
+                                            ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white dark:from-indigo-600 dark:to-cyan-600 dark:text-white"
+                                            : "bg-gray-200 text-gray-700 dark:bg-neutral-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-800"
+                                    }`}
                                     onClick={() => setActiveTab("management")}
                                 >
                                     Manager Workspace <Briefcase className="h-4 w-4 ml-1" />

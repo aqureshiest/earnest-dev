@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { GenerateCodeV2 } from "@/modules/ai/GenerateCodeV2";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
+import { trackRequest, trackSuccess } from "@/modules/utils/metrics";
 
 export async function POST(req: Request) {
+    const { taskId, owner, repo, branch, description, selectedModel } = await req.json();
+    if (!taskId) {
+        return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
+    }
+
     try {
-        const { taskId, owner, repo, branch, description, selectedModel } = await req.json();
-        if (!taskId) {
-            return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
-        }
+        await trackRequest(owner, repo);
 
         const prepareCodebase = new PrepareCodebase();
 
@@ -44,6 +47,7 @@ export async function POST(req: Request) {
                 } catch (error: any) {
                     console.error("Error within generate code stream:", error);
                     sendTaskUpdate(taskId, "error", `Code generation failed. ${error.message}`);
+                    await trackSuccess(owner, repo, false);
                 } finally {
                     // close the stream
                     deleteClient(taskId);
@@ -63,7 +67,8 @@ export async function POST(req: Request) {
             },
         });
     } catch (e) {
-        console.log(e);
+        console.error(e);
+        await trackSuccess(owner, repo, false);
         return new Response(JSON.stringify({ error: (e as any).message }), {
             status: 500,
             headers: { "Content-Type": "application/json" },

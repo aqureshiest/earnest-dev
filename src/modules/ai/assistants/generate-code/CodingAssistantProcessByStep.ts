@@ -123,6 +123,14 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
 
                     // send file upadtes
                     this.sendFileUpdates(taskId, codeChanges);
+                } else {
+                    sendTaskUpdate(taskId, "step_status", {
+                        title: step.title,
+                        status: "error",
+                        stepIndex: stepIndex,
+                        totalSteps: totalStepCount,
+                        error: "Failed to process step",
+                    });
                 }
 
                 sendTaskUpdate(taskId, "progress", `Completed step: ${step.title}`);
@@ -227,10 +235,10 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
             }
         }
 
-        console.log(
-            "\n..... Final set of Files to use ......\n",
-            filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
-        );
+        // console.log(
+        //     "\n..... Final set of Files to use ......\n",
+        //     filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
+        // );
 
         console.log(`Selected ${filesToUse.length} files for step "${step.title}"`);
         return filesToUse;
@@ -346,6 +354,11 @@ This step involves ${step.files.length} file change(s).
 </step_focus>
 
 <response_format_instructions>
+Important: 
+- Use only ONE <new_files> section for ALL new files
+- Use only ONE <modified_files> section for ALL modified files  
+- Use only ONE <deleted_files> section for ALL deleted files
+
 Respond in the following format:
 
 <code_changes>

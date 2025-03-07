@@ -19,6 +19,21 @@ export class RepositoryDataService {
         });
     }
 
+    async getRepositories(): Promise<string[]> {
+        const query = `
+      SELECT DISTINCT owner, repo
+      FROM branchcommits
+    `;
+
+        try {
+            const result = await this.pool.query(query);
+            return result.rows.map((row) => `${row.owner}/${row.repo}`);
+        } catch (error: any) {
+            console.error(`Error fetching repositories: ${error}`);
+            throw new Error(`Error fetching repositories: ${error.message}`);
+        }
+    }
+
     async saveBranchCommit(owner: string, repo: string, ref: string, commitHash: string) {
         const query = `
       INSERT INTO branchcommits (owner, repo, ref, commithash)

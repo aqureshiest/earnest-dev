@@ -135,7 +135,6 @@ body {
     }
 }
 
-/* Add this to your global CSS file */
 .bg-grid-pattern {
     background-size: 100px 100px;
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),

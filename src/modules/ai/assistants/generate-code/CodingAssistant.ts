@@ -122,7 +122,6 @@ Now, using the task description, existing code files, and implementation plan ge
             if (isResponseTruncated(response)) {
                 console.warn("Detected truncated response, attempting to extract complete files");
 
-                console.log(taskId);
                 if (taskId) {
                     sendTaskUpdate(
                         taskId,
@@ -167,7 +166,11 @@ Now, using the task description, existing code files, and implementation plan ge
 
         const options = {
             ignoreAttributes: false,
-            isArray: (name: any, jpath: any) => name === "file",
+            isArray: (name: any, jpath: any) =>
+                name === "file" ||
+                name === "new_files" ||
+                name === "modified_files" ||
+                name === "deleted_files",
         };
 
         // Parse the response into an intermediate format
@@ -178,25 +181,49 @@ Now, using the task description, existing code files, and implementation plan ge
             throw new Error("Failed to parse code_changes block");
         }
 
+        // Helper function to extract files from a section or array of sections
+        const extractFiles = (section: any): any[] => {
+            if (!section) return [];
+
+            // If it's an array of sections
+            if (Array.isArray(section)) {
+                let files: any[] = [];
+                for (const s of section) {
+                    // Handle both cases: s.file could be an array or a single object
+                    if (Array.isArray(s.file)) {
+                        files = [...files, ...s.file];
+                    } else if (s.file) {
+                        files.push(s.file);
+                    }
+                }
+                return files;
+            }
+
+            // If it's a single section
+            return Array.isArray(section.file) ? section.file : section.file ? [section.file] : [];
+        };
+
+        // Extract all files from each section type
+        const newFilesData = extractFiles(parsedData.code_changes.new_files);
+        const modifiedFilesData = extractFiles(parsedData.code_changes.modified_files);
+        const deletedFilesData = extractFiles(parsedData.code_changes.deleted_files);
+
         // Normalize the parsed data
         const codeChanges: CodeChanges = {
             title: parsedData.code_changes.title || "Code Changes",
-            newFiles:
-                parsedData.code_changes.new_files?.file?.map((file: any) => ({
-                    path: file.path,
-                    thoughts: file.thoughts,
-                    content: file.content.trim(),
-                })) || [],
-            modifiedFiles:
-                parsedData.code_changes.modified_files?.file?.map((file: any) => ({
-                    path: file.path,
-                    thoughts: file.thoughts,
-                    content: file.content.trim(),
-                })) || [],
-            deletedFiles:
-                parsedData.code_changes.deleted_files?.file?.map((file: any) => ({
-                    path: file.path,
-                })) || [],
+            newFiles: newFilesData.map((file: any) => ({
+                path: file.path,
+                thoughts: file.thoughts || "",
+                content: (file.content || "").trim(),
+            })),
+            modifiedFiles: modifiedFilesData.map((file: any) => ({
+                path: file.path,
+                thoughts: file.thoughts || "",
+                content: (file.content || "").trim(),
+            })),
+            deletedFiles: deletedFilesData.map((file: any) => ({
+                path: file.path,
+            })),
         };
 
         return codeChanges;

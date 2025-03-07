@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -16,15 +17,87 @@ const Header: React.FC = () => {
             <div className="container max-w-6xl mx-auto px-6">
                 <div className="flex h-16 items-center justify-between">
                     <div className="flex items-center gap-x-2">
-                        <div className="size-8 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600 p-1.5">
+                        <div className="size-8 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600 p-1">
                             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path
                                     fillRule="evenodd"
                                     clipRule="evenodd"
-                                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                                    fill="white"
+                                    d="M24 4L41.5885 14V34L24 44L6.41154 34V14L24 4Z"
+                                    stroke="white"
+                                    strokeWidth="2"
                                     className="opacity-90"
                                 />
+
+                                <path
+                                    d="M24 12L34 18V30L24 36L14 30V18L24 12Z"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    className="opacity-90"
+                                />
+
+                                <line
+                                    x1="24"
+                                    y1="4"
+                                    x2="24"
+                                    y2="12"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    className="opacity-90"
+                                />
+                                <line
+                                    x1="24"
+                                    y1="36"
+                                    x2="24"
+                                    y2="44"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    className="opacity-90"
+                                />
+                                <line
+                                    x1="41.5885"
+                                    y1="14"
+                                    x2="34"
+                                    y2="18"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    className="opacity-90"
+                                />
+                                <line
+                                    x1="41.5885"
+                                    y1="34"
+                                    x2="34"
+                                    y2="30"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    className="opacity-90"
+                                />
+                                <line
+                                    x1="6.41154"
+                                    y1="14"
+                                    x2="14"
+                                    y2="18"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    className="opacity-90"
+                                />
+                                <line
+                                    x1="6.41154"
+                                    y1="34"
+                                    x2="14"
+                                    y2="30"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    className="opacity-90"
+                                />
+
+                                <circle cx="24" cy="24" r="4" fill="white" className="opacity-90" />
+
+                                <circle cx="24" cy="12" r="2" fill="white" className="opacity-90" />
+                                <circle cx="24" cy="36" r="2" fill="white" className="opacity-90" />
+                                <circle cx="34" cy="18" r="2" fill="white" className="opacity-90" />
+                                <circle cx="34" cy="30" r="2" fill="white" className="opacity-90" />
+                                <circle cx="14" cy="18" r="2" fill="white" className="opacity-90" />
+                                <circle cx="14" cy="30" r="2" fill="white" className="opacity-90" />
                             </svg>
                         </div>
                         <h1 className="text-2xl font-bold">

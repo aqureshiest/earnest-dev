@@ -310,8 +310,8 @@ const PullRequestV2: React.FC = () => {
     };
 
     const handleFileUpdate = (data: any) => {
-        const { path, operation } = data.message;
-        addProgressMessage(`File: ${path} - ${operation}`);
+        // const { path, operation } = data.message;
+        // addProgressMessage(`File: ${path} - ${operation}`);
     };
 
     const handleComplete = (data: any, assistant: string) => {
@@ -392,8 +392,25 @@ const PullRequestV2: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen py-8 px-6">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 py-12 px-6 relative">
+            {/* Light mode grid pattern for entire page */}
+            <div
+                className="absolute inset-0 dark:hidden"
+                style={{
+                    backgroundSize: "80px 80px",
+                    backgroundImage: `
+                linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)
+            `,
+                    opacity: 0.7,
+                }}
+            ></div>
+
+            {/* Dark mode grid pattern for entire page */}
+            <div className="absolute inset-0 hidden dark:block bg-grid-pattern opacity-3"></div>
+
+            {/* Content container with z-index to appear above the grid */}
+            <div className="max-w-6xl mx-auto space-y-12 relative z-10">
                 {/* Header */}
                 <motion.div
                     className="text-center mb-12"

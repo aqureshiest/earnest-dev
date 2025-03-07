@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
 import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued";
-import { X } from "lucide-react";
+import { Edit3, PlusCircle, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -58,7 +58,24 @@ const CodeViewer = ({
 
     const renderFileList = (files: (NewFile | ModifiedFile | DeletedFile)[], category: string) => (
         <div className="mb-4">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">{category}</h3>
+            <h3 className="text-sm font-medium text-primary mb-2 flex items-center underline">
+                {category === "New Files" && (
+                    <span className="mr-2">
+                        <PlusCircle className="h-4 w-4 text-green-500" />
+                    </span>
+                )}
+                {category === "Modified Files" && (
+                    <span className="mr-2">
+                        <Edit3 className="h-4 w-4 text-yellow-500" />
+                    </span>
+                )}
+                {category === "Deleted Files" && (
+                    <span className="mr-2">
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                    </span>
+                )}
+                {category}
+            </h3>
             {files.map((file) => (
                 <div
                     key={file.path}
