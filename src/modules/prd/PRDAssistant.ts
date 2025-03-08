@@ -69,8 +69,6 @@ Analysis: ${screen.analysis}
             .replace(/{{targetAudience}}/g, input.targetAudience.join(", "))
             .replace(/{{clarifyingQuestions}}/g, feature.clarifyingQuestions || "");
 
-        // console.log(">>>> userPrompt", userPrompt);
-
         const response = await this.aiService.generateResponse(systemPrompt, userPrompt);
         return response.response;
     }
