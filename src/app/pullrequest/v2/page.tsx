@@ -40,6 +40,7 @@ const PullRequestV2: React.FC = () => {
     const [repo, setRepo] = useState<string>("");
     const [branch, setBranch] = useState<string>("");
     const [description, setDescription] = useState("");
+    const [maximizeTokenUsage, setMaximizeTokenUsage] = useState(false);
 
     const [progressMessages, setProgressMessages] = useState<EnhancedProgressMessage[]>([]);
     const [isCreating, setIsCreating] = useState(false);
@@ -141,6 +142,7 @@ const PullRequestV2: React.FC = () => {
                 branch,
                 description: description.trim(),
                 selectedModel,
+                maximizeTokenUsage,
             }),
         });
 
@@ -540,8 +542,29 @@ const PullRequestV2: React.FC = () => {
                                         selectedModel={selectedModel}
                                         setSelectedModel={setSelectedModel}
                                         loading={isCreating}
-                                        recommendedModel={LLM_MODELS.ANTHROPIC_CLAUDE_3_7_SONNET}
+                                        recommendedModel={LLM_MODELS.AWS_BEDROCK_CLAUDE_37_SONNET}
                                     />
+
+                                    {/* maximizeTokenUsage radio button */}
+                                    <div>
+                                        <div className="flex items-center">
+                                            <Label htmlFor="maximizeTokenUsage">
+                                                Maximize Token Usage
+                                            </Label>
+                                            <Switch
+                                                id="maximizeTokenUsage"
+                                                className="ml-2"
+                                                checked={maximizeTokenUsage}
+                                                onCheckedChange={() =>
+                                                    setMaximizeTokenUsage((prev) => !prev)
+                                                }
+                                            />
+                                        </div>
+                                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                            Enable only if you think not enough tokens are being
+                                            used as context for coding tasks.
+                                        </p>
+                                    </div>
 
                                     {/* Task Description */}
                                     <div>

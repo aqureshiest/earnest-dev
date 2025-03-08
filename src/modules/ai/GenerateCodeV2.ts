@@ -20,12 +20,10 @@ export class GenerateCodeV2 {
     }
 
     async runWorkflow(taskRequest: CodingTaskRequest): Promise<AIAssistantResponse<CodeChanges>> {
-        const { taskId, owner, repo } = taskRequest;
+        const { taskId, owner, repo, params } = taskRequest;
 
         // track start time
         const startTime = new Date().getTime();
-
-        const { params } = taskRequest;
 
         sendTaskUpdate(taskId, "start", { assistant: "planning" });
         sendTaskUpdate(taskId, "progress", "Generating implementation plan...");

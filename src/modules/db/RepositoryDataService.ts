@@ -305,10 +305,10 @@ export class RepositoryDataService {
                 })
                 .sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
 
-            // console.log(
-            //     "\n-- Files to use based on similarity search:---\n",
-            //     filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
-            // );
+            console.log(
+                "\n-- Files to use based on similarity search:---\n",
+                filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
+            );
 
             return filesToUse;
         } catch (error: any) {

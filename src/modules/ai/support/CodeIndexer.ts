@@ -5,9 +5,11 @@ import {
     TokenTextSplitter,
 } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { EMBEDDINGS_DIMENSIONS, EMBEDDINGS_MODEL } from "@/constants";
+import { EMBEDDINGS_DIMENSIONS, EMBEDDINGS_MODEL, TITAN_EMBEDDINGS_MODEL } from "@/constants";
 import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
+import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
+import { CustomBedrockEmbeddings } from "./CustomBedrockEmbeddings";
 
 export interface FileChunk {
     fileId: number;
@@ -21,17 +23,41 @@ export interface FileChunk {
     embeddings?: number[];
 }
 
+interface EmbeddingsInterface {
+    embedDocuments(texts: string[]): Promise<number[][]>;
+    embedQuery(text: string): Promise<number[]>;
+}
+
 export class CodeIndexer {
-    private embeddings: OpenAIEmbeddings;
+    private embeddings: EmbeddingsInterface;
     private dataService: RepositoryDataService;
 
     constructor() {
         this.dataService = new RepositoryDataService();
 
-        this.embeddings = new OpenAIEmbeddings({
-            model: EMBEDDINGS_MODEL,
-            dimensions: EMBEDDINGS_DIMENSIONS,
-        });
+        const EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER || "openai"; // Default to OpenAI
+        const AWS_REGION = process.env.AWS_REGION || "us-east-1";
+
+        // Initialize embeddings based on environment variable
+        if (EMBEDDING_PROVIDER === "titan") {
+            const bedrockClient = new BedrockRuntimeClient({
+                region: AWS_REGION,
+            });
+
+            this.embeddings = new CustomBedrockEmbeddings({
+                model: TITAN_EMBEDDINGS_MODEL,
+                client: bedrockClient,
+                dimensions: EMBEDDINGS_DIMENSIONS,
+                normalize: true,
+            });
+            console.log("Using Titan embeddings");
+        } else {
+            this.embeddings = new OpenAIEmbeddings({
+                model: EMBEDDINGS_MODEL,
+                dimensions: EMBEDDINGS_DIMENSIONS,
+            });
+            console.log("Using OpenAI embeddings");
+        }
     }
 
     async processFilesIntoChunks(

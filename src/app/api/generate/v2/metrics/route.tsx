@@ -1,5 +1,5 @@
 import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
-import { CloudWatchService } from "@/modules/utils/metrics/cloudwatch";
+import { CloudWatchService } from "@/modules/utils/cloudwatch";
 import { NextResponse } from "next/server";
 
 export async function GET() {

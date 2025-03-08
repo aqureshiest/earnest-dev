@@ -82,6 +82,7 @@ export const EXCLUDE_PATTERNS = [
 ];
 
 export const EMBEDDINGS_MODEL = "text-embedding-3-large";
+export const TITAN_EMBEDDINGS_MODEL = "amazon.titan-embed-text-v2:0";
 export const EMBEDDINGS_DIMENSIONS = 256;
 export const EMBEDDINGS_MAX_TOKENS = 8191;
 

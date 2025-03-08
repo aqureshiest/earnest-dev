@@ -7,9 +7,10 @@ import { CodingAssistant } from "./CodingAssistant";
 import chalk from "chalk";
 import { CodeIndexer } from "../../support/CodeIndexer";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
+import { calculateSimilarityThreshold, ScoredFile } from "@/modules/utils/similarityThreshold";
 
 export class CodingAssistantProcessByStep extends CodingAssistant {
-    tokenAllocation: number = 25;
+    tokenAllocation: number = 20;
 
     private indexer: CodeIndexer;
     private dataService: RepositoryDataService;
@@ -88,7 +89,8 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                     files,
                     owner,
                     repo,
-                    branch
+                    branch,
+                    params.maximizeTokenUsage
                 );
 
                 // Process this step with relevant context
@@ -180,11 +182,9 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
         allFiles: FileDetails[],
         owner: string,
         repo: string,
-        branch: string
+        branch: string,
+        maximizeTokenUsage = false
     ): Promise<FileDetails[]> {
-        // Maximum number of files to include per step
-        const MAX_FILES_PER_STEP = 15;
-
         // First, add all files explicitly mentioned in the step
         const targetFiles = new Set<string>();
         const filesToUse: FileDetails[] = [];
@@ -200,45 +200,52 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
             }
         }
 
-        // If we still have room for more files, get relevant files by similarity
-        if (filesToUse.length < MAX_FILES_PER_STEP) {
-            try {
-                // Create a comprehensive query from the step details
-                const stepQuery = `${step.title}. ${step.thoughts}. ${step.files
-                    .map((file) => `${file.operation} ${file.path}: ${file.todos.join(", ")}`)
-                    .join(" ")}`;
+        try {
+            // Create a comprehensive query from the step details
+            const stepQuery = `${step.title}. ${step.thoughts}. ${step.files
+                .map((file) => `${file.operation} ${file.path}: ${file.todos.join(", ")}`)
+                .join(" ")}`;
 
-                const embedding = await this.indexer.generateEmbedding(stepQuery);
+            const embedding = await this.indexer.generateEmbedding(stepQuery);
 
-                // Find similar files using chunk-based similarity
-                const similarFiles = await this.dataService.findSimilarFilesByChunks(
-                    stepQuery,
-                    owner,
-                    repo,
-                    branch,
-                    embedding
-                );
+            // Find similar files using chunk-based similarity
+            const similarFiles = await this.dataService.findSimilarFilesByChunks(
+                stepQuery,
+                owner,
+                repo,
+                branch,
+                embedding
+            );
 
-                // Add top similar files that aren't already included (up to our limit)
-                for (const file of similarFiles) {
-                    if (!targetFiles.has(file.path) && filesToUse.length < MAX_FILES_PER_STEP) {
-                        filesToUse.push(file);
-                        targetFiles.add(file.path);
-                    }
+            const scoredFiles: ScoredFile[] = similarFiles.map((file) => ({
+                path: file.path,
+                similarity: file.similarity || 0,
+            }));
 
-                    // Stop once we've reached our limit
-                    if (filesToUse.length >= MAX_FILES_PER_STEP) break;
+            // Calculate optimal threshold
+            const threshold = maximizeTokenUsage ? 0.1 : calculateSimilarityThreshold(scoredFiles);
+            console.log(
+                chalk.yellow(
+                    `similarity threshold for step "${step.title}": ${threshold}, max? ${maximizeTokenUsage}`
+                )
+            );
+
+            // Add top similar files that aren't already included (up to our limit)
+            for (const file of similarFiles) {
+                if ((file.similarity || 0) >= threshold && !targetFiles.has(file.path)) {
+                    filesToUse.push(file);
+                    targetFiles.add(file.path);
                 }
-            } catch (error) {
-                console.error(`Error finding similar files for step "${step.title}":`, error);
-                // If similarity search fails, we'll just use the explicitly mentioned files
             }
+        } catch (error) {
+            console.error(`Error finding similar files for step "${step.title}":`, error);
+            // If similarity search fails, we'll just use the explicitly mentioned files
         }
 
-        // console.log(
-        //     "\n..... Final set of Files to use ......\n",
-        //     filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
-        // );
+        console.log(
+            chalk.yellow("\n..... Final set of Files to use ......\n"),
+            filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
+        );
 
         console.log(`Selected ${filesToUse.length} files for step "${step.title}"`);
         return filesToUse;

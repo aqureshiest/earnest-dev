@@ -5,7 +5,8 @@ import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
 import { trackRequest, trackSuccess } from "@/modules/utils/metrics";
 
 export async function POST(req: Request) {
-    const { taskId, owner, repo, branch, description, selectedModel } = await req.json();
+    const { taskId, owner, repo, branch, description, selectedModel, maximizeTokenUsage } =
+        await req.json();
     if (!taskId) {
         return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
     }
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
                         task: description,
                         model: selectedModel,
                         files: [],
-                        params: {},
+                        params: { maximizeTokenUsage },
                     };
 
                     // prepare codebase

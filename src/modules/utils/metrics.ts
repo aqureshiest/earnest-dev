@@ -14,8 +14,6 @@ export async function trackMetric(
     unit: StandardUnit = StandardUnit.Count
 ) {
     try {
-        console.log("\n\n>>>>> Tracking metric:", metricName, value, dimensions, unit, "\n\n");
-
         const dimensionsArray = dimensions
             ? Object.entries(dimensions).map(([Name, Value]) => ({ Name, Value }))
             : [];
@@ -36,7 +34,7 @@ export async function trackMetric(
         await cloudWatch.send(command);
     } catch (error) {
         // Silently fail - we don't want metrics to break the app
-        console.error("Metrics error:", error);
+        // console.error("Metrics error:", error);
     }
 }
 
