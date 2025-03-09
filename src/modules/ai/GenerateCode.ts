@@ -1,5 +1,4 @@
 import { displayTime } from "../utils/displayTime";
-import { PlannerAssistant } from "@/modules/ai/assistants/generate-code/PlannerAssistant";
 import { SpecificationsAssistant } from "@/modules/ai/assistants/generate-code/SpecificationsAssistant";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 import { CodingAssistant } from "./assistants/generate-code/CodingAssistant";

@@ -31,18 +31,21 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
             this.tokenAllocation
         );
 
-        const caller = this.constructor.name;
-        saveRunInfo(request, caller, "system_prompt", systemPrompt);
-        saveRunInfo(request, caller, "user_prompt", finalizedPrompt);
+        const folder = `${this.constructor.name}/${task
+            .toLowerCase()
+            .replace(/\s+/g, "_")
+            .substring(0, 10)}`;
+        saveRunInfo(request, folder, "system_prompt", systemPrompt);
+        saveRunInfo(request, folder, "user_prompt", finalizedPrompt);
 
         // generate responsex
         const aiResponse = await this.generateResponse(model, systemPrompt, finalizedPrompt);
         if (!aiResponse) return null;
 
         // parse the response
-        saveRunInfo(request, caller, "ai_response", aiResponse.response);
+        saveRunInfo(request, folder, "ai_response", aiResponse.response);
         const parsed = this.handleResponse(aiResponse.response, taskId);
-        saveRunInfo(request, caller, "ai_response_parsed", parsed, this.responseType);
+        saveRunInfo(request, folder, "ai_response_parsed", parsed, this.responseType);
 
         return {
             ...aiResponse,

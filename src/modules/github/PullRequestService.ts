@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import { trackPRCreation } from "../utils/metrics";
+import { CodeGenMetricsService } from "../metrics/generate/CodeGenMetricsService";
 
 class PullRequestService {
     private octokit: Octokit;
@@ -18,6 +18,8 @@ class PullRequestService {
 
     async createPullRequest(codeChanges: CodeChanges, prTitle: string, prBody: string) {
         const newBranch = `pr-${Date.now()}`;
+
+        const metricsService = new CodeGenMetricsService();
 
         try {
             // Get the default branch reference
@@ -72,7 +74,7 @@ class PullRequestService {
                 (codeChanges.newFiles?.length || 0) +
                 (codeChanges.modifiedFiles?.length || 0) +
                 (codeChanges.deletedFiles?.length || 0);
-            await trackPRCreation(this.owner, this.repo, fileCount);
+            await metricsService.trackPRCreation({ owner: this.owner, repo: this.repo }, fileCount);
 
             return prData.html_url;
         } catch (error) {

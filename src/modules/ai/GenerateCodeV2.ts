@@ -1,10 +1,5 @@
+import { CodeGenMetricsService } from "../metrics/generate/CodeGenMetricsService";
 import { displayTime } from "../utils/displayTime";
-import {
-    trackCodeGeneration,
-    trackDuration,
-    trackImplementationSteps,
-    trackTokenUsage,
-} from "../utils/metrics";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
 import { CodingAssistantProcessByStep } from "./assistants/generate-code/CodingAssistantProcessByStep";
 import { PlannerAssistantV2 } from "./assistants/generate-code/PlannerAssistantV2";
@@ -20,6 +15,8 @@ export class GenerateCodeV2 {
 
     async runWorkflow(taskRequest: CodingTaskRequest): Promise<AIAssistantResponse<CodeChanges>> {
         const { taskId, owner, repo, params } = taskRequest;
+
+        const metricsService = new CodeGenMetricsService();
 
         // track start time
         const startTime = new Date().getTime();
@@ -42,7 +39,12 @@ export class GenerateCodeV2 {
 
         // Track implementation plan steps
         const stepCount = plan.response?.steps?.length || 0;
-        await trackImplementationSteps(owner, repo, stepCount, 0); // Initially 0 completed
+        await metricsService.trackImplementationSteps({
+            owner,
+            repo,
+            stepCount,
+            completedSteps: 0,
+        }); // Initially 0 completed
 
         sendTaskUpdate(taskId, "start", { assistant: "code" });
         sendTaskUpdate(taskId, "progress", "Generating code...");
@@ -58,22 +60,27 @@ export class GenerateCodeV2 {
         sendTaskUpdate(taskId, "complete", { assistant: "code", response: code });
 
         // Track implementation plan steps completion
-        await trackImplementationSteps(owner, repo, stepCount, stepCount); // All steps completed
+        await metricsService.trackImplementationSteps({
+            owner,
+            repo,
+            stepCount,
+            completedSteps: stepCount,
+        }); // All steps completed
 
         // Track code generation metrics
-        await this.trackCodeGenerationMetrics(code.response, owner, repo);
+        await this.trackCodeGenerationMetrics(metricsService, code.response, owner, repo);
 
         // calculate total cost
         const totalCost = plan.cost + code.cost;
         sendTaskUpdate(taskId, "progress", `Total Cost: $${totalCost.toFixed(6)}`);
         // Track token usage across both assistants
-        await trackTokenUsage(
+        await metricsService.trackTokenUsage({
             owner,
             repo,
-            plan.inputTokens + code.inputTokens,
-            plan.outputTokens + code.outputTokens,
-            totalCost
-        );
+            inputTokens: plan.inputTokens + code.inputTokens,
+            outputTokens: plan.outputTokens + code.outputTokens,
+            cost: totalCost,
+        });
 
         // report time taken
         const endTime = new Date().getTime();
@@ -81,7 +88,7 @@ export class GenerateCodeV2 {
 
         // send metrics
         const totalDuration = endTime - startTime;
-        await trackDuration(owner, repo, totalDuration);
+        await metricsService.trackDuration({ owner, repo }, totalDuration);
 
         return code;
     }
@@ -98,6 +105,7 @@ export class GenerateCodeV2 {
     }
 
     private async trackCodeGenerationMetrics(
+        metricsService: CodeGenMetricsService,
         codeChanges: CodeChanges,
         owner: string,
         repo: string
@@ -125,13 +133,13 @@ export class GenerateCodeV2 {
         }
 
         // Track the metrics
-        await trackCodeGeneration(
+        await metricsService.trackCodeGeneration({
             owner,
             repo,
-            totalLinesOfCode,
-            newFilesCount,
-            modifiedFilesCount,
-            deletedFilesCount
-        );
+            linesOfCode: totalLinesOfCode,
+            newFiles: newFilesCount,
+            modifiedFiles: modifiedFilesCount,
+            deletedFiles: deletedFilesCount,
+        });
     }
 }

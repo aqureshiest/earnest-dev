@@ -106,8 +106,16 @@ export class OllamaAIService extends BaseAIService {
             await this.cacheResponse(cacheKey, result);
             return result;
         } catch (error) {
-            console.error("Error generating AI response:", error);
+            this.logError("Error generating AI response:", error);
             throw error;
         }
+    }
+
+    generateImageResponse(
+        systemPrompt: string,
+        prompt: string,
+        image: Buffer | ArrayBuffer
+    ): Promise<AIResponse> {
+        throw new Error("Method not implemented.");
     }
 }

@@ -1,6 +1,6 @@
 import { calculateLLMCost } from "@/modules/utils/llmCost";
 import { LLM_MODELS, LLMS } from "@/modules/utils/llmInfo";
-import { BaseAIService } from "./BaseAIService";
+import { AIResponse, BaseAIService } from "./BaseAIService";
 import chalk from "chalk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -75,8 +75,16 @@ export class GeminiAIService extends BaseAIService {
             await this.cacheResponse(cacheKey, result);
             return result;
         } catch (error) {
-            console.error("Error generating AI response:", error);
+            this.logError("Error generating AI response:", error);
             throw error;
         }
+    }
+
+    generateImageResponse(
+        systemPrompt: string,
+        prompt: string,
+        image: Buffer | ArrayBuffer
+    ): Promise<AIResponse> {
+        throw new Error("Method not implemented.");
     }
 }

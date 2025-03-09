@@ -2,6 +2,7 @@ import { EXCLUDE_PATTERNS } from "@/constants";
 import { GitHubService } from "./GitHubService";
 import { retryWithExponentialBackoff } from "../utils/retryWithExponentialBackoff";
 import { RepositoryDataService } from "../db/RepositoryDataService";
+import { reportError } from "../bugsnag/report";
 
 interface FetchError {
     path: string;
@@ -37,6 +38,17 @@ export class RepositoryService {
         this.consecutiveFailures++;
 
         console.error("Failure:", JSON.stringify(fetchError, null, 2));
+
+        // Bugsnag reporting
+        reportError(error, {
+            repository: {
+                path,
+                attempt,
+                consecutiveFailures: this.consecutiveFailures,
+                totalFailures: this.failureLog.length,
+            },
+            severity: "warning",
+        });
 
         if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
             throw new Error(`Stopping due to ${MAX_CONSECUTIVE_FAILURES} consecutive failures`);

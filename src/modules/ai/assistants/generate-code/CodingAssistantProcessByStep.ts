@@ -8,6 +8,7 @@ import chalk from "chalk";
 import { CodeIndexer } from "../../support/CodeIndexer";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { calculateSimilarityThreshold, ScoredFile } from "@/modules/utils/similarityThreshold";
+import { reportError } from "@/modules/bugsnag/report";
 
 export class CodingAssistantProcessByStep extends CodingAssistant {
     tokenAllocation: number = 20;
@@ -133,6 +134,19 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                         totalSteps: totalStepCount,
                         error: "Failed to process step",
                     });
+
+                    reportError("Failed to process step", {
+                        step: {
+                            title: step.title,
+                        },
+                        task: {
+                            id: taskId,
+                            model,
+                            owner,
+                            repo,
+                            branch,
+                        },
+                    });
                 }
 
                 sendTaskUpdate(taskId, "progress", `Completed step: ${step.title}`);
@@ -145,6 +159,19 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                     stepIndex: stepIndex,
                     totalSteps: totalStepCount,
                     error: error.message,
+                });
+
+                reportError(error, {
+                    step: {
+                        title: step.title,
+                    },
+                    task: {
+                        id: taskId,
+                        model,
+                        owner,
+                        repo,
+                        branch,
+                    },
                 });
 
                 throw error;
@@ -223,7 +250,7 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
             }));
 
             // Calculate optimal threshold
-            const threshold = maximizeTokenUsage ? 0.1 : calculateSimilarityThreshold(scoredFiles);
+            const threshold = maximizeTokenUsage ? 0.2 : calculateSimilarityThreshold(scoredFiles);
             console.log(
                 chalk.yellow(
                     `similarity threshold for step "${step.title}": ${threshold}, max? ${maximizeTokenUsage}`
@@ -237,9 +264,21 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                     targetFiles.add(file.path);
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(`Error finding similar files for step "${step.title}":`, error);
             // If similarity search fails, we'll just use the explicitly mentioned files
+
+            // report bugsnag
+            reportError(`Error in finding similar files: ${error.message}`, {
+                step: {
+                    title: step.title,
+                },
+                task: {
+                    owner,
+                    repo,
+                    branch,
+                },
+            });
         }
 
         console.log(
@@ -566,6 +605,18 @@ ${this.completedSteps
             };
         } catch (error) {
             console.error("Error extracting code changes:", error);
+
+            reportError(error as Error, {
+                extraction: {
+                    stepTitle: step.title,
+                    responseLength: response?.length || 0,
+                    responseExcerpt:
+                        response?.substring(0, 500) +
+                        "..." +
+                        response?.substring(response.length - 500),
+                },
+            });
+
             throw error;
         }
     }

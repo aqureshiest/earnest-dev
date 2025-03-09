@@ -75,6 +75,7 @@ const HomePage: React.FC = () => {
     const pmTools = [
         {
             href: "/prd",
+            dashboardHref: "/prd/dashboard",
             icon: <Sparkles className="h-6 w-6 text-amber-500" />,
             title: "AI PRD Generator",
             description: "Convert designs to PRDs",

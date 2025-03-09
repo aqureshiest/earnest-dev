@@ -4,8 +4,8 @@ import { FeatureQuestionsAssistant } from "./FeatureQuestionsAssistant";
 import { FigmaProcessorAssistant } from "./FigmaProcessorAssistant";
 import { PRDAssistantFeatureFlow } from "./PRDAssistantFeatureFlow";
 import { PRDAssistantMainSection } from "./PRDAssistantMainSection";
-import { trackPRDDuration, trackPRDStats } from "../utils/metrics";
 import { displayTime } from "../utils/displayTime";
+import { PRDMetricsService } from "../metrics/generate/PRDMetricsService";
 
 export class GeneratePRDV2 {
     private featureQuestionsAssistant: FeatureQuestionsAssistant;
@@ -78,6 +78,8 @@ export class GeneratePRDV2 {
         let calculatedTokens = 0;
         let cost = 0;
         const startTime = new Date().getTime();
+
+        const metricsService = new PRDMetricsService();
 
         // 1. process feature and their screens
         const featureFlows: string[] = [];
@@ -184,18 +186,18 @@ export class GeneratePRDV2 {
         sendTaskUpdate(taskId, "progress", `Time taken: ${displayTime(startTime, endTime)}`);
 
         // metrics
-        await trackPRDStats(
-            input.keyFeatures.length,
-            input.keyFeatures.reduce(
+        await metricsService.trackStats({
+            featureCount: input.keyFeatures.length,
+            screenCount: input.keyFeatures.reduce(
                 (acc, feature) => acc + (feature.figmaScreens?.length || 0),
                 0
             ),
-            completePRD.split(" ").length,
+            wordCount: completePRD.split(" ").length,
             inputTokens,
             outputTokens,
-            cost
-        );
-        await trackPRDDuration(endTime - startTime);
+            cost,
+        });
+        await metricsService.trackDuration(endTime - startTime);
 
         return completePRD;
     }

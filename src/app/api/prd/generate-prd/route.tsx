@@ -4,9 +4,12 @@ import { PRDInput } from "@/types/prd";
 import { GeneratePRD } from "@/modules/prd/GeneratePRD";
 import { v4 as uuidv4 } from "uuid";
 import { GeneratePRDV2 } from "@/modules/prd/GeneratePRDV2";
-import { trackPRDRequest, trackPRDSuccess } from "@/modules/utils/metrics";
+import { PRDMetricsService } from "@/modules/metrics/generate/PRDMetricsService";
+import { reportError } from "@/modules/bugsnag/report";
 
 export async function POST(req: Request) {
+    const metricsService = new PRDMetricsService();
+
     try {
         const formData = await req.formData();
         const body = Object.fromEntries(formData);
@@ -55,7 +58,7 @@ export async function POST(req: Request) {
             figmaScreens: filesByFeature[feature.id] || [],
         }));
 
-        await trackPRDRequest();
+        await metricsService.trackRequest();
 
         const stream = new ReadableStream({
             async start(controller) {
@@ -93,11 +96,19 @@ export async function POST(req: Request) {
 
                     // Final completion message
                     sendTaskUpdate(taskId, "final", "PRD generation completed successfully.");
-                    await trackPRDSuccess(true);
+                    await metricsService.trackSuccess(true);
                 } catch (error: any) {
                     console.error("Error in PRD generation:", error);
                     sendTaskUpdate(taskId, "error", `PRD generation failed: ${error.message}`);
-                    await trackPRDSuccess(false);
+
+                    // Metrics tracking
+                    await metricsService.trackSuccess(false);
+
+                    // Bugsnag error reporting
+                    reportError(error as Error, {
+                        endpoint: "pr",
+                        context: "Creating pull request",
+                    });
                 } finally {
                     controller.close();
                     deleteClient(taskId);
@@ -117,7 +128,16 @@ export async function POST(req: Request) {
         });
     } catch (error: any) {
         console.error("Error in API route:", error);
-        await trackPRDSuccess(false);
+
+        // Metrics tracking
+        await metricsService.trackSuccess(false);
+
+        // Bugsnag error reporting
+        reportError(error as Error, {
+            endpoint: "pr",
+            context: "Creating pull request",
+        });
+
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

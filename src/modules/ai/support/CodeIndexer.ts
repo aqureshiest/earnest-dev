@@ -10,6 +10,7 @@ import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import { CustomBedrockEmbeddings } from "./CustomBedrockEmbeddings";
+import { reportError } from "@/modules/bugsnag/report";
 
 export interface FileChunk {
     fileId: number;
@@ -71,28 +72,58 @@ export class CodeIndexer {
         const BATCH_SIZE = 10;
         const totalFiles = files.length;
 
-        for (let i = 0; i < files.length; i += BATCH_SIZE) {
-            const fileBatch = files.slice(i, i + BATCH_SIZE);
-            await this.processFileBatch(fileBatch, owner, repo, ref);
+        try {
+            for (let i = 0; i < files.length; i += BATCH_SIZE) {
+                const fileBatch = files.slice(i, i + BATCH_SIZE);
 
-            // Calculate progress
-            const filesProcessed = Math.min(i + BATCH_SIZE, totalFiles);
-            const percentComplete = (filesProcessed / totalFiles) * 100;
-            const progressMessage = `Processed ${filesProcessed} of ${totalFiles} files (${percentComplete.toFixed(
-                0
-            )}%)`;
-            console.log(progressMessage);
+                try {
+                    await this.processFileBatch(fileBatch, owner, repo, ref);
+                } catch (error) {
+                    // Report batch processing error but continue with next batch
+                    reportError(error as Error, {
+                        codeIndexer: {
+                            operation: "processFileBatch",
+                            batchIndex: i / BATCH_SIZE,
+                            owner,
+                            repo,
+                            ref,
+                            filesInBatch: fileBatch.map((f) => f.path),
+                        },
+                    });
+                    console.error(`Error processing batch ${i / BATCH_SIZE}:`, error);
+                }
 
-            if (taskId) {
-                sendTaskUpdate(taskId, "progress", progressMessage);
+                // Calculate progress
+                const filesProcessed = Math.min(i + BATCH_SIZE, totalFiles);
+                const percentComplete = (filesProcessed / totalFiles) * 100;
+                const progressMessage = `Processed ${filesProcessed} of ${totalFiles} files (${percentComplete.toFixed(
+                    0
+                )}%)`;
+                console.log(progressMessage);
+
+                if (taskId) {
+                    sendTaskUpdate(taskId, "progress", progressMessage);
+                }
             }
-        }
 
-        // Final completion message
-        const completionMessage = `Processing complete: ${totalFiles} files processed`;
-        console.log(completionMessage);
-        if (taskId) {
-            sendTaskUpdate(taskId, "progress", completionMessage);
+            // Final completion message
+            const completionMessage = `Processing complete: ${totalFiles} files processed`;
+            console.log(completionMessage);
+            if (taskId) {
+                sendTaskUpdate(taskId, "progress", completionMessage);
+            }
+        } catch (error) {
+            reportError(error as Error, {
+                codeIndexer: {
+                    operation: "processFilesIntoChunks",
+                    totalFiles,
+                    owner,
+                    repo,
+                    ref,
+                    taskId,
+                },
+            });
+            throw error;
         }
     }
 
@@ -141,6 +172,18 @@ export class CodeIndexer {
                 }
             } catch (error) {
                 console.error(`Error processing file ${file.path} into chunks:`, error);
+
+                reportError(error as Error, {
+                    codeIndexer: {
+                        operation: "processFileBatch",
+                        filePath: file.path,
+                        owner,
+                        repo,
+                        ref,
+                        fileSize: file.content?.length || 0,
+                    },
+                });
+
                 throw error;
             }
         }
@@ -194,10 +237,32 @@ export class CodeIndexer {
     }
 
     async generateEmbeddings(texts: string[]): Promise<number[][]> {
-        return await this.embeddings.embedDocuments(texts);
+        try {
+            return await this.embeddings.embedDocuments(texts);
+        } catch (error) {
+            reportError(error as Error, {
+                codeIndexer: {
+                    operation: "generateEmbeddings",
+                    textsCount: texts.length,
+                    textsSample: texts.map((t) => t.substring(0, 100) + "...").join("\n"),
+                },
+            });
+            throw error;
+        }
     }
 
     async generateEmbedding(text: string): Promise<number[]> {
-        return await this.embeddings.embedQuery(text);
+        try {
+            return await this.embeddings.embedQuery(text);
+        } catch (error) {
+            reportError(error as Error, {
+                codeIndexer: {
+                    operation: "generateEmbedding",
+                    textLength: text.length,
+                    textSample: text.substring(0, 200) + "...",
+                },
+            });
+            throw error;
+        }
     }
 }

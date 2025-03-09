@@ -67,7 +67,7 @@ export class ClaudeAIService extends BaseAIService {
             await this.cacheResponse(cacheKey, result);
             return result;
         } catch (error) {
-            console.error("Error generating AI response:", error);
+            this.logError("Error generating AI response:", error);
             throw error;
         }
     }
@@ -154,7 +154,7 @@ export class ClaudeAIService extends BaseAIService {
             await this.cacheResponse(cacheKey, result);
             return result;
         } catch (error) {
-            console.error("Error analyzing image:", error);
+            this.logError("Error analyzing image:", error);
             throw error;
         }
     }

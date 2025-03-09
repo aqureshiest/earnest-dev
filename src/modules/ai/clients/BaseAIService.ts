@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import chalk from "chalk";
+import { reportError } from "@/modules/bugsnag/report";
 
 export interface AIResponse {
     response: string;
@@ -89,5 +90,13 @@ export abstract class BaseAIService {
 
     protected logError(message: string, error: unknown): void {
         console.error(message, error);
+
+        // bugsnag reporting
+        reportError(error instanceof Error ? error : new Error(String(error)), {
+            aiService: {
+                model: this.model,
+                message,
+            },
+        });
     }
 }

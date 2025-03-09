@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { GenerateCodeV2 } from "@/modules/ai/GenerateCodeV2";
 import { PrepareCodebase } from "@/modules/ai/PrepareCodebase";
-import { trackRequest, trackSuccess } from "@/modules/utils/metrics";
+import { CodeGenMetricsService } from "@/modules/metrics/generate/CodeGenMetricsService";
+import { reportError } from "@/modules/bugsnag/report";
 
 export async function POST(req: Request) {
     const { taskId, owner, repo, branch, description, selectedModel, maximizeTokenUsage } =
@@ -11,8 +12,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
     }
 
+    const metricsService = new CodeGenMetricsService();
+
     try {
-        await trackRequest(owner, repo);
+        await metricsService.trackRequest({ owner, repo });
 
         const prepareCodebase = new PrepareCodebase();
 
@@ -45,11 +48,23 @@ export async function POST(req: Request) {
 
                     // send final response
                     sendTaskUpdate(taskId, "final", "Code generation completed.");
-                    await trackSuccess(owner, repo, true);
+                    await metricsService.trackSuccess({ owner, repo }, true);
                 } catch (error: any) {
-                    console.error("Error within generate code stream:", error);
                     sendTaskUpdate(taskId, "error", `Code generation failed. ${error.message}`);
-                    await trackSuccess(owner, repo, false);
+
+                    // metrics tracking
+                    await metricsService.trackSuccess({ owner, repo }, false);
+
+                    // bugsnag error reporting
+                    reportError(error as Error, {
+                        request: {
+                            taskId,
+                            owner,
+                            repo,
+                            branch,
+                            model: selectedModel,
+                        },
+                    });
                 } finally {
                     // close the stream
                     deleteClient(taskId);
@@ -69,8 +84,20 @@ export async function POST(req: Request) {
             },
         });
     } catch (e) {
-        console.error(e);
-        await trackSuccess(owner, repo, false);
+        // metrics tracking
+        await metricsService.trackSuccess({ owner, repo }, false);
+
+        // bugsnag error reporting
+        reportError(e as Error, {
+            request: {
+                taskId,
+                owner,
+                repo,
+                branch,
+                model: selectedModel,
+            },
+        });
+
         return new Response(JSON.stringify({ error: (e as any).message }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
