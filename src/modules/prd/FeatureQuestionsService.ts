@@ -110,32 +110,32 @@ Remember:
         }
     }
 
-    enrichPRDInput(input: PRDInput, responses: FeatureQuestions[]): PRDInput {
-        return {
-            ...input,
-            keyFeatures: input.keyFeatures.map((feature) => {
-                const featureResponses = responses.find((r) => r.featureId === feature.id);
-                if (!featureResponses) return feature;
+    // enrichPRDInput(input: PRDInput, responses: FeatureQuestions[]): PRDInput {
+    //     return {
+    //         ...input,
+    //         keyFeatures: input.keyFeatures.map((feature) => {
+    //             const featureResponses = responses.find((r) => r.featureId === feature.id);
+    //             if (!featureResponses) return feature;
 
-                const additionalInfo = featureResponses.questions.reduce((acc, q) => {
-                    const selectedChoices = q.choices
-                        .filter((c) => q.answer.includes(c.id))
-                        .map((c) => c.text);
+    //             const additionalInfo = featureResponses.questions.reduce((acc, q) => {
+    //                 const selectedChoices = q.choices
+    //                     .filter((c) => q.answer.includes(c.id))
+    //                     .map((c) => c.text);
 
-                    return {
-                        ...acc,
-                        [q.question]:
-                            q.type === "multiple"
-                                ? selectedChoices.join(", ")
-                                : selectedChoices[0] || "",
-                    };
-                }, {});
+    //                 return {
+    //                     ...acc,
+    //                     [q.question]:
+    //                         q.type === "multiple"
+    //                             ? selectedChoices.join(", ")
+    //                             : selectedChoices[0] || "",
+    //                 };
+    //             }, {});
 
-                return {
-                    ...feature,
-                    additionalInfo,
-                };
-            }),
-        };
-    }
+    //             return {
+    //                 ...feature,
+    //                 additionalInfo,
+    //             };
+    //         }),
+    //     };
+    // }
 }

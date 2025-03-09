@@ -46,7 +46,7 @@ Your specifications should **NOT**:
 `;
     }
 
-    getPrompt(params: any | null): string {
+    getPrompt(request: CodingTaskRequest): string {
         return `
 Here are the existing code files you will be working with:
 <existing_codebase>

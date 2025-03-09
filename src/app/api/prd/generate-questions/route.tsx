@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { PRDInput } from "@/types/prd";
 import { GeneratePRD } from "@/modules/prd/GeneratePRD";
+import { GeneratePRDV2 } from "@/modules/prd/GeneratePRDV2";
 
 export async function POST(req: Request) {
     try {
@@ -25,12 +26,17 @@ export async function POST(req: Request) {
                     req.signal.addEventListener("abort", () => deleteClient(taskId));
 
                     // Initialize the PRD generator
-                    const prdGenerator = new GeneratePRD(model, taskId);
-
-                    sendTaskUpdate(taskId, "progress", "Generating follow-up questions...");
+                    // const prdGenerator = new GeneratePRD(model, taskId);
+                    const prdGenerator = new GeneratePRDV2();
 
                     // Generate questions for each feature
-                    const questions = await prdGenerator.generateQuestions(input as PRDInput);
+                    // const questions = await prdGenerator.generateQuestions(input as PRDInput);
+                    const questions = await prdGenerator.generateQuestions({
+                        taskId,
+                        task: "Generate follow-up questions",
+                        model,
+                        input: input as PRDInput,
+                    });
 
                     // Send the generated questions
                     sendTaskUpdate(taskId, "complete", {

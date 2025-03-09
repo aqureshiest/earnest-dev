@@ -11,7 +11,7 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
         );
 
         const systemPrompt = this.getSystemPrompt();
-        const basePrompt = this.getPrompt(params);
+        const basePrompt = this.getPrompt(request);
 
         const userParams = {
             ...params,

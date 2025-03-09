@@ -19,6 +19,11 @@ interface TaskRequest {
     params?: any;
 }
 
+interface ImageProcessTaskRequest extends TaskRequest {
+    description?: string;
+    imageBuffer: Buffer | ArrayBuffer;
+}
+
 interface CodingTaskRequest extends TaskRequest {
     owner: string;
     repo: string;

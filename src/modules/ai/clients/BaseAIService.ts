@@ -24,13 +24,11 @@ export abstract class BaseAIService {
 
     abstract generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse>;
 
-    generateImageResponse(
+    abstract generateImageResponse(
         systemPrompt: string,
         prompt: string,
         image: Buffer | ArrayBuffer
-    ): Promise<AIResponse> {
-        throw new Error("Method not implemented.");
-    }
+    ): Promise<AIResponse>;
 
     protected async cacheResponse(key: string, response: AIResponse): Promise<void> {
         if (!this.useCache) return;

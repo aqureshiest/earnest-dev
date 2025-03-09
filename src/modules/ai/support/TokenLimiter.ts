@@ -62,6 +62,12 @@ export class TokenLimiter {
         const userPromptTokens = this.getTokenCount(userPrompt, model);
         const totalTokens = systemPromptTokens + userPromptTokens;
 
+        // Log allocation info
+        console.log(`Token allocation: ${allocatedPercentage}% of maximum context`);
+        console.log(`Allowed tokens: ${allowedTokens} (after buffer)`);
+        console.log(`System prompt tokens: ${systemPromptTokens}`);
+        console.log(`User prompt tokens: ${userPromptTokens}`);
+
         // If under limit, return unchanged
         if (totalTokens <= allowedTokens) {
             return {
@@ -102,7 +108,7 @@ export class TokenLimiter {
 
         // Log allocation info
         console.log(`Token allocation: ${allocatedPercentage}% of maximum context`);
-        console.log(`Allocated tokens: ${allowedTokens} (after buffer)`);
+        console.log(`Allowed tokens: ${allowedTokens} (after buffer)`);
         console.log(`Prompt tokens: ${promptTokens}`);
         console.log(`Available for files: ${allowedTokens - promptTokens} tokens`);
 

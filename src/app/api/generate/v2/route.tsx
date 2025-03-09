@@ -45,6 +45,7 @@ export async function POST(req: Request) {
 
                     // send final response
                     sendTaskUpdate(taskId, "final", "Code generation completed.");
+                    await trackSuccess(owner, repo, true);
                 } catch (error: any) {
                     console.error("Error within generate code stream:", error);
                     sendTaskUpdate(taskId, "error", `Code generation failed. ${error.message}`);

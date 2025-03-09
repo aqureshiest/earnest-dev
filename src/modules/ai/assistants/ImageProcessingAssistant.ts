@@ -1,10 +1,14 @@
 import { saveRunInfo } from "@/modules/utils/saveRunInfo";
 import { BaseAssistant } from "./BaseAssistant";
+
 import chalk from "chalk";
 
-abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant<T, R> {
+abstract class ImageProcessingAssistant<T extends ImageProcessTaskRequest, R> extends BaseAssistant<
+    T,
+    R
+> {
     async process(request: T): Promise<AIAssistantResponse<R> | null> {
-        const { taskId, model, task, params } = request;
+        const { taskId, model, task, params, description: imageDescription, imageBuffer } = request;
 
         console.log(
             `\n[${chalk.yellow(
@@ -36,7 +40,12 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
         saveRunInfo(request, caller, "user_prompt", finalizedPrompt);
 
         // generate responsex
-        const aiResponse = await this.generateResponse(model, systemPrompt, finalizedPrompt);
+        const aiResponse = await this.generateImageResponse(
+            model,
+            systemPrompt,
+            finalizedPrompt,
+            imageBuffer
+        );
         if (!aiResponse) return null;
 
         // parse the response
@@ -53,4 +62,4 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
     }
 }
 
-export { StandardAssistant };
+export { ImageProcessingAssistant };

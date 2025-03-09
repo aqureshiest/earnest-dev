@@ -13,7 +13,7 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
         );
 
         const systemPrompt = this.getSystemPrompt();
-        const basePrompt = this.getPrompt(params);
+        const basePrompt = this.getPrompt(request);
 
         const userParams = {
             ...params,

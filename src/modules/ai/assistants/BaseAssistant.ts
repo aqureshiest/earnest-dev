@@ -11,7 +11,7 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
     responseType: string = "xml";
 
     abstract getSystemPrompt(): string;
-    abstract getPrompt(params?: any): string;
+    abstract getPrompt(request: T): string;
 
     abstract process(request: T): Promise<AIAssistantResponse<R> | null>;
 
@@ -26,17 +26,20 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
         const aiService = AIServiceFactory.createAIService(model);
 
         // generate code
-        const { response, inputTokens, outputTokens, cost } = await aiService.generateResponse(
-            systemPrompt,
-            prompt
-        );
+        return await aiService.generateResponse(systemPrompt, prompt);
+    }
 
-        return {
-            response,
-            inputTokens,
-            outputTokens,
-            cost,
-        };
+    protected async generateImageResponse(
+        model: string,
+        systemPrompt: string,
+        prompt: string,
+        imageBuffer: Buffer | ArrayBuffer
+    ): Promise<AIResponse | null> {
+        // pick the ai model
+        const aiService = AIServiceFactory.createAIService(model);
+
+        // generate code
+        return await aiService.generateImageResponse(systemPrompt, prompt, imageBuffer);
     }
 }
 

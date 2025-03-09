@@ -36,12 +36,12 @@ export class ClaudeAIService extends BaseAIService {
                     system: systemPrompt,
                     messages: [{ role: "user", content: prompt }],
                     temperature: 0,
-                },
-                {
-                    headers: {
-                        "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-                    },
                 }
+                // {
+                //     headers: {
+                //         "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
+                //     },
+                // }
             );
 
             const response =

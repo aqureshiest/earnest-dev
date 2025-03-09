@@ -7,6 +7,8 @@ const namespace = process.env.METRICS_NAMESPACE || "EarnestAI/CodeGenerator";
 
 import { StandardUnit } from "@aws-sdk/client-cloudwatch";
 
+// *** Generic Metrics Functions ***
+
 export async function trackMetric(
     metricName: string,
     value: number,
@@ -38,7 +40,8 @@ export async function trackMetric(
     }
 }
 
-// Common metrics functions
+// *** Code Generation Metrics ***
+
 export async function trackRequest(owner: string, repo: string) {
     await trackMetric("Requests", 1, { Repository: `${owner}/${repo}` });
 }
@@ -117,4 +120,38 @@ export async function trackImplementationSteps(
             StandardUnit.Percent
         );
     }
+}
+
+// *** PRD Metrics ***
+
+export async function trackPRDRequest() {
+    await trackMetric("PRD_Requests", 1);
+}
+
+export async function trackPRDSuccess(success: boolean) {
+    await trackMetric("PRD_Success", success ? 1 : 0);
+}
+
+export async function trackPRDDuration(durationMs: number) {
+    await trackMetric("PRD_Duration", durationMs, undefined, StandardUnit.Milliseconds);
+}
+
+export async function trackPRDStats(
+    featureCount: number,
+    screenCount: number,
+    wordCount: number,
+    inputTokens: number,
+    outputTokens: number,
+    cost: number
+) {
+    // Track complexity metrics
+    await trackMetric("PRD_FeatureCount", featureCount);
+    await trackMetric("PRD_ScreenCount", screenCount);
+    await trackMetric("PRD_WordCount", wordCount);
+
+    // Track token usage
+    await trackMetric("PRD_InputTokens", inputTokens);
+    await trackMetric("PRD_OutputTokens", outputTokens);
+    await trackMetric("PRD_TotalTokens", inputTokens + outputTokens);
+    await trackMetric("PRD_TokenCost", cost, undefined, StandardUnit.None);
 }

@@ -3,7 +3,6 @@ import {
     trackCodeGeneration,
     trackDuration,
     trackImplementationSteps,
-    trackSuccess,
     trackTokenUsage,
 } from "../utils/metrics";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
@@ -83,7 +82,6 @@ export class GenerateCodeV2 {
         // send metrics
         const totalDuration = endTime - startTime;
         await trackDuration(owner, repo, totalDuration);
-        await trackSuccess(owner, repo, true);
 
         return code;
     }

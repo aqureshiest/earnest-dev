@@ -3,6 +3,8 @@ import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTas
 import { PRDInput } from "@/types/prd";
 import { GeneratePRD } from "@/modules/prd/GeneratePRD";
 import { v4 as uuidv4 } from "uuid";
+import { GeneratePRDV2 } from "@/modules/prd/GeneratePRDV2";
+import { trackPRDRequest, trackPRDSuccess } from "@/modules/utils/metrics";
 
 export async function POST(req: Request) {
     try {
@@ -11,7 +13,7 @@ export async function POST(req: Request) {
         const taskId = Date.now().toString();
 
         // Parse the input, model and custom prompt from formData
-        const input = JSON.parse(body.input as string);
+        const input = JSON.parse(body.input as string) as PRDInput;
         const model = body.model as string;
         const customPromptSys = (body.customPromptSys as string) || "";
         const customPromptUser = (body.customPromptUser as string) || "";
@@ -53,6 +55,8 @@ export async function POST(req: Request) {
             figmaScreens: filesByFeature[feature.id] || [],
         }));
 
+        await trackPRDRequest();
+
         const stream = new ReadableStream({
             async start(controller) {
                 try {
@@ -61,15 +65,25 @@ export async function POST(req: Request) {
                     req.signal.addEventListener("abort", () => deleteClient(taskId));
 
                     // Initialize the PRD generator with the custom prompt (if any)
-                    const prdGenerator = new GeneratePRD(
-                        model,
-                        taskId,
-                        customPromptSys,
-                        customPromptUser
-                    );
+                    // const prdGenerator = new GeneratePRD(
+                    //     model,
+                    //     taskId,
+                    //     customPromptSys,
+                    //     customPromptUser
+                    // );
+                    const prdGenerator = new GeneratePRDV2();
 
                     // Generate the PRD with feature responses
-                    const prdContent = await prdGenerator.generatePRD(input as PRDInput);
+                    // const prdContent = await prdGenerator.generatePRD(input as PRDInput);
+                    const prdContent = await prdGenerator.generatePRD({
+                        taskId,
+                        task: "generate prd",
+                        model,
+                        input,
+                        overrides: {
+                            featurePrompt: customPromptUser,
+                        },
+                    });
 
                     // Send the generated PRD content
                     sendTaskUpdate(taskId, "complete", {
@@ -79,9 +93,11 @@ export async function POST(req: Request) {
 
                     // Final completion message
                     sendTaskUpdate(taskId, "final", "PRD generation completed successfully.");
+                    await trackPRDSuccess(true);
                 } catch (error: any) {
                     console.error("Error in PRD generation:", error);
                     sendTaskUpdate(taskId, "error", `PRD generation failed: ${error.message}`);
+                    await trackPRDSuccess(false);
                 } finally {
                     controller.close();
                     deleteClient(taskId);
@@ -101,6 +117,7 @@ export async function POST(req: Request) {
         });
     } catch (error: any) {
         console.error("Error in API route:", error);
+        await trackPRDSuccess(false);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

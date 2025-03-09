@@ -47,7 +47,7 @@ Your PR description should NOT:
 `;
     }
 
-    getPrompt(params: any | null): string {
+    getPrompt(request: CodingTaskRequest): string {
         return `
 Here is the task description:
 <task_description>
