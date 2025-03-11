@@ -111,7 +111,7 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
         const command = new GetMetricDataCommand({
             StartTime: startTime,
             EndTime: endTime,
-            ScanBy: "TimestampDescending",
+            ScanBy: "TimestampAscending",
             MetricDataQueries: [
                 {
                     Id: "totalRequests",
@@ -164,13 +164,11 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
         };
     }
 
-    // Add these methods to the CodeGenCloudWatchService class in code-gen-cloudwatch-service.ts
-
     async getRequestsOverTime(startTime: Date, endTime: Date): Promise<MetricDataResult> {
         const command = new GetMetricDataCommand({
             StartTime: startTime,
             EndTime: endTime,
-            ScanBy: "TimestampDescending",
+            ScanBy: "TimestampAscending",
             MetricDataQueries: [
                 {
                     Id: "mrequests",
@@ -206,7 +204,7 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
         const command = new GetMetricDataCommand({
             StartTime: startTime,
             EndTime: endTime,
-            ScanBy: "TimestampDescending",
+            ScanBy: "TimestampAscending",
             MetricDataQueries: [
                 {
                     Id: "msuccess",
@@ -222,7 +220,7 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
                 },
                 {
                     Id: "msuccessrate",
-                    Expression: "(msuccess/mrequests)*100",
+                    Expression: "100*(msuccess/mrequests)", // Ensure we multiply by 100 to get percentage
                     Label: "Success Rate Over Time (%)",
                     Period: 86400, // 1 day aggregation
                     ReturnData: true,
@@ -237,11 +235,21 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
                 return { label: "Success Rate Over Time (%)", values: [], timestamps: [] };
             }
 
-            const result = response.MetricDataResults[0];
+            const result = response.MetricDataResults[response.MetricDataResults.length - 1];
+
+            // Validate success rate values are percentages
+            const validatedValues =
+                result.Values?.map((value) => {
+                    // If value is NaN (e.g., due to division by zero), return 0
+                    if (isNaN(value)) return 0;
+                    // If value exceeds 100, cap it at 100%
+                    if (value > 100) return 100;
+                    return value;
+                }) || [];
 
             return {
                 label: result.Label || "Success Rate Over Time (%)",
-                values: result.Values || [],
+                values: validatedValues,
                 timestamps: result.Timestamps || [],
             };
         } catch (error) {
@@ -254,7 +262,7 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
         const command = new GetMetricDataCommand({
             StartTime: startTime,
             EndTime: endTime,
-            ScanBy: "TimestampDescending",
+            ScanBy: "TimestampAscending",
             MetricDataQueries: [
                 {
                     Id: "mlinesofcode",
@@ -290,7 +298,7 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
         const command = new GetMetricDataCommand({
             StartTime: startTime,
             EndTime: endTime,
-            ScanBy: "TimestampDescending",
+            ScanBy: "TimestampAscending",
             MetricDataQueries: [
                 {
                     Id: "mprscreated",

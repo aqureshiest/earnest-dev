@@ -561,8 +561,7 @@ const PullRequestV2: React.FC = () => {
                                             />
                                         </div>
                                         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                                            Enable only if you think not enough tokens are being
-                                            used as context for coding tasks.
+                                            Enable for complex tasks.
                                         </p>
                                     </div>
 

@@ -1,4 +1,3 @@
-import { chunk } from "lodash";
 import { FileChunk } from "../ai/support/CodeIndexer";
 import { Pool } from "pg";
 
@@ -242,18 +241,30 @@ export class RepositoryDataService {
     }
 
     async findSimilarFilesByChunks(
-        query: string,
         owner: string,
         repo: string,
         ref: string,
         embeddings: number[],
-        similarityThreshold = 0.1
+        similarityThreshold: number = 0.2
     ): Promise<FileDetails[]> {
         try {
-            console.log("Searching for similar chunks in", owner, repo, ref, "for query:", query);
-
-            // Use the function to find similar chunks grouped by file
-            const findSimilarChunksQuery = `SELECT * FROM find_similar_chunks($1, $2, $3, $4::vector)`;
+            const findSimilarChunksQuery = `
+                SELECT 
+                    c.fileId as file_id,
+                    c.path,
+                    MAX(1 - (c.embeddings <=> $4::vector)) AS similarity
+                FROM 
+                    FileChunks c
+                WHERE 
+                    c.owner = $1 AND
+                    c.repo = $2 AND
+                    c.ref = $3 AND
+                    (1 - (c.embeddings <=> $4::vector)) >= $5
+                GROUP BY 
+                    c.fileId, c.path
+                ORDER BY 
+                    similarity DESC
+            `;
 
             // Convert the embeddings array properly for PostgreSQL vector type
             const embedArray = `[${embeddings.join(",")}]`;
@@ -263,6 +274,7 @@ export class RepositoryDataService {
                 repo,
                 ref,
                 embedArray,
+                similarityThreshold,
             ]);
 
             const similarFiles = similarFilesResult.rows;
@@ -273,9 +285,7 @@ export class RepositoryDataService {
             }
 
             // Fetch full file details for the similar files
-            const fileIds = similarFiles
-                .filter((f: any) => f.similarity > similarityThreshold)
-                .map((f: any) => f.file_id);
+            const fileIds = similarFiles.map((f: any) => f.file_id);
 
             if (fileIds.length === 0) {
                 return [];
@@ -314,6 +324,54 @@ export class RepositoryDataService {
         } catch (error: any) {
             console.error("Error in chunked similarity search:", error.message);
             throw error;
+        }
+    }
+
+    async findSimilarChunks(
+        owner: string,
+        repo: string,
+        ref: string,
+        embeddings: number[],
+        maxChunks = 50,
+        similarityThreshold = 0.2
+    ): Promise<FileChunk[]> {
+        try {
+            const query = `
+                SELECT 
+                    fc.id, 
+                    fc.path, 
+                    fc.content, 
+                    fc.chunkindex, 
+                    fc.fileid,
+                    (1 - (fc.embeddings <=> $4::vector)) AS similarity
+                FROM 
+                    filechunks fc
+                WHERE 
+                    fc.owner = $1 AND 
+                    fc.repo = $2 AND 
+                    fc.ref = $3 AND
+                    (1 - (fc.embeddings <=> $4::vector)) >= $6
+                ORDER BY 
+                    similarity DESC
+                LIMIT $5
+            `;
+
+            const embedArray = `[${embeddings.join(",")}]`;
+
+            const result = await this.pool.query(query, [
+                owner,
+                repo,
+                ref,
+                embedArray,
+                maxChunks,
+                similarityThreshold,
+            ]);
+
+            console.log(`Found ${result.rows.length} chunks for query`);
+            return result.rows as FileChunk[];
+        } catch (error: any) {
+            console.error("Error getting file chunks for query:", error.message);
+            return [];
         }
     }
 }

@@ -22,6 +22,7 @@ export interface FileChunk {
     ref: string;
     tokenCount: number;
     embeddings?: number[];
+    similarity?: number;
 }
 
 interface EmbeddingsInterface {

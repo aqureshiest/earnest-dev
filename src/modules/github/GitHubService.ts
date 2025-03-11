@@ -34,14 +34,6 @@ export class GitHubService {
             };
         }
 
-        // Check if we are in an env where access to repos is limited
-        const limitedAccessRepos = process.env.NEXT_PUBLIC_LIMIT_TO_REPOS;
-        if (limitedAccessRepos) {
-            const limitedRepos = limitedAccessRepos.split(",");
-            repos.items = repos.items.filter((repo) => limitedRepos.includes(repo.name));
-            repos.total_count = repos.items.length;
-        }
-
         return repos;
     }
 

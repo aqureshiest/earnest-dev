@@ -114,7 +114,7 @@ export class BaseCloudWatchService {
         const command = new GetMetricDataCommand({
             StartTime: startTime,
             EndTime: endTime,
-            ScanBy: "TimestampDescending",
+            ScanBy: "TimestampAscending",
             MetricDataQueries: [
                 {
                     Id: validId,

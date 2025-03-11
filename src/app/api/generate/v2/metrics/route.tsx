@@ -8,7 +8,6 @@ export async function GET() {
 
         // Get the list of repositories
         const repositories = await dataService.getRepositories();
-        console.log("Repositories:", repositories);
 
         const cloudWatch = new CodeGenCloudWatchService(repositories);
 

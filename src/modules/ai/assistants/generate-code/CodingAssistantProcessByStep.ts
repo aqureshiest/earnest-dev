@@ -173,8 +173,6 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                         branch,
                     },
                 });
-
-                throw error;
             }
         }
 
@@ -237,7 +235,6 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
 
             // Find similar files using chunk-based similarity
             const similarFiles = await this.dataService.findSimilarFilesByChunks(
-                stepQuery,
                 owner,
                 repo,
                 branch,
@@ -285,6 +282,10 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
             chalk.yellow("\n..... Final set of Files to use ......\n"),
             filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
         );
+
+        if (filesToUse.length === 0) {
+            throw new Error("No relevant files found for step, Cant proceed");
+        }
 
         console.log(`Selected ${filesToUse.length} files for step "${step.title}"`);
         return filesToUse;

@@ -34,10 +34,7 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
         // Now add the allowed files to the prompt
         const finalPromptWithFiles = this.promptBuilder.addFilesToPrompt(userPrompt, allowedFiles);
 
-        const folder = `${this.constructor.name}/${task
-            .toLowerCase()
-            .replace(/\s+/g, "_")
-            .substring(0, 10)}`;
+        const folder = `${this.constructor.name}/${this.taskTrimmed(task)}`;
         saveRunInfo(request, folder, "system_prompt", systemPrompt);
         saveRunInfo(request, folder, "user_prompt", finalPromptWithFiles);
 
@@ -56,6 +53,16 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
             responseStr: aiResponse.response,
             calculatedTokens: totalTokens,
         };
+    }
+
+    private taskTrimmed(task: string): string {
+        const taskStr = task.toLowerCase().replace(/\s+/g, "_");
+        if (taskStr.length <= 30) {
+            return taskStr;
+        }
+        const start = taskStr.substring(0, 15);
+        const end = taskStr.substring(taskStr.length - 15);
+        return `${start}-${end}`;
     }
 }
 

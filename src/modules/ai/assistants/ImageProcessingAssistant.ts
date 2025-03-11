@@ -35,9 +35,9 @@ abstract class ImageProcessingAssistant<T extends ImageProcessTaskRequest, R> ex
             this.tokenAllocation
         );
 
-        const caller = this.constructor.name;
-        saveRunInfo(request, caller, "system_prompt", systemPrompt);
-        saveRunInfo(request, caller, "user_prompt", finalizedPrompt);
+        const folder = `${this.constructor.name}/${this.taskTrimmed(task)}`;
+        saveRunInfo(request, folder, "system_prompt", systemPrompt);
+        saveRunInfo(request, folder, "user_prompt", finalizedPrompt);
 
         // generate responsex
         const aiResponse = await this.generateImageResponse(
@@ -49,9 +49,9 @@ abstract class ImageProcessingAssistant<T extends ImageProcessTaskRequest, R> ex
         if (!aiResponse) return null;
 
         // parse the response
-        saveRunInfo(request, caller, "ai_response", aiResponse.response);
+        saveRunInfo(request, folder, "ai_response", aiResponse.response);
         const parsed = this.handleResponse(aiResponse.response, taskId);
-        saveRunInfo(request, caller, "ai_response_parsed", parsed, this.responseType);
+        saveRunInfo(request, folder, "ai_response_parsed", parsed, this.responseType);
 
         return {
             ...aiResponse,
@@ -59,6 +59,16 @@ abstract class ImageProcessingAssistant<T extends ImageProcessTaskRequest, R> ex
             responseStr: aiResponse.response,
             calculatedTokens: totalTokens,
         };
+    }
+
+    private taskTrimmed(task: string): string {
+        const taskStr = task.toLowerCase().replace(/\s+/g, "_");
+        if (taskStr.length <= 30) {
+            return taskStr;
+        }
+        const start = taskStr.substring(0, 15);
+        const end = taskStr.substring(taskStr.length - 15);
+        return `${start}-${end}`;
     }
 }
 

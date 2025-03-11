@@ -26,30 +26,30 @@ CREATE TABLE IF NOT EXISTS BranchCommits (
 );
 
 -- Create extensions table
-CREATE TABLE IF NOT EXISTS extensions (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  system_prompt TEXT NOT NULL,
-  output_schema JSONB NOT NULL,
-  ui_config JSONB NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE
-);
+-- CREATE TABLE IF NOT EXISTS extensions (
+--   id TEXT PRIMARY KEY,
+--   name TEXT NOT NULL,
+--   description TEXT,
+--   system_prompt TEXT NOT NULL,
+--   output_schema JSONB NOT NULL,
+--   ui_config JSONB NOT NULL,
+--   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+--   updated_at TIMESTAMP WITH TIME ZONE
+-- );
 
--- Create updated_at trigger
-CREATE OR REPLACE FUNCTION handle_updated_at() 
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- -- Create updated_at trigger
+-- CREATE OR REPLACE FUNCTION handle_updated_at() 
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--   NEW.updated_at = NOW();
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER set_updated_at
-BEFORE UPDATE ON extensions
-FOR EACH ROW
-EXECUTE FUNCTION handle_updated_at();
+-- CREATE TRIGGER set_updated_at
+-- BEFORE UPDATE ON extensions
+-- FOR EACH ROW
+-- EXECUTE FUNCTION handle_updated_at();
 
 -- Create FileChunks table
 CREATE TABLE IF NOT EXISTS FileChunks (

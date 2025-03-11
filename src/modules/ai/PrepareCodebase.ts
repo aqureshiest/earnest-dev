@@ -17,7 +17,7 @@ export class PrepareCodebase {
         this.indexer = new CodeIndexer();
     }
 
-    async prepare(taskRequest: CodingTaskRequest) {
+    async prepare(taskRequest: CodingTaskRequest): Promise<FileDetails[]> {
         const { owner, repo, branch, task: description, taskId, model } = taskRequest;
 
         // Check if branch is already synced
@@ -33,14 +33,8 @@ export class PrepareCodebase {
         if (description) {
             sendTaskUpdate(taskId, "progress", "Finding relevant files...");
             const embedding = await this.indexer.generateEmbedding(description);
-
-            return await this.dataService.findSimilarFilesByChunks(
-                description,
-                owner,
-                repo,
-                branch,
-                embedding
-            );
+            // Return matching files
+            return await this.dataService.findSimilarFilesByChunks(owner, repo, branch, embedding);
         } else {
             // Return all files
             return await this.repositoryService.getRepositoryFiles(owner, repo, branch);

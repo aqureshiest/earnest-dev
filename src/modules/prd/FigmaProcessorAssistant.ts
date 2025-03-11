@@ -10,6 +10,8 @@ export class FigmaProcessorAssistant extends ImageProcessingAssistant<
         super(new PromptBuilder(), new TokenLimiter());
     }
 
+    responseType: string = "md";
+
     getSystemPrompt(): string {
         return `You are an expert UI/UX designer and front-end developer.
 Your task is to analyze UI screenshots with particular attention to:
