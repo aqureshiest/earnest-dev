@@ -177,7 +177,7 @@ const EnhancedImplementationPlanCard: React.FC<EnhancedImplementationPlanCardPro
                                             <Textarea
                                                 value={step.thoughts}
                                                 readOnly
-                                                className="min-h-[80px] resize-none"
+                                                className="min-h-[80px]"
                                             />
                                         </div>
                                         <div className="space-y-4">

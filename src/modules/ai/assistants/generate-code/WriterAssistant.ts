@@ -74,7 +74,6 @@ Please go ahead and generate the PR description based on the provided informatio
 
     handleResponse(response: string): string {
         const description = this.responseParser.parse(response) as any;
-
         return description;
     }
 }

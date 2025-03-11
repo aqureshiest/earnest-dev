@@ -1,5 +1,6 @@
 import { Octokit } from "@octokit/rest";
 import { CodeGenMetricsService } from "../metrics/generate/CodeGenMetricsService";
+import * as Diff from "diff";
 
 class PullRequestService {
     private octokit: Octokit;
@@ -14,6 +15,190 @@ class PullRequestService {
         this.owner = owner;
         this.repo = repo;
         this.branch = branch;
+    }
+
+    async createPatch(codeChanges: CodeChanges, patchTitle: string): Promise<string> {
+        try {
+            const authorEmail = `${process.env.NEXT_PUBLIC_GITHUB_OWNER}@earnest.com`;
+
+            // Get the repository information to include in the patch
+            const { data: repoData } = await this.octokit.repos.get({
+                owner: this.owner,
+                repo: this.repo,
+            });
+
+            // Get the default branch reference for the SHA
+            const { data: refData } = await this.octokit.git.getRef({
+                owner: this.owner,
+                repo: this.repo,
+                ref: `heads/${this.branch}`,
+            });
+
+            const baseSha = refData.object.sha;
+            const timestamp = new Date().toISOString();
+            const author = `Generated Patch <${authorEmail}>`;
+
+            // Start building the patch
+            let patch = `From ${baseSha} Mon Sep 17 00:00:00 2001\n`;
+            patch += `From: ${author}\n`;
+            patch += `Date: ${timestamp}\n`;
+            patch += `Subject: [PATCH] ${patchTitle}\n\n`;
+
+            // Add a patch description if needed
+            patch += `${patchTitle}\n\n`;
+            patch += `Repo: ${repoData.full_name}\n`;
+            patch += `Branch: ${this.branch}\n\n`;
+            patch += `---\n\n`;
+
+            // Process new files
+            for (const file of codeChanges.newFiles || []) {
+                if (!file) continue;
+
+                patch += `diff --git a/${file.path} b/${file.path}\n`;
+                patch += `new file mode 100644\n`;
+                patch += `index 0000000..${this.generateShortHash(file.content)}\n`;
+                patch += `--- /dev/null\n`;
+                patch += `+++ b/${file.path}\n`;
+
+                // Add file content as a complete addition
+                const lines = file.content.split("\n");
+                patch += `@@ -0,0 +1,${lines.length} @@\n`;
+
+                for (const line of lines) {
+                    patch += `+${line}\n`;
+                }
+
+                patch += "\n";
+            }
+
+            // Process modified files
+            for (const file of codeChanges.modifiedFiles || []) {
+                // Try to get the original file content
+                let originalContent = "";
+                try {
+                    const { data: fileData } = await this.octokit.repos.getContent({
+                        owner: this.owner,
+                        repo: this.repo,
+                        path: file.path,
+                        ref: `heads/${this.branch}`,
+                    });
+
+                    if (!Array.isArray(fileData) && fileData.type === "file" && fileData.content) {
+                        originalContent = Buffer.from(fileData.content, "base64").toString("utf8");
+                    }
+                } catch (error) {
+                    console.warn(
+                        `Could not get original content for ${file.path}. Treating as a new file.`
+                    );
+                }
+
+                patch += `diff --git a/${file.path} b/${file.path}\n`;
+                patch += `index ${this.generateShortHash(
+                    originalContent
+                )}..${this.generateShortHash(file.content)} 100644\n`;
+                patch += `--- a/${file.path}\n`;
+                patch += `+++ b/${file.path}\n`;
+
+                // If we have the original content, generate a proper diff
+                if (originalContent) {
+                    const diff = this.generateAccurateDiff(originalContent, file.content);
+                    patch += diff;
+                } else {
+                    // Otherwise treat it like a new file
+                    const lines = file.content.split("\n");
+                    patch += `@@ -0,0 +1,${lines.length} @@\n`;
+
+                    for (const line of lines) {
+                        patch += `+${line}\n`;
+                    }
+                }
+
+                patch += "\n";
+            }
+
+            // Process deleted files
+            for (const file of codeChanges.deletedFiles || []) {
+                if (!file || file.path === ".") continue;
+
+                // Try to get the original file content
+                let originalContent = "";
+                try {
+                    const { data: fileData } = await this.octokit.repos.getContent({
+                        owner: this.owner,
+                        repo: this.repo,
+                        path: file.path,
+                        ref: `heads/${this.branch}`,
+                    });
+
+                    if (!Array.isArray(fileData) && fileData.type === "file" && fileData.content) {
+                        originalContent = Buffer.from(fileData.content, "base64").toString("utf8");
+                    }
+                } catch (error) {
+                    console.warn(
+                        `Could not get original content for ${file.path}. Skipping deletion in patch.`
+                    );
+                    continue;
+                }
+
+                patch += `diff --git a/${file.path} b/${file.path}\n`;
+                patch += `deleted file mode 100644\n`;
+                patch += `index ${this.generateShortHash(originalContent)}..0000000\n`;
+                patch += `--- a/${file.path}\n`;
+                patch += `+++ /dev/null\n`;
+
+                // Show the removal of all lines
+                const originalLines = originalContent.split("\n");
+                patch += `@@ -1,${originalLines.length} +0,0 @@\n`;
+
+                for (const line of originalLines) {
+                    patch += `-${line}\n`;
+                }
+
+                patch += "\n";
+            }
+
+            // Finalize the patch
+            patch += `-- \n`;
+            patch += `${repoData.full_name} patch\n`;
+
+            return patch;
+        } catch (error: any) {
+            console.error("Error creating patch:", error);
+            throw new Error(`Failed to create patch: ${error.message}`);
+        }
+    }
+
+    private generateShortHash(content: string): string {
+        // This is a simple hash function for demonstration
+        // In a real implementation, you might use a proper git hash algorithm
+        let hash = 0;
+        if (content.length === 0) return "0000000";
+
+        for (let i = 0; i < content.length; i++) {
+            const char = content.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+
+        // Return a 7-character hex string (like git short hashes)
+        return Math.abs(hash).toString(16).substring(0, 7).padStart(7, "0");
+    }
+
+    private generateAccurateDiff(originalContent: string, newContent: string): string {
+        const cleanOriginal = this.removeTrailingWhitespace(originalContent);
+        const cleanNew = this.removeTrailingWhitespace(newContent);
+
+        const patch = Diff.createPatch(
+            "file", // This is just a placeholder as the real filename is used elsewhere
+            cleanOriginal,
+            cleanNew,
+            "original",
+            "modified"
+        );
+
+        // Extract just the hunk headers and content, not the file headers
+        const lines = patch.split("\n");
+        return lines.slice(4).join("\n");
     }
 
     async createPullRequest(codeChanges: CodeChanges, prTitle: string, prBody: string) {
@@ -170,6 +355,13 @@ class PullRequestService {
         });
 
         return treeData.sha;
+    }
+
+    private removeTrailingWhitespace(content: string): string {
+        return content
+            .split("\n")
+            .map((line) => line.trimRight())
+            .join("\n");
     }
 }
 

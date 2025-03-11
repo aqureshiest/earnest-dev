@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import {
     Check,
     Code,
+    Download,
     GitPullRequestArrow,
     Maximize,
     Minimize,
@@ -393,6 +394,78 @@ const PullRequestV2: React.FC = () => {
         setDescription(e.target.value);
     };
 
+    const [downloadingPatch, setDownloadingPatch] = useState(false);
+
+    const handleDownloadPatch = async () => {
+        if (!generatedCode) return;
+
+        try {
+            setDownloadingPatch(true);
+            // Show loading indicator
+            addProgressMessage("Generating patch file...");
+
+            const response = await fetch(`/api/patch`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    owner,
+                    repo,
+                    branch,
+                    title: generatedCode.title || description.substring(0, 50),
+                    codeChanges: {
+                        ...generatedCode,
+                        newFiles: generatedCode.newFiles?.filter(
+                            (file) => !excludedFiles.has(file.path)
+                        ),
+                        modifiedFiles: generatedCode.modifiedFiles?.filter(
+                            (file) => !excludedFiles.has(file.path)
+                        ),
+                        deletedFiles: generatedCode.deletedFiles?.filter(
+                            (file) => !excludedFiles.has(file.path)
+                        ),
+                    },
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to generate patch");
+            }
+
+            // Get the filename from the Content-Disposition header if available
+            const contentDisposition = response.headers.get("Content-Disposition");
+            let filename = "changes.patch";
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            // Convert response to blob and create download link
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = filename;
+
+            // Trigger download
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            addProgressMessage("Patch file downloaded successfully", "success");
+        } catch (error: any) {
+            console.error("Error downloading patch:", error);
+            addProgressMessage(`Failed to download patch: ${error.message}`, "error");
+        } finally {
+            setDownloadingPatch(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 py-12 px-6 relative">
             {/* Light mode grid pattern for entire page */}
@@ -466,14 +539,27 @@ const PullRequestV2: React.FC = () => {
                                             </div>
                                             <div className="flex items-center space-x-2">
                                                 {!acceptedChanges && (
-                                                    <Button
-                                                        onClick={handleAcceptChanges}
-                                                        disabled={generatedPRLink != null}
-                                                        className="mr-2"
-                                                    >
-                                                        <Check className="mr-2 h-4 w-4" />
-                                                        Accept Changes
-                                                    </Button>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Button
+                                                            onClick={handleAcceptChanges}
+                                                            disabled={generatedPRLink != null}
+                                                            className="mr-2"
+                                                        >
+                                                            <Check className="mr-2 h-4 w-4" />
+                                                            Accept Changes & Create PR
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={handleDownloadPatch}
+                                                            disabled={
+                                                                generatedPRLink != null ||
+                                                                downloadingPatch
+                                                            }
+                                                        >
+                                                            <Download className="mr-2 h-4 w-4" />
+                                                            Download Patch
+                                                        </Button>
+                                                    </div>
                                                 )}
                                                 <Button
                                                     variant="outline"

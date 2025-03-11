@@ -413,7 +413,7 @@ Respond in the following format:
 <new_files>
 <file>
 <path>path/to/new/file1</path>
-<thoughts>Thoughts on the creation of this file</thoughts>
+<thoughts><![CDATA[Thoughts on the creation of this file]]></thoughts>
 <content>
 <![CDATA[
 // Full content of the new file goes here 
@@ -425,7 +425,7 @@ Respond in the following format:
 <modified_files>
 <file>
 <path>path/to/modified/file1</path>
-<thoughts>Thoughts on the modifications made to this file</thoughts>
+<thoughts><![CDATA[Thoughts on the modifications made to this file]]></thoughts>
 <content>
 <![CDATA[
 // Full content of the modified file goes here, including all changes 

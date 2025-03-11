@@ -67,7 +67,7 @@ Respond in the following format:
 <implementation_plan>
  <step>
   <title>A brief title</title>
-  <thoughts>Your thoughts on this step</thoughts>
+  <thoughts><![CDATA[Your thoughts on this step]]></thoughts>
   <files>
    <file>
     <path>path/to/file</path>
