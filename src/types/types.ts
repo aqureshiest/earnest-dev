@@ -8,6 +8,7 @@ interface FileDetails {
     commitHash: string;
     tokenCount: number;
     similarity?: number;
+    needsProcessing?: boolean;
 }
 
 // request types

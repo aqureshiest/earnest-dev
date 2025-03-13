@@ -10,14 +10,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-    LightbulbIcon,
-    FileIcon,
-    CheckCircle,
-    Clock,
-    AlertCircle,
-    MessageSquare,
-} from "lucide-react";
+import { LightbulbIcon, FileIcon, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import ProgressBar from "./ProgressBar";
 import Markdown from "react-markdown";
 
@@ -37,6 +30,9 @@ interface EnhancedImplementationPlanCardProps {
     stepSummaries?: StepSummaryMap;
     activeStep: string | null;
     defaultOpenStep?: string | null;
+    inputTokens?: number;
+    outputTokens?: number;
+    cost?: number;
 }
 
 const EnhancedImplementationPlanCard: React.FC<EnhancedImplementationPlanCardProps> = ({
@@ -45,6 +41,9 @@ const EnhancedImplementationPlanCard: React.FC<EnhancedImplementationPlanCardPro
     stepSummaries = {},
     activeStep,
     defaultOpenStep,
+    inputTokens,
+    outputTokens,
+    cost,
 }) => {
     const steps = implementationPlan?.response?.steps || [];
 
@@ -104,18 +103,17 @@ const EnhancedImplementationPlanCard: React.FC<EnhancedImplementationPlanCardPro
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <div className="flex items-center space-x-2">
-                        <CardTitle>Implementation Plan</CardTitle>
+                        <CardTitle>Plan</CardTitle>
                         <Badge variant="outline">
                             {completedSteps}/{totalSteps} Steps
                         </Badge>
                     </div>
-                    {implementationPlan && (
-                        <div className="text-xs text-muted-foreground">
-                            <div>Cost: ${implementationPlan.cost.toFixed(6)}</div>
-                            <div>Input Tokens: {implementationPlan.inputTokens}</div>
-                            <div>Output Tokens: {implementationPlan.outputTokens}</div>
-                        </div>
-                    )}
+
+                    <div className="text-xs text-muted-foreground text-end">
+                        <div>Cost: ${cost?.toFixed(4)}</div>
+                        <div>Input Tokens: {inputTokens}</div>
+                        <div>Output Tokens: {outputTokens}</div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="mb-4">

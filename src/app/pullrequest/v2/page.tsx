@@ -67,6 +67,10 @@ const PullRequestV2: React.FC = () => {
     const [activeStep, setActiveStep] = useState<string | null>(null);
     const [currentOpenStep, setCurrentOpenStep] = useState<string | null>(null);
 
+    const [inputTokens, setInputTokens] = useState<number>(0);
+    const [outputTokens, setOutputTokens] = useState<number>(0);
+    const [cost, setCost] = useState<number>(0);
+
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
 
     // Hook to auto-expand the active step when it changes
@@ -331,6 +335,7 @@ const PullRequestV2: React.FC = () => {
                     });
                     setStepStatus(initialStepStatus);
                 }
+
                 break;
             case "code":
                 setGeneratedCodeResponse(response);
@@ -345,6 +350,13 @@ const PullRequestV2: React.FC = () => {
                     setActiveStep(null);
                 }
                 break;
+        }
+
+        // add tokens and cost for both assistants
+        if (assistant == "planning" || assistant == "code") {
+            setInputTokens((prev) => prev + response.inputTokens);
+            setOutputTokens((prev) => prev + response.outputTokens);
+            setCost((prev) => prev + response.cost);
         }
     };
 
@@ -379,6 +391,10 @@ const PullRequestV2: React.FC = () => {
         setStepStatus({});
         setActiveStep(null);
         setCurrentOpenStep(null);
+        // reset tokens and cost
+        setInputTokens(0);
+        setOutputTokens(0);
+        setCost(0);
     };
 
     const toggleCodeViewer = () => {
@@ -729,6 +745,9 @@ const PullRequestV2: React.FC = () => {
                                 stepStatus={stepStatus}
                                 activeStep={activeStep}
                                 defaultOpenStep={currentOpenStep}
+                                inputTokens={inputTokens}
+                                outputTokens={outputTokens}
+                                cost={cost}
                             />
                             <EnhancedProgressFeed messages={progressMessages} maxHeight="500px" />
                         </div>

@@ -106,6 +106,7 @@ export class RepositoryService {
                     content: "",
                     commitHash: file.sha,
                     tokenCount: 0,
+                    needsProcessing: true,
                 });
             }
         }

@@ -48,14 +48,12 @@ export class PrepareCodebase {
         taskId: string,
         model: string
     ): Promise<void> {
-        // 1. Fetch repository files
+        // 1. Fetch repository files and process only the ones that need processing
         sendTaskUpdate(taskId, "progress", "Indexing repository...");
-        const files: FileDetails[] = await this.repositoryService.getRepositoryFiles(
-            owner,
-            repo,
-            branch
-        );
-        sendTaskUpdate(taskId, "progress", `Fetched ${files.length} files.`);
+        const files: FileDetails[] = (
+            await this.repositoryService.getRepositoryFiles(owner, repo, branch)
+        ).filter((f) => f.needsProcessing);
+        sendTaskUpdate(taskId, "progress", `Found ${files.length} files that need processing.`);
 
         // 2. Fetch file contents
         sendTaskUpdate(taskId, "progress", "Tokenizing files...");
