@@ -21,6 +21,7 @@ import {
     Minimize,
     SearchCheck,
     Sparkles,
+    Wand2,
     X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +31,7 @@ import { LLM_MODELS } from "@/modules/utils/llmInfo";
 import EnhancedProgressFeed, {
     EnhancedProgressMessage,
 } from "@/app/components/EnhancedProgressFeed";
+import ImproveTaskModal from "../../components/ImproveTaskModal";
 
 interface StepStatusMap {
     [stepTitle: string]: StepStatus;
@@ -41,6 +43,7 @@ const PullRequestV2: React.FC = () => {
     const [repo, setRepo] = useState<string>("");
     const [branch, setBranch] = useState<string>("");
     const [description, setDescription] = useState("");
+    const [isImproveModalOpen, setIsImproveModalOpen] = useState(false);
     const [maximizeTokenUsage, setMaximizeTokenUsage] = useState(false);
 
     const [progressMessages, setProgressMessages] = useState<EnhancedProgressMessage[]>([]);
@@ -647,29 +650,20 @@ const PullRequestV2: React.FC = () => {
                                         recommendedModel={LLM_MODELS.AWS_BEDROCK_CLAUDE_37_SONNET}
                                     />
 
-                                    {/* maximizeTokenUsage radio button */}
-                                    <div>
-                                        <div className="flex items-center">
-                                            <Label htmlFor="maximizeTokenUsage">
-                                                Maximize Token Usage
-                                            </Label>
-                                            <Switch
-                                                id="maximizeTokenUsage"
-                                                className="ml-2"
-                                                checked={maximizeTokenUsage}
-                                                onCheckedChange={() =>
-                                                    setMaximizeTokenUsage((prev) => !prev)
-                                                }
-                                            />
-                                        </div>
-                                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                                            Enable for complex tasks.
-                                        </p>
-                                    </div>
-
                                     {/* Task Description */}
                                     <div>
-                                        <Label htmlFor="description">Task Description</Label>
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="description">Task Description</Label>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setIsImproveModalOpen(true)}
+                                                disabled={isCreating || !description.trim()}
+                                            >
+                                                <Wand2 className="h-4 w-4 mr-2" />
+                                                Improve with AI
+                                            </Button>
+                                        </div>
                                         <Textarea
                                             className="mt-1"
                                             rows={8}
@@ -680,8 +674,26 @@ const PullRequestV2: React.FC = () => {
                                         />
                                     </div>
 
+                                    {/* maximizeTokenUsage radio button */}
+                                    <div className="flex items-center">
+                                        <Label htmlFor="maximizeTokenUsage">
+                                            Maximize Token Usage
+                                        </Label>
+                                        <Switch
+                                            id="maximizeTokenUsage"
+                                            className="ml-2"
+                                            checked={maximizeTokenUsage}
+                                            onCheckedChange={() =>
+                                                setMaximizeTokenUsage((prev) => !prev)
+                                            }
+                                        />
+                                        <p className="text-sm text-slate-500 ml-2">
+                                            enable for complex tasks
+                                        </p>
+                                    </div>
+
                                     {/* Action Buttons */}
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 pt-4">
                                         <Button
                                             onClick={handleCreatePullRequest}
                                             className="w-full"
@@ -754,6 +766,14 @@ const PullRequestV2: React.FC = () => {
                     </motion.div>
                 </div>
             </div>
+
+            {/* Task Improvement Modal */}
+            <ImproveTaskModal
+                isOpen={isImproveModalOpen}
+                onOpenChange={setIsImproveModalOpen}
+                originalDescription={description}
+                onApply={setDescription}
+            />
         </div>
     );
 };
