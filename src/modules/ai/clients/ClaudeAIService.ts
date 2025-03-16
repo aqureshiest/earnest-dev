@@ -1,7 +1,7 @@
 import { calculateLLMCost } from "@/modules/utils/llmCost";
 import { LLM_MODELS, LLMS } from "@/modules/utils/llmInfo";
 import Anthropic from "@anthropic-ai/sdk";
-import { BaseAIService } from "./BaseAIService";
+import { AIResponse, BaseAIService } from "./BaseAIService";
 
 export class ClaudeAIService extends BaseAIService {
     private anthropic: Anthropic;
@@ -75,15 +75,19 @@ export class ClaudeAIService extends BaseAIService {
     async generateImageResponse(
         systemPrompt: string,
         textPrompt: string,
-        image: Buffer
-        // media_type: string = "image/jpeg" | "image/png" | "image/gif" | "image/webp"
+        image: Buffer,
+        media_type?: "image/png" | "application/pdf"
     ): Promise<AIResponse> {
         this.logServiceHeader("Claude Image Service");
         this.logPrompts(systemPrompt, textPrompt);
 
         // Create cache key including image hash
         const imageHash = require("crypto").createHash("sha256").update(image).digest("hex");
-        const cacheKey = this.getCacheKey(this.model, systemPrompt, textPrompt + imageHash);
+        const cacheKey = this.getCacheKey(
+            this.model,
+            systemPrompt,
+            textPrompt + imageHash + media_type
+        );
 
         const cachedResponse = await this.getCachedResponse(cacheKey);
         if (cachedResponse) {
@@ -97,6 +101,8 @@ export class ClaudeAIService extends BaseAIService {
                 throw new Error(`LLM ${this.model} not found`);
             }
 
+            console.log("media_type", media_type);
+
             const completion = await this.anthropic.messages.create(
                 {
                     model: this.model,
@@ -106,17 +112,27 @@ export class ClaudeAIService extends BaseAIService {
                         {
                             role: "user",
                             content: [
+                                media_type == "image/png"
+                                    ? {
+                                          type: "image",
+                                          source: {
+                                              type: "base64",
+                                              media_type,
+                                              data: image.toString("base64"),
+                                          },
+                                      }
+                                    : {
+                                          type: "document",
+                                          source: {
+                                              type: "base64",
+                                              media_type: "application/pdf",
+                                              data: image.toString("base64"),
+                                          },
+                                      },
+
                                 {
                                     type: "text",
                                     text: textPrompt,
-                                },
-                                {
-                                    type: "image",
-                                    source: {
-                                        type: "base64",
-                                        media_type: "image/png",
-                                        data: image.toString("base64"),
-                                    },
                                 },
                             ],
                         },

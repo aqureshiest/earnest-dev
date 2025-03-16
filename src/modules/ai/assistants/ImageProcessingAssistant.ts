@@ -44,7 +44,8 @@ abstract class ImageProcessingAssistant<T extends ImageProcessTaskRequest, R> ex
             model,
             systemPrompt,
             finalizedPrompt,
-            imageBuffer
+            imageBuffer,
+            params.media_type || "image/png"
         );
         if (!aiResponse) return null;
 

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { PRDInput } from "@/types/prd";
-import { GeneratePRD } from "@/modules/prd/GeneratePRD";
 import { v4 as uuidv4 } from "uuid";
-import { GeneratePRDV2 } from "@/modules/prd/GeneratePRDV2";
+import { GeneratePRDV2 } from "@/modules/ai/GeneratePRDV2";
 import { PRDMetricsService } from "@/modules/metrics/generate/PRDMetricsService";
 import { reportError } from "@/modules/bugsnag/report";
 
@@ -18,12 +17,28 @@ export async function POST(req: Request) {
         // Parse the input, model and custom prompt from formData
         const input = JSON.parse(body.input as string) as PRDInput;
         const model = body.model as string;
-        const customPromptSys = (body.customPromptSys as string) || "";
-        const customPromptUser = (body.customPromptUser as string) || "";
+        const finalOutputPrompt = (body.finalOutputPrompt as string) || "";
 
         if (!input || !model) {
             return NextResponse.json({ error: "Input and model are required" }, { status: 400 });
         }
+
+        if (!input.goalStatement || typeof input.goalStatement !== "string") {
+            return NextResponse.json({ error: "Goal statement is required" }, { status: 400 });
+        }
+
+        if (
+            !input.keyFeatures ||
+            !Array.isArray(input.keyFeatures) ||
+            input.keyFeatures.length === 0
+        ) {
+            return NextResponse.json(
+                { error: "At least one key feature is required" },
+                { status: 400 }
+            );
+        }
+
+        await metricsService.trackRequest();
 
         // Process file uploads
         const filePromises = Object.entries(body)
@@ -31,6 +46,21 @@ export async function POST(req: Request) {
             .map(async ([key, file]) => {
                 const [, featureId] = key.split("_");
                 const blob = file as Blob;
+
+                // Add file validation
+                if (blob.size > 25 * 1024 * 1024) {
+                    // 25MB limit
+                    throw new Error(`File ${(file as File).name} exceeds 25MB size limit`);
+                }
+
+                // Validate accepted file types
+                const acceptedTypes = ["image/png", "application/pdf"];
+                if (!acceptedTypes.includes(blob.type)) {
+                    throw new Error(
+                        `File ${(file as File).name} has unsupported type ${blob.type}`
+                    );
+                }
+
                 const buffer = Buffer.from(await blob.arrayBuffer());
                 return {
                     featureId,
@@ -41,6 +71,7 @@ export async function POST(req: Request) {
                     },
                 };
             });
+
         const processedFiles = await Promise.all(filePromises);
 
         // Group files by feature ID
@@ -58,8 +89,6 @@ export async function POST(req: Request) {
             figmaScreens: filesByFeature[feature.id] || [],
         }));
 
-        await metricsService.trackRequest();
-
         const stream = new ReadableStream({
             async start(controller) {
                 try {
@@ -67,24 +96,16 @@ export async function POST(req: Request) {
                     setClient(taskId, controller);
                     req.signal.addEventListener("abort", () => deleteClient(taskId));
 
-                    // Initialize the PRD generator with the custom prompt (if any)
-                    // const prdGenerator = new GeneratePRD(
-                    //     model,
-                    //     taskId,
-                    //     customPromptSys,
-                    //     customPromptUser
-                    // );
                     const prdGenerator = new GeneratePRDV2();
 
                     // Generate the PRD with feature responses
-                    // const prdContent = await prdGenerator.generatePRD(input as PRDInput);
                     const prdContent = await prdGenerator.generatePRD({
                         taskId,
                         task: "generate prd",
                         model,
                         input,
-                        overrides: {
-                            featurePrompt: customPromptUser,
+                        params: {
+                            finalOutputPrompt,
                         },
                     });
 
@@ -106,8 +127,8 @@ export async function POST(req: Request) {
 
                     // Bugsnag error reporting
                     reportError(error as Error, {
-                        endpoint: "pr",
-                        context: "Creating pull request",
+                        endpoint: "prd",
+                        context: "Generating PRD",
                     });
                 } finally {
                     controller.close();
@@ -134,8 +155,8 @@ export async function POST(req: Request) {
 
         // Bugsnag error reporting
         reportError(error as Error, {
-            endpoint: "pr",
-            context: "Creating pull request",
+            endpoint: "prd",
+            context: "Generating PRD",
         });
 
         return NextResponse.json({ error: error.message }, { status: 500 });

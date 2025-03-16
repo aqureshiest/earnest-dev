@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { PRDInput } from "@/types/prd";
-import { GeneratePRD } from "@/modules/prd/GeneratePRD";
-import { GeneratePRDV2 } from "@/modules/prd/GeneratePRDV2";
+import { GeneratePRDV2 } from "@/modules/ai/GeneratePRDV2";
 
 export async function POST(req: Request) {
     try {
@@ -18,6 +17,21 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Input and model are required" }, { status: 400 });
         }
 
+        if (!input.goalStatement || typeof input.goalStatement !== "string") {
+            return NextResponse.json({ error: "Goal statement is required" }, { status: 400 });
+        }
+
+        if (
+            !input.keyFeatures ||
+            !Array.isArray(input.keyFeatures) ||
+            input.keyFeatures.length === 0
+        ) {
+            return NextResponse.json(
+                { error: "At least one key feature is required" },
+                { status: 400 }
+            );
+        }
+
         const stream = new ReadableStream({
             async start(controller) {
                 try {
@@ -26,11 +40,9 @@ export async function POST(req: Request) {
                     req.signal.addEventListener("abort", () => deleteClient(taskId));
 
                     // Initialize the PRD generator
-                    // const prdGenerator = new GeneratePRD(model, taskId);
                     const prdGenerator = new GeneratePRDV2();
 
                     // Generate questions for each feature
-                    // const questions = await prdGenerator.generateQuestions(input as PRDInput);
                     const questions = await prdGenerator.generateQuestions({
                         taskId,
                         task: "Generate follow-up questions",

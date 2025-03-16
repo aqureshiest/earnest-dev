@@ -83,7 +83,7 @@ export class GeminiAIService extends BaseAIService {
     generateImageResponse(
         systemPrompt: string,
         prompt: string,
-        image: Buffer | ArrayBuffer
+        image: Buffer
     ): Promise<AIResponse> {
         throw new Error("Method not implemented.");
     }

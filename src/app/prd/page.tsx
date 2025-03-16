@@ -16,16 +16,12 @@ import {
 } from "@/components/ui/select";
 import {
     Loader2,
-    FileText,
     Plus,
     Trash2,
-    Upload,
     CheckCircle2,
     Copy,
     Settings2,
     MessageSquare,
-    Sparkle,
-    Sparkles,
     ChevronDown,
     ChevronRight,
 } from "lucide-react";
@@ -35,11 +31,9 @@ import type { FeatureQuestion, FeatureQuestions, KeyFeature, PRDInput } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MarkdownViewer from "../components/MarkdownViewer";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
-import { defaultFeatureFlowPrompt } from "@/modules/prd/featureFlowPrompt";
-import { toast } from "@/hooks/use-toast";
 import FeatureQuestionsModal from "../components/FeatureQuestionsModal";
-import { loanConsolidationPRD, LocalLensPRD } from "./samples";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { PRDAssistantFeatureFlow } from "@/modules/ai/prd/PRDAssistantFeatureFlow";
 
 // Types
 type FeatureAnalysis = {
@@ -75,31 +69,12 @@ const PRDGenerator: React.FC = () => {
     const [featureAnalyses, setFeatureAnalyses] = useState<Record<string, FeatureAnalysis>>({});
     const [activeTab, setActiveTab] = useState<string>("progress");
 
-    const [customPromptSys, setCustomPromptSys] = useState(defaultFeatureFlowPrompt.system);
-    const [customPromptUser, setCustomPromptUser] = useState(defaultFeatureFlowPrompt.user);
+    const [finalOutputPrompt, setFinalOutputPrompt] = useState(
+        PRDAssistantFeatureFlow.PROMPT_OUTPUT
+    );
 
     const [showQuestionsModal, setShowQuestionsModal] = useState(false);
     const [featureQuestions, setFeatureQuestions] = useState<FeatureQuestions[]>([]);
-
-    useEffect(() => {
-        if (!goalStatement) {
-            handleLoadSample();
-        }
-    }, [goalStatement]);
-
-    const handleLoadSample = () => {
-        const inputPRD = loanConsolidationPRD;
-        setGoalStatement(inputPRD.goalStatement);
-        setTargetAudience(inputPRD.targetAudience);
-        setFeatures(
-            inputPRD.keyFeatures.map((feature) => ({
-                ...feature,
-                id: new Date().getTime().toString(),
-                files: [],
-            }))
-        );
-        setConstraints(inputPRD.constraints);
-    };
 
     const [copied, setCopied] = useState(false);
 
@@ -186,7 +161,12 @@ const PRDGenerator: React.FC = () => {
     // Generate questions for features
     const handleGenerateQuestions = async () => {
         setIsGeneratingQuestions(true);
+        setProgress([]);
+
         try {
+            setProgress((prev) => [...prev, "Generating questions..."]);
+            setActiveTab("progress");
+
             const formData = new FormData();
             const input: PRDInput = {
                 goalStatement,
@@ -238,11 +218,7 @@ const PRDGenerator: React.FC = () => {
             }
         } catch (error: any) {
             console.error("Error generating questions:", error);
-            toast({
-                title: "Error",
-                description: `Failed to generate questions: ${error.message}`,
-                variant: "destructive",
-            });
+            setProgress((prev) => [...prev, `Error: ${error.message}`]);
         } finally {
             setIsGeneratingQuestions(false);
         }
@@ -310,8 +286,7 @@ const PRDGenerator: React.FC = () => {
 
             formData.append("input", JSON.stringify(prdInput));
             formData.append("model", selectedModel);
-            formData.append("customPromptSys", customPromptSys);
-            formData.append("customPromptUser", customPromptUser);
+            formData.append("finalOutputPrompt", finalOutputPrompt);
 
             // Add files with feature ID in the field name
             features.forEach((feature) => {
@@ -371,12 +346,6 @@ const PRDGenerator: React.FC = () => {
             }
         } catch (error: any) {
             console.error("Error generating PRD:", error);
-            setProgress((prev) => [...prev, `Error: ${error.message}`]);
-            toast({
-                title: "Error",
-                description: `Failed to generate PRD: ${error.message}`,
-                variant: "destructive",
-            });
         } finally {
             setIsGenerating(false);
         }
@@ -544,6 +513,7 @@ const PRDGenerator: React.FC = () => {
                                                         e.target.files
                                                     )
                                                 }
+                                                accept="image/png,application/pdf"
                                                 className="text-sm file:mr-4 file:py-2 file:px-4
                                  file:rounded-full file:border-0
                                  file:text-sm file:font-semibold
@@ -657,7 +627,7 @@ const PRDGenerator: React.FC = () => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.8 }}
                     >
-                        <Card className="border-none shadow-lg sticky top-8">
+                        <Card className="border-none shadow-lg ">
                             <CardContent className="p-6 space-y-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-2">
@@ -668,8 +638,9 @@ const PRDGenerator: React.FC = () => {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => {
-                                            setCustomPromptSys(defaultFeatureFlowPrompt.system);
-                                            setCustomPromptUser(defaultFeatureFlowPrompt.user);
+                                            setFinalOutputPrompt(
+                                                PRDAssistantFeatureFlow.PROMPT_OUTPUT
+                                            );
                                         }}
                                     >
                                         Reset Defaults
@@ -698,23 +669,13 @@ const PRDGenerator: React.FC = () => {
                                     </CollapsibleTrigger>
                                     <CollapsibleContent className="space-y-4 mt-4">
                                         <div className="space-y-2">
-                                            <Label>System Prompt</Label>
+                                            <Label>Final Output</Label>
                                             <Textarea
-                                                value={customPromptSys}
-                                                onChange={(e) => setCustomPromptSys(e.target.value)}
-                                                rows={6}
-                                                className="resize-none"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Feature Flow Prompt</Label>
-                                            <Textarea
-                                                value={customPromptUser}
+                                                value={finalOutputPrompt}
                                                 onChange={(e) =>
-                                                    setCustomPromptUser(e.target.value)
+                                                    setFinalOutputPrompt(e.target.value)
                                                 }
-                                                rows={20}
-                                                className="resize-none"
+                                                rows={16}
                                             />
                                         </div>
                                     </CollapsibleContent>
@@ -752,6 +713,7 @@ const PRDGenerator: React.FC = () => {
                 <AnimatePresence>
                     {(isGenerating ||
                         generatedContent ||
+                        progress.length > 0 ||
                         Object.keys(featureAnalyses).length > 0) && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}

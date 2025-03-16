@@ -6,10 +6,12 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
     async process(request: T): Promise<AIAssistantResponse<R> | null> {
         const { taskId, model, task, params } = request;
 
+        const modelToUse = this.overrideModel || model;
+
         console.log(
             `\n[${chalk.yellow(
                 this.constructor.name
-            )}] Processing task:\n>>${task}\n>>with model: ${model}`
+            )}] Processing task:\n>>${task}\n>>with model: ${modelToUse}`
         );
 
         const systemPrompt = this.getSystemPrompt();
@@ -27,7 +29,7 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
         const { totalTokens, prompt: finalizedPrompt } = this.tokenLimiter.applyTokenLimitToPrompt(
             systemPrompt,
             userPrompt,
-            model,
+            modelToUse,
             this.tokenAllocation
         );
 
@@ -36,7 +38,7 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
         saveRunInfo(request, folder, "user_prompt", finalizedPrompt);
 
         // generate responsex
-        const aiResponse = await this.generateResponse(model, systemPrompt, finalizedPrompt);
+        const aiResponse = await this.generateResponse(modelToUse, systemPrompt, finalizedPrompt);
         if (!aiResponse) return null;
 
         // parse the response

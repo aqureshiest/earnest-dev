@@ -86,7 +86,7 @@ export const LLMS: LLM[] = [
         outputCost: 4,
         maxInputTokens: 200000,
         maxOutputTokens: 8192,
-        tokenPaddingFactor: 1.15,
+        tokenPaddingFactor: 1.18,
     },
     {
         model: LLM_MODELS.ANTHROPIC_CLAUDE_3_7_SONNET.id,
@@ -94,7 +94,7 @@ export const LLMS: LLM[] = [
         outputCost: 15,
         maxInputTokens: 200000,
         maxOutputTokens: 8192,
-        tokenPaddingFactor: 1.15,
+        tokenPaddingFactor: 1.18,
     },
     // Gemini
     {
@@ -112,7 +112,7 @@ export const LLMS: LLM[] = [
         outputCost: 15,
         maxInputTokens: 200000,
         maxOutputTokens: 8192,
-        tokenPaddingFactor: 1.15,
+        tokenPaddingFactor: 1.18,
     },
     {
         model: LLM_MODELS.AWS_BEDROCK_CLAUDE_35_HAIKU_V2.id,
@@ -120,7 +120,7 @@ export const LLMS: LLM[] = [
         outputCost: 5,
         maxInputTokens: 200000,
         maxOutputTokens: 8192,
-        tokenPaddingFactor: 1.15,
+        tokenPaddingFactor: 1.18,
     },
     // OLLama
     {

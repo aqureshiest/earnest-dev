@@ -6,10 +6,12 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
     async process(request: CodingTaskRequest): Promise<AIAssistantResponse<R> | null> {
         const { model, task, taskId, files, params } = request;
 
+        const modelToUse = this.overrideModel || model;
+
         console.log(
             `[${chalk.yellow(
                 this.constructor.name
-            )}] Processing task:\n>>${task}\n>>with model: ${model}`
+            )}] Processing task:\n>>${task}\n>>with model: ${modelToUse}`
         );
 
         const systemPrompt = this.getSystemPrompt();
@@ -27,7 +29,7 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
         const { totalTokens, allowedFiles } = this.tokenLimiter.applyTokenLimit(
             systemPrompt + userPrompt,
             files,
-            model,
+            modelToUse,
             this.tokenAllocation
         );
 
@@ -39,7 +41,11 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
         saveRunInfo(request, folder, "user_prompt", finalPromptWithFiles);
 
         // generate response
-        const aiResponse = await this.generateResponse(model, systemPrompt, finalPromptWithFiles);
+        const aiResponse = await this.generateResponse(
+            modelToUse,
+            systemPrompt,
+            finalPromptWithFiles
+        );
         if (!aiResponse) return null;
 
         // parse the response

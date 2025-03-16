@@ -1,8 +1,8 @@
 import { createHash } from "crypto";
-import fs from "fs/promises";
 import path from "path";
 import chalk from "chalk";
 import { reportError } from "@/modules/bugsnag/report";
+import { createDirectorySafe, readFileSafe, writeFileSafe } from "@/modules/utils/file";
 
 export interface AIResponse {
     response: string;
@@ -28,16 +28,18 @@ export abstract class BaseAIService {
     abstract generateImageResponse(
         systemPrompt: string,
         prompt: string,
-        image: Buffer | ArrayBuffer
+        image: Buffer,
+        media_type: "image/png" | "application/pdf"
     ): Promise<AIResponse>;
 
     protected async cacheResponse(key: string, response: AIResponse): Promise<void> {
         if (!this.useCache) return;
 
         const cacheDir = path.join(process.cwd(), this.cacheDir);
-        await fs.mkdir(cacheDir, { recursive: true });
+        await createDirectorySafe(cacheDir);
+
         const cacheFile = path.join(cacheDir, `${key}.json`);
-        await fs.writeFile(cacheFile, JSON.stringify(response));
+        await writeFileSafe(cacheFile, JSON.stringify(response));
     }
 
     protected async getCachedResponse(key: string): Promise<AIResponse | null> {
@@ -45,7 +47,7 @@ export abstract class BaseAIService {
 
         const cacheFile = path.join(process.cwd(), this.cacheDir, `${key}.json`);
         try {
-            const data = await fs.readFile(cacheFile, "utf-8");
+            const data = (await readFileSafe(cacheFile)) as string;
             return JSON.parse(data) as AIResponse;
         } catch (error) {
             return null;

@@ -11,18 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-import {
-    Check,
-    Code,
-    FileSearch,
-    GitPullRequest,
-    GitPullRequestArrow,
-    Maximize,
-    Minimize,
-    SearchCheck,
-    Telescope,
-    X,
-} from "lucide-react";
+import { Check, Code, GitPullRequestArrow, Maximize, Minimize, SearchCheck, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import RepoAndBranchSelection from "../components/RepoAndBranchSelection";
 import AIModelSelection from "../components/AIModelSelection";

@@ -100,3 +100,4 @@ BEGIN
     similarity DESC;
 END;
 $$ LANGUAGE plpgsql;
+

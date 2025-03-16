@@ -3,11 +3,15 @@ import { CodebaseAssistant } from "@/modules/ai/assistants/CodebaseAssistant";
 import { ResponseParser } from "@/modules/ai/support/ResponseParser";
 import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
+import { LLM_MODELS } from "@/modules/utils/llmInfo";
 
 export class WriterAssistant extends CodebaseAssistant<string> {
     private responseParser: ResponseParser<string>;
 
     responseType = "markdown";
+
+    // override model to a smaller one
+    overrideModel = LLM_MODELS.AWS_BEDROCK_CLAUDE_35_HAIKU_V2.id;
 
     constructor() {
         super(new PromptBuilder(), new TokenLimiter());

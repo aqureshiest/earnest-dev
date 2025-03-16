@@ -1,7 +1,8 @@
 import yaml from "js-yaml";
 import { XMLBuilder } from "fast-xml-parser";
 import path from "path";
-import fs from "fs";
+import { createDirectorySafe, fileExistsSafe, writeFileSafe } from "./file";
+import { write } from "fs";
 
 export enum EXTS {
     TXT = "txt",
@@ -11,7 +12,7 @@ export enum EXTS {
     JSON = "json",
 }
 
-export function saveRunInfo<R extends TaskRequest, T>(
+export async function saveRunInfo<R extends TaskRequest, T>(
     request: R,
     assistant: string,
     infoType: string,
@@ -27,7 +28,7 @@ export function saveRunInfo<R extends TaskRequest, T>(
 
     const { taskId, task, model } = request;
 
-    // convert info to string
+    // Convert info to string based on extension
     let infoString = "";
     if (infoExtension === EXTS.YAML) {
         infoString = yaml.dump(info);
@@ -47,38 +48,36 @@ export function saveRunInfo<R extends TaskRequest, T>(
     }
 
     if (writeToFile === "true") {
-        // create directory for this run in the root directory
+        // Create directory for this run
         const runDir = path.join(process.cwd(), "runs", taskId, assistant.toLowerCase());
 
-        // check if dir already exists
-        if (!fs.existsSync(runDir)) {
-            // mk dirs
-            fs.mkdirSync(runDir, { recursive: true });
-
-            // exclude last dir from runDir
-            const dirs = runDir.split(path.sep);
-            const taskDir = dirs.slice(0, dirs.length - 1).join(path.sep);
-
-            // write a text file that contains the task and model
-            const runInfoFile = path.join(taskDir, "info.txt");
-            const runInfo = `Task: ${task}\nModel: ${model}\n`;
-            fs.writeFileSync(runInfoFile, runInfo);
+        // Ensure the directory exists
+        const exists = await fileExistsSafe(runDir);
+        if (!exists) {
+            await createDirectorySafe(runDir);
         }
 
-        // make sure it exists
-        if (!fs.existsSync(runDir)) {
+        // Make sure it was created successfully
+        const dirStillExists = await fileExistsSafe(runDir);
+        if (!dirStillExists) {
             console.error("Unable to create Run directory");
             return;
         }
 
-        // create a new file in the runDir
-        const runInfoFile = path.join(runDir, `${infoType}.${infoExtension}`);
+        // Create task info file
+        const dirs = runDir.split(path.sep);
+        const taskDir = dirs.slice(0, dirs.length - 1).join(path.sep);
+        const runInfoFile = path.join(taskDir, "info.txt");
+        const runInfo = `Task: ${task}\nModel: ${model}\n`;
 
-        fs.writeFileSync(runInfoFile, infoString.trim());
+        await writeFileSafe(runInfoFile, runInfo);
+
+        // Create the final run info file
+        const finalFilePath = path.join(runDir, `${infoType}.${infoExtension}`);
+        await writeFileSafe(finalFilePath, infoString.trim());
     }
 
     if (writeToConsole === "true") {
-        // output to console
         console.log(`[${taskId}] [${assistant}] ${infoType}:\n${infoString.trim()}`);
     }
 }

@@ -1,14 +1,11 @@
 export interface PRDTaskRequest extends TaskRequest {
     input: PRDInput;
-    overrides?: {
-        featurePrompt?: string;
-    };
 }
 
 export interface FigmaScreen {
     id: string;
     name: string;
-    imageBuffer: Buffer | ArrayBuffer;
+    imageBuffer: Buffer;
     description?: string;
 }
 

@@ -78,13 +78,24 @@ export class OpenAIService extends BaseAIService {
     async generateImageResponse(
         systemPrompt: string,
         textPrompt: string,
-        image: Buffer
+        image: Buffer,
+        mediaType: "image/png" | "application/pdf"
     ): Promise<AIResponse> {
+        // only supporting image/png for now
+        if (mediaType !== "image/png") {
+            throw new Error("Unsupported media type. Only 'image/png' is supported.");
+        }
+
         this.logServiceHeader("OpenAI Image Service");
         this.logPrompts(systemPrompt, textPrompt);
 
-        const imageHash = createHash("sha256").update(image).digest("hex");
-        const cacheKey = this.getCacheKey(this.model, systemPrompt, textPrompt + imageHash);
+        const imageBuffer = Buffer.isBuffer(image) ? image : Buffer.from(image);
+        const imageHash = createHash("sha256").update(imageBuffer).digest("hex");
+        const cacheKey = this.getCacheKey(
+            this.model,
+            systemPrompt,
+            textPrompt + imageHash + mediaType
+        );
 
         const cachedResponse = await this.getCachedResponse(cacheKey);
         if (cachedResponse) {

@@ -1,5 +1,5 @@
 import { LLM_MODELS, LLMS } from "../../utils/llmInfo";
-import { BaseAIService } from "./BaseAIService";
+import { AIResponse, BaseAIService } from "./BaseAIService";
 import chalk from "chalk";
 
 interface OllamaResponse {
@@ -114,8 +114,9 @@ export class OllamaAIService extends BaseAIService {
     generateImageResponse(
         systemPrompt: string,
         prompt: string,
-        image: Buffer | ArrayBuffer
+        image: Buffer,
+        media_type?: "image/png" | "application/pdf"
     ): Promise<AIResponse> {
-        throw new Error("Method not implemented.");
+        throw new Error("Method not implemented. Ollama does not support image generation.");
     }
 }

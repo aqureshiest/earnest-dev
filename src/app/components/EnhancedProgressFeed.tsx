@@ -63,12 +63,10 @@ const EnhancedProgressFeed: React.FC<EnhancedProgressFeedProps> = ({
 
     return (
         <Card>
-            <CardHeader className="pb-2">
-                <CardTitle>{title}</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-2">{title && <CardTitle>{title}</CardTitle>}</CardHeader>
             <CardContent>
                 <ScrollArea
-                    className={`pr-4 mt-2`}
+                    className={`pr-4 ${title ? "mt-2" : ""}`}
                     style={{ height: maxHeight }}
                     ref={scrollAreaRef}
                 >

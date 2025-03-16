@@ -6,6 +6,9 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
     // how much of the token context window should be used for the user prompt
     protected tokenAllocation: number = 50;
 
+    // override model in specialized cases
+    protected overrideModel: string | null = null;
+
     constructor(protected promptBuilder: PromptBuilder, protected tokenLimiter: TokenLimiter) {}
 
     responseType: string = "xml";
@@ -33,13 +36,14 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
         model: string,
         systemPrompt: string,
         prompt: string,
-        imageBuffer: Buffer | ArrayBuffer
+        imageBuffer: Buffer,
+        media_type: "image/png" | "application/pdf"
     ): Promise<AIResponse | null> {
         // pick the ai model
         const aiService = AIServiceFactory.createAIService(model);
 
         // generate code
-        return await aiService.generateImageResponse(systemPrompt, prompt, imageBuffer);
+        return await aiService.generateImageResponse(systemPrompt, prompt, imageBuffer, media_type);
     }
 }
 

@@ -22,7 +22,7 @@ interface TaskRequest {
 
 interface ImageProcessTaskRequest extends TaskRequest {
     description?: string;
-    imageBuffer: Buffer | ArrayBuffer;
+    imageBuffer: Buffer;
 }
 
 interface CodingTaskRequest extends TaskRequest {
@@ -31,6 +31,8 @@ interface CodingTaskRequest extends TaskRequest {
     branch: string;
     files: FileDetails[];
 }
+
+interface CodebaseQuestionRequest extends CodingTaskRequest {}
 
 interface JiraTicketsRequest extends CodingTaskRequest {
     tddContent: string;
