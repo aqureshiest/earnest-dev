@@ -614,7 +614,7 @@ const IntegrationTestGenerator: React.FC = () => {
                                         <div className="flex items-center gap-3 mb-4 text-primary">
                                             <Loader2 className="h-5 w-5 animate-spin" />
                                             <h3 className="font-medium">
-                                                Generating Integratio Test Specifications...
+                                                Generating Integration Test Specifications...
                                             </h3>
                                         </div>
                                     )}

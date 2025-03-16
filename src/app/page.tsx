@@ -21,8 +21,20 @@ import {
     Sparkles,
     CodeIcon,
     BadgeCheck,
+    ChevronDown,
+    Brain,
+    TestTubeIcon,
+    TestTube2,
+    TestTubeDiagonal,
+    Cable,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const HomePage: React.FC = () => {
     const [activeTab, setActiveTab] = useState("developer"); // Default to "developer"
@@ -46,6 +58,30 @@ const HomePage: React.FC = () => {
 
     if (!mounted) return null; // Prevents mismatched SSR and client rendering
 
+    // Workspace options for the dropdown
+    const workspaces = [
+        {
+            id: "developer",
+            label: "Developer Workspace",
+            icon: <Terminal className="h-4 w-4 ml-1" />,
+        },
+        {
+            id: "management",
+            label: "Manager Workspace",
+            icon: <Briefcase className="h-4 w-4 ml-1" />,
+        },
+        {
+            id: "qe",
+            label: "QE Workspace",
+            icon: <TestTubeDiagonal className="h-4 w-4 ml-1" />,
+        },
+        // Easy to add more workspaces here
+    ];
+
+    // Get the current workspace label and icon
+    const currentWorkspace =
+        workspaces.find((workspace) => workspace.id === activeTab) || workspaces[0];
+
     const devTools = [
         {
             href: "/pullrequest/v2",
@@ -58,6 +94,16 @@ const HomePage: React.FC = () => {
             buttonText: "Create Pull Request",
             status: "ready" as const,
             variant: "default" as const,
+        },
+        {
+            href: "/codebase-qa",
+            icon: <Brain className="h-6 w-6 text-green-500" />,
+            title: "Codebase Q&A",
+            description: "Ask questions about your codebase",
+            content:
+                "Interact with your codebase using natural language and get answers to your questions.",
+            buttonText: "Ask a Question",
+            status: "beta" as const,
         },
         {
             href: "/code-analysis",
@@ -92,6 +138,20 @@ const HomePage: React.FC = () => {
             content:
                 "Transform technical design documents into well-structured Jira epics and tickets with intelligent task breakdown and estimation.",
             buttonText: "Generate Tickets",
+            status: "development" as const,
+            variant: "outline" as const,
+        },
+    ];
+
+    const qeTools = [
+        {
+            href: "/integration-tests",
+            icon: <Cable className="h-6 w-6 text-green-500" />,
+            title: "AI Integration Tests",
+            description: "Automated integration test generation",
+            content:
+                "Generate integration test specifications from design documents and integration maps using AI.",
+            buttonText: "Generate Tests",
             status: "development" as const,
             variant: "outline" as const,
         },
@@ -210,29 +270,67 @@ const HomePage: React.FC = () => {
                                 project management workflows.
                             </p>
 
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                <Button
-                                    size="lg"
-                                    className={`gap-2 px-6 ${
-                                        activeTab === "developer"
-                                            ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white dark:from-indigo-600 dark:to-cyan-600 dark:text-white"
-                                            : "bg-gray-200 text-gray-700 dark:bg-neutral-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-800"
-                                    }`}
-                                    onClick={() => setActiveTab("developer")}
-                                >
-                                    Developer Workspace <Terminal className="h-4 w-4 ml-1" />
-                                </Button>
-                                <Button
-                                    size="lg"
-                                    className={`gap-2 px-6 ${
-                                        activeTab === "management"
-                                            ? "bg-gradient-to-r from-indigo-600 to-cyan-600 text-white dark:from-indigo-600 dark:to-cyan-600 dark:text-white"
-                                            : "bg-gray-200 text-gray-700 dark:bg-neutral-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-800"
-                                    }`}
-                                    onClick={() => setActiveTab("management")}
-                                >
-                                    Manager Workspace <Briefcase className="h-4 w-4 ml-1" />
-                                </Button>
+                            {/* Workspace selector with clear label */}
+                            <div className="space-y-3">
+                                <div className="flex items-center">
+                                    <span className="text-sm font-medium text-muted-foreground mr-2">
+                                        Select workspace:
+                                    </span>
+                                </div>
+                                <div className="flex gap-3">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                size="lg"
+                                                variant="outline"
+                                                className="gap-2 px-6 border-2 w-full justify-between bg-white/80 dark:bg-gray-800/80 hover:bg-white/90 dark:hover:bg-gray-800/90"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1 rounded-md bg-indigo-500/10">
+                                                        {currentWorkspace.icon}
+                                                    </div>
+                                                    <span>{currentWorkspace.label}</span>
+                                                </div>
+                                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            align="start"
+                                            className="w-full min-w-[300px]"
+                                        >
+                                            <div className="py-2 px-3 text-xs font-medium text-muted-foreground border-b">
+                                                Available Workspaces
+                                            </div>
+                                            {workspaces.map((workspace) => (
+                                                <DropdownMenuItem
+                                                    key={workspace.id}
+                                                    className={`flex items-center gap-2 py-2 ${
+                                                        activeTab === workspace.id
+                                                            ? "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-medium"
+                                                            : ""
+                                                    }`}
+                                                    onClick={() => setActiveTab(workspace.id)}
+                                                >
+                                                    <div
+                                                        className={`p-1 rounded-md ${
+                                                            activeTab === workspace.id
+                                                                ? "bg-indigo-500/15"
+                                                                : "bg-gray-100 dark:bg-gray-800"
+                                                        }`}
+                                                    >
+                                                        {workspace.icon}
+                                                    </div>
+                                                    <span>{workspace.label}</span>
+                                                    {activeTab === workspace.id && (
+                                                        <Badge className="ml-auto bg-indigo-500/10 text-indigo-500 border-indigo-500/20 text-xs font-normal py-0">
+                                                            Active
+                                                        </Badge>
+                                                    )}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
                         </div>
 
@@ -322,6 +420,21 @@ const HomePage: React.FC = () => {
                                     ))}
                                 </div>
                             </TabsContent>
+
+                            <TabsContent value="qe" className="space-y-6">
+                                <div className="text-center max-w-2xl mx-auto mb-6">
+                                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-500/10 text-green-500 mb-3">
+                                        <Code className="h-4 w-4 mr-2" />
+                                        <span className="text-sm font-medium">QE Workspace</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-12">
+                                    {qeTools.map((tool, index) => (
+                                        <ToolCard key={index} tool={tool} />
+                                    ))}
+                                </div>
+                            </TabsContent>
                         </Tabs>
                     </div>
                 </div>
@@ -331,7 +444,7 @@ const HomePage: React.FC = () => {
             <footer className="border-t border-border/30 py-8 mt-8 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
                 <div className="container max-w-6xl mx-auto px-6">
                     <div className="text-center text-sm text-muted-foreground">
-                        © {new Date().getFullYear()} Earnest. All rights reserved.
+                        © {new Date().getFullYear()} Earnest. Internal use only.
                     </div>
                 </div>
             </footer>
