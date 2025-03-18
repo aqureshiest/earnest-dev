@@ -60,6 +60,7 @@ export AWS_PROFILE=est-development-Okta-Development-Eng
 ```
 
 Replace `your-github-token` with the token you generated in step 2, and `your-github-username` with your GitHub username.
+Ensure that `AWS_PROFILE` is set to the profile name specified in ~/.aws/credentials, not the native AWS profile name (account name + role name). These may be the same, but in the case that they are not, you must match the credentials file rather than the AWS profile.
 
 ### 4. AWS Access Setup
 
