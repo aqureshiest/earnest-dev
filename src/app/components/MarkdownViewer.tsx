@@ -15,7 +15,6 @@ type MarkdownViewerProps = {
 const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
     const [svg, setSvg] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
-    const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
     const id = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
     const diagramRef = useRef<HTMLDivElement>(null);
 
@@ -46,23 +45,6 @@ const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
         renderDiagram();
     }, [content, mermaid]);
 
-    // Handle ESC key to exit fullscreen
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape" && isFullscreen) {
-                setIsFullscreen(false);
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isFullscreen]);
-
-    // Toggle fullscreen view
-    const toggleFullscreen = () => {
-        setIsFullscreen(!isFullscreen);
-    };
-
     if (error) {
         return (
             <div className="p-4 border border-red-500 rounded bg-red-100 dark:bg-red-900 dark:text-red-200">
@@ -77,56 +59,9 @@ const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
             {/* Regular diagram display */}
             <div
                 ref={diagramRef}
-                className="my-4 flex justify-center cursor-pointer relative group"
-                onClick={toggleFullscreen}
+                className="my-4 flex justify-center relative group"
                 dangerouslySetInnerHTML={{ __html: svg }}
-            >
-                {/* We'll use CSS to show a fullscreen hint on hover */}
-            </div>
-
-            {/* Fullscreen overlay */}
-            {isFullscreen && (
-                <div className="fixed inset-0 bg-black z-50 flex items-center justify-center p-4">
-                    <div className="w-full h-full max-w-6xl max-h-screen overflow-auto flex flex-col">
-                        <div className="flex justify-end mb-2">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsFullscreen(false);
-                                }}
-                                className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-700"
-                            >
-                                Close [ESC]
-                            </button>
-                        </div>
-                        <div
-                            className="flex-1 flex items-center justify-center"
-                            dangerouslySetInnerHTML={{ __html: svg }}
-                        />
-                    </div>
-                </div>
-            )}
-
-            {/* Add inline styles for hover effect */}
-            <style jsx>{`
-                .mermaid-svg {
-                    filter: brightness(1.05);
-                }
-                .mermaid-svg:hover {
-                    filter: brightness(1.2);
-                }
-                .group:hover::after {
-                    content: "Click to enlarge";
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    background-color: rgba(0, 0, 0, 0.8);
-                    color: white;
-                    padding: 4px 8px;
-                    border-radius: 4px;
-                    font-size: 12px;
-                }
-            `}</style>
+            ></div>
         </>
     );
 };
@@ -157,9 +92,6 @@ const CodeBlock = ({
 };
 
 const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, className }) => {
-    // Optional: Log for debugging if you want to check what's being passed to the component
-    // console.log("Content contains mermaid?", content.includes("```mermaid"));
-
     return (
         <div
             className={`

@@ -6,24 +6,31 @@ let initialized = false;
 export const initializeMermaid = () => {
     // Only initialize once, even if called multiple times
     if (typeof window !== "undefined" && !initialized) {
+        // Check if system prefers dark mode
+        const prefersDarkMode =
+            window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
         mermaid.initialize({
-            theme: "dark",
             securityLevel: "loose",
-            fontFamily: "monospace",
             startOnLoad: false,
-            darkMode: true,
-            themeVariables: {
-                primaryColor: "#6366f1",
-                primaryTextColor: "#ffffff",
-                primaryBorderColor: "#818cf8",
-                lineColor: "#c7d2fe",
-                secondaryColor: "#4f46e5",
-                tertiaryColor: "#1e1b4b",
-            },
+            darkMode: prefersDarkMode, // Use system preference for dark mode
         });
 
+        // Add listener to update theme if system preference changes
+        if (window.matchMedia) {
+            window
+                .matchMedia("(prefers-color-scheme: dark)")
+                .addEventListener("change", (event) => {
+                    mermaid.initialize({
+                        securityLevel: "loose",
+                        startOnLoad: false,
+                        darkMode: event.matches,
+                    });
+                });
+        }
+
         initialized = true;
-        console.log("Mermaid initialized");
+        console.log("Mermaid initialized with darkMode:", prefersDarkMode);
     }
 
     return mermaid;

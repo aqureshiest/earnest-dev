@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Brain, Code, Send, Loader2, RefreshCw } from "lucide-react";
+import { Brain, Code, Send, Loader2, RefreshCw, Maximize2, Minimize2 } from "lucide-react";
 import EnhancedProgressFeed, {
     EnhancedProgressMessage,
 } from "@/app/components/EnhancedProgressFeed";
@@ -45,14 +45,21 @@ const CodebaseQA: React.FC = () => {
     const [isRepoDialogOpen, setIsRepoDialogOpen] = useState(false);
     const [useConversationHistory, setUseConversationHistory] = useState(true);
 
-    const helpMessage = `Welcome to Codebase Q&A! Select a repository and ask questions about the code.
-                
-            Conversation mode ON: Your questions will include context from past few exchanges.
-            Conversation mode OFF: Each question is treated independently.
-                        
-            To start a new conversation, click "New Conversation" or select a different repository.
-            
-            Note: The first question may take a moment to process as the codebase is being analyzed.`;
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    const helpMessage = `**Codebase Q&A**
+- Select a repository to explore your code
+- **Conversation Mode** ON to ask follow up questions (limit to a few questions)
+- **Conversation Mode** OFF for independent questions
+- Use **New Conversation** to start fresh
+- First analysis may take a longer time to process the codebase
+`;
+
+    const [templateQuestions] = useState([
+        "Explain how this repo works?",
+        "Generate an architecture diagram of this codebase",
+        "Identify potential improvements in this code",
+    ]);
 
     const [conversation, setConversation] = useState<Message[]>([
         {
@@ -90,7 +97,9 @@ const CodebaseQA: React.FC = () => {
     };
 
     const handleSubmitQuestion = async () => {
+        console.log("Submitting question:", question);
         if (!question.trim() || !repo || !branch || isProcessing) return;
+        console.log("Processing question...");
 
         setIsProcessing(true);
         const newTaskId = Date.now().toString();
@@ -258,13 +267,8 @@ const CodebaseQA: React.FC = () => {
 
     // Start a new conversation
     const handleStartNewConversation = () => {
-        setConversation([
-            {
-                role: "system",
-                content: helpMessage,
-                timestamp: new Date(),
-            },
-        ]);
+        setConversation([]);
+        setQuestion("");
         setProgressMessages([]);
         addProgressMessage("Started a new conversation", "info");
     };
@@ -365,8 +369,22 @@ const CodebaseQA: React.FC = () => {
                 </motion.div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Main Chat Area - 3/4 width on medium screens and above */}
-                    <Card className="h-[calc(100vh-150px)] flex flex-col md:col-span-3">
+                    {/* Main Chat Area - dynamically sized based on expanded state */}
+                    <Card
+                        className={`h-[calc(100vh-150px)] flex flex-col relative ${
+                            isExpanded ? "md:col-span-4" : "md:col-span-3"
+                        }`}
+                    >
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="absolute top-2 right-2 h-8 w-8 z-10 hidden md:flex"
+                            title={isExpanded ? "Collapse" : "Expand"}
+                        >
+                            <Maximize2 className={isExpanded ? "hidden" : "h-4 w-4"} />
+                            <Minimize2 className={isExpanded ? "h-4 w-4" : "hidden"} />
+                        </Button>
                         <CardContent className="flex-grow overflow-hidden p-0 flex flex-col">
                             {/* Conversation History */}
                             <ScrollArea className="flex-grow p-4">
@@ -402,8 +420,7 @@ const CodebaseQA: React.FC = () => {
                                                             : "bg-card border"
                                                     }`}
                                                 >
-                                                    {message.role === "system" ||
-                                                    message.role === "user" ? (
+                                                    {message.role === "user" ? (
                                                         <div className="whitespace-pre-wrap">
                                                             {message.content}
                                                         </div>
@@ -431,6 +448,27 @@ const CodebaseQA: React.FC = () => {
 
                             {/* Question Input */}
                             <div className="p-4 border-t mt-auto">
+                                {/* Template Questions - MOVED OUTSIDE the flex container */}
+                                {repo && branch && !isProcessing && (
+                                    <div className="mb-3 flex flex-wrap gap-2">
+                                        <p className="text-sm text-muted-foreground w-full mb-1">
+                                            Try asking:
+                                        </p>
+                                        {templateQuestions.map((q, index) => (
+                                            <Button
+                                                key={index}
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs bg-primary/5 hover:bg-primary/10 border-primary/10"
+                                                onClick={() => setQuestion(q)}
+                                            >
+                                                {q}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Textarea and send button in their own flex container */}
                                 <div className="flex gap-2">
                                     <Textarea
                                         value={question}
@@ -470,12 +508,12 @@ const CodebaseQA: React.FC = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Progress Feed - 1/4 width on medium screens and above */}
-                    <div className="h-[calc(100vh-150px)] flex flex-col">
-                        {/* <CardContent className="p-4 flex-grow overflow-hidden"> */}
-                        <EnhancedProgressFeed messages={progressMessages} maxHeight="550px" />
-                        {/* </CardContent> */}
-                    </div>
+                    {/* Progress Feed - hidden when expanded */}
+                    {!isExpanded && (
+                        <div className="h-[calc(100vh-150px)] flex flex-col">
+                            <EnhancedProgressFeed messages={progressMessages} maxHeight="500px" />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

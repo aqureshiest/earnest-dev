@@ -51,10 +51,14 @@ export class RepositoryService {
         });
 
         if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-            throw new Error(`Stopping due to ${MAX_CONSECUTIVE_FAILURES} consecutive failures`);
+            throw new Error(
+                `Stopping due to ${MAX_CONSECUTIVE_FAILURES} consecutive failures in pulling files`
+            );
         }
         if (this.failureLog.length >= MAX_TOTAL_FAILURES) {
-            throw new Error(`Stopping due to ${MAX_TOTAL_FAILURES} total failures`);
+            throw new Error(
+                `Stopping due to ${MAX_TOTAL_FAILURES} total failures in pulling files`
+            );
         }
     }
 
