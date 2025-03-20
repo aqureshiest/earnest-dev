@@ -1,116 +1,111 @@
-# Earnest AI Dev
+# Earnest AI Tools Local Development Guide
 
-Earnest AI Dev is a project designed to empower developers at Earnest by leveraging AI assistants to generate code.
+This guide will walk you through setting up the project for local development.
 
-## Table of Contents
+## Prerequisites
 
-- [Core Setup](#core-setup)
-  - [GitHub Token](#github-token)
-  - [Supabase](#supabase)
-- [AI Model Setup](#ai-model-setup)
-  - [AWS Bedrock](#aws-bedrock)
-  - [OpenAI](#openai)
-  - [Anthropic](#anthropic)
-- [Installation and Setup](#installation-and-setup)
-- [Running the Project](#running-the-project)
-- [Environment Example File](#environment-example-file)
+-   Git
+-   Docker and Docker Compose
+-   AWS CLI
+-   saml2aws
+-   Node.js environment (for local development outside Docker)
 
-## Core Setup
+## Setup Process
 
-These steps are required regardless of which AI models you plan to use.
+### 1. Clone the Repository
 
-### GitHub Token
+```bash
+git clone https://github.com/aqureshiest/earnest-dev
+cd earnest-dev
+```
 
-1. Go to your GitHub account.
-2. Navigate to **Settings** > **Developer settings** > **Personal access tokens**.
-3. Generate a new token with `repo` scope to allow access to your repositories.
-4. Under `Permissions`, select `Read and write` for `Pull requests` and `Contents`.
-5. Copy the token and set it as the value for `GITHUB_TOKEN` and `NEXT_PUBLIC_GITHUB_TOKEN` in your `.env.local` file.
-6. The `NEXT_PUBLIC_GITHUB_OWNER` should be set to the GitHub username or organization name owning the repositories.
+### 2. GitHub Access Token
 
-### Supabase
+You'll need a GitHub personal access token with appropriate permissions:
 
-1. Sign up or log in to [Supabase](https://supabase.com/).
-2. Create a new project or select an existing one.
-3. Go to the **Project Settings** > **API** section.
-4. Copy the `URL` and `anon` key provided.
-5. Set the `NEXT_PUBLIC_SUPABASE_URL` to the copied `URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the `anon` key in your `.env.local` file.
-6. Run the SQL from `src/modules/db/schema.sql` in Supabase SQL editor to create the tables and the function.
+1. Go to your GitHub account
+2. Navigate to **Settings** > **Developer settings** > **Personal access tokens**
+3. Generate a new token with access to all or selected repositories.
+4. Under `Permissions`, select `Read and write` for both `Pull requests` and `Contents`
+5. Copy the generated token for the next step
 
-## AI Model Setup
+### 3. Environment Configuration
 
-Choose and configure one or more of the following AI model providers:
+Create a `.env.production` file in the project root with the following contents:
 
-### AWS Bedrock
+```
+# Application Configuration
+NODE_ENV=production
+PORT=3000
 
-1. Configure AWS credentials using SAML2AWS:
+GITHUB_TOKEN=your-github-token
+NEXT_PUBLIC_GITHUB_TOKEN=your-github-token
+NEXT_PUBLIC_GITHUB_OWNER=your-github-username
+
+# defined in docker compose
+# DATABASE_URL=postgres://postgres@localhost:5432/
+
+# app settings
+WRITE_RUN_INFO_TO_FILE=true
+AI_SERVICE_USE_CACHE=true
+
+EMBEDDING_PROVIDER=titan
+
+METRICS_LOGGING_ENABLED=true
+
+BUGSNAG_API_KEY=38aad8f4a1dc9fcf047e639e70e5afd7
+
+export AWS_REGION=us-east-1
+export AWS_PROFILE=est-development-Okta-Development-Eng
+```
+
+Replace `your-github-token` with the token you generated in step 2, and `your-github-username` with your GitHub username.
+
+### 4. AWS Access Setup
+
+#### Verify AWS Bedrock Model Access
+
+Before proceeding, you'll need to ensure you have access to the required AWS Bedrock models:
+
+1. Login to Okta
+2. Select AWS Dev from the available applications
+3. Navigate to AWS Bedrock service
+4. Click on **Model Catalog** under Foundation Models
+5. Verify you have access to:
+    - **Claude 3.7 Sonnet**
+    - **Claude 3.5 Haiku**
+    - **Titan Text Embeddings V2**
+
+If you don't have access to these models, request access.
+
+#### Configure AWS Credentials
+
+1. Authenticate and obtain AWS credentials:
     ```bash
     saml2aws login
     ```
-2. When prompted, log in to your OKTA account and select the AWS development account.
+    This will populate your `~/.aws/credentials` file with temporary AWS credentials.
 
-3. Set your AWS profile:
-    ```bash
-    export AWS_PROFILE=est-development-Okta-Development-Eng
-    ```
+### 5. Set AWS Credentials Permissions
 
-### OpenAI
-
-1. Sign up or log in to [OpenAI](https://platform.openai.com/).
-2. Navigate to **API Keys** under your account settings.
-3. Generate a new API key.
-4. Copy the key and set it as the value for `OPENAI_API_KEY` in your `.env.local` file.
-
-### Anthropic
-
-1. Sign up or log in to [Anthropic](https://www.anthropic.com/).
-2. Navigate to the API section under your account settings.
-3. Generate a new API key.
-4. Copy the key and set it as the value for `ANTHROPIC_API_KEY` in your `.env.local` file.
-
-## Installation and Setup
-
-To set up the project locally, follow these steps:
-
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/yourusername/earnest-dev.git
-    ```
-2. Navigate to the project directory:
-    ```bash
-    cd earnest-dev
-    ```
-3. Install dependencies:
-    ```bash
-    npm install
-    ```
-4. Set up your `.env.local` file with the necessary environment variables as described above.
-
-## Running the Project
-
-To run the Next.js project locally, use the following command:
+Set proper permissions on your AWS credentials to ensure Docker can access them:
 
 ```bash
-npm run dev
+chmod 755 ~/.aws
+chmod 644 ~/.aws/credentials
 ```
 
-This will start the development server, and you can view the project at http://localhost:3000.
+### 6. Start the Application
 
-## Environment Example File
+Build and start the Docker containers:
 
-Below is an example .env file. You can use this as a template by saving it as .env.local and replacing the placeholder values with your actual keys.
-
+```bash
+docker compose up --build
 ```
-GITHUB_TOKEN=your_github_token
-NEXT_PUBLIC_GITHUB_TOKEN=your_github_token
-NEXT_PUBLIC_GITHUB_OWNER=your_github_username_or_organization
 
-# only needed if you are running openai models
-OPENAI_API_KEY=your_openai_api_key
+This will:
 
-# only needed if you are running anthropic claude models
-ANTHROPIC_API_KEY=your_anthropic_api_key
-
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+-   Build the application container
+-   Start a PostgreSQL container with pgvector extension
+-   Mount your AWS credentials into the container
+-   Expose the application on http://localhost:3000
