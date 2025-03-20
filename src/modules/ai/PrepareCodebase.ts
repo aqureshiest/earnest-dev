@@ -3,6 +3,7 @@ import { TokenLimiter } from "./support/TokenLimiter";
 import { RepositoryDataService } from "../db/RepositoryDataService";
 import { CodeIndexer } from "./support/CodeIndexer";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
+import { reportError } from "../bugsnag/report";
 
 export class PrepareCodebase {
     private repositoryService: RepositoryService;
@@ -48,29 +49,66 @@ export class PrepareCodebase {
         taskId: string,
         model: string
     ): Promise<void> {
-        // 1. Fetch repository files and process only the ones that need processing
-        sendTaskUpdate(taskId, "progress", "Indexing repository...");
-        const files: FileDetails[] = (
-            await this.repositoryService.getRepositoryFiles(owner, repo, branch)
-        ).filter((f) => f.needsProcessing);
-        sendTaskUpdate(taskId, "progress", `Found ${files.length} files that need processing.`);
+        try {
+            // 1. Fetch repository files and process only the ones that need processing
+            sendTaskUpdate(taskId, "progress", "Indexing repository...");
+            const files: FileDetails[] = (
+                await this.repositoryService.getRepositoryFiles(owner, repo, branch)
+            ).filter((f) => f.needsProcessing);
+            sendTaskUpdate(taskId, "progress", `Found ${files.length} files that need processing.`);
 
-        // 2. Fetch file contents
-        sendTaskUpdate(taskId, "progress", "Tokenizing files...");
-        const filesWithContent: FileDetails[] = await this.repositoryService.fetchFiles(files);
+            // 2. Fetch file contents
+            sendTaskUpdate(taskId, "progress", "Tokenizing files...");
+            const filesWithContent: FileDetails[] = await this.repositoryService.fetchFiles(files);
 
-        // 3. Tokenize files
-        const tokenizedFiles: FileDetails[] = this.tokenLimiter.tokenizeFiles(
-            filesWithContent,
-            model
-        );
+            // 3. Tokenize files
+            const tokenizedFiles: FileDetails[] = this.tokenLimiter.tokenizeFiles(
+                filesWithContent,
+                model
+            );
 
-        // 4. Process and index chunks for all files
-        sendTaskUpdate(taskId, "progress", "Processing files into chunks...");
-        await this.indexer.processFilesIntoChunks(tokenizedFiles, owner, repo, branch, taskId);
+            // 4. Process and index chunks for all files
+            sendTaskUpdate(taskId, "progress", "Processing files into chunks...");
+            const indexResult = await this.indexer.processFilesIntoChunks(
+                tokenizedFiles,
+                owner,
+                repo,
+                branch,
+                taskId
+            );
 
-        // 5. Sync branch with file data
-        sendTaskUpdate(taskId, "progress", "Syncing branch...");
-        await this.repositoryService.syncBranch(owner, repo, branch, tokenizedFiles);
+            // Log minor failures without reporting errors
+            if (indexResult.failedFiles.length > 0) {
+                console.log(
+                    `${indexResult.failedFiles.length} files failed to process but were below the failure threshold.`
+                );
+            }
+
+            // 5. Sync branch with file data
+            sendTaskUpdate(taskId, "progress", "Syncing branch...");
+            await this.repositoryService.syncBranch(owner, repo, branch, tokenizedFiles);
+        } catch (error: any) {
+            // Log and report the error
+            console.error(`Error in syncAndIndexRepository: ${error}`);
+            reportError(error instanceof Error ? error : new Error(String(error)), {
+                codeIndexer: {
+                    operation: "syncAndIndexRepository",
+                    owner,
+                    repo,
+                    branch,
+                    taskId,
+                    model,
+                },
+            });
+
+            sendTaskUpdate(
+                taskId,
+                "error",
+                `Repository indexing failed: ${error.message || String(error)}`
+            );
+
+            // Re-throw the error to prevent the calling code from assuming the branch is synced
+            throw error;
+        }
     }
 }
