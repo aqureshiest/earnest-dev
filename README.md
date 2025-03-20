@@ -53,13 +53,14 @@ EMBEDDING_PROVIDER=titan
 
 METRICS_LOGGING_ENABLED=true
 
-BUGSNAG_API_KEY=38aad8f4a1dc9fcf047e639e70e5afd7
+BUGSNAG_API_KEY=abc_123
 
 export AWS_REGION=us-east-1
-export AWS_PROFILE=est-development-Okta-Development-Eng
+export AWS_PROFILE=your_aws_profile
 ```
 
 Replace `your-github-token` with the token you generated in step 2, and `your-github-username` with your GitHub username.
+Replace `aws_profile` with your aws dev profile.
 
 ### 4. AWS Access Setup
 
