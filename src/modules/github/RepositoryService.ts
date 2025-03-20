@@ -74,10 +74,6 @@ export class RepositoryService {
         // get files from the database
         const savedFiles = await this.dataService.getAllFileDetails(owner, repo, ref);
 
-        // Get a mapping of which files have chunks
-        const filesWithChunks = await this.dataService.getFilesWithChunks(owner, repo, ref);
-        const filesWithChunksSet = new Set(filesWithChunks.map((f) => f.path));
-
         // create a map of saved files
         const savedFilesMap = new Map<string, FileDetails>();
         for (const savedFile of savedFiles) {
@@ -97,13 +93,14 @@ export class RepositoryService {
 
             // check if file already exists in the database
             const savedFile = savedFilesMap.get(file.path);
-            const hasChunks = filesWithChunksSet.has(file.path);
 
-            // if exists, hash matches, AND has chunks, use the saved file
-            if (savedFile && savedFile.commitHash === file.sha && hasChunks) {
+            // if exists and hash matches, use the saved file
+            if (savedFile && savedFile.commitHash === file.sha) {
+                // console.log("Using saved file >>", file.path, savedFile.commitHash);
                 result.push(savedFile);
             } else {
-                // otherwise, create a new file that needs processing
+                // otherwise, create a new file
+                // console.log("New or updated file >> ", file.path);
                 result.push({
                     name: file.path.split("/").pop()!,
                     path: file.path!,

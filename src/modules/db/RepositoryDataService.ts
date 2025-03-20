@@ -374,24 +374,4 @@ export class RepositoryDataService {
             return [];
         }
     }
-
-    async getFilesWithChunks(
-        owner: string,
-        repo: string,
-        ref: string
-    ): Promise<{ path: string }[]> {
-        const query = `
-          SELECT DISTINCT path
-          FROM filechunks
-          WHERE owner = $1 AND repo = $2 AND ref = $3
-        `;
-
-        try {
-            const result = await this.pool.query(query, [owner, repo, ref]);
-            return result.rows;
-        } catch (error: any) {
-            console.error(`Error fetching files with chunks: ${error.message}`);
-            return [];
-        }
-    }
 }

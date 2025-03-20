@@ -1,6 +1,8 @@
 export const EXCLUDE_PATTERNS = [
     "ignore",
     ".gitignore",
+    ".gitmodules",
+    ".gitkeep",
     "node_modules/",
     "build/",
     "dist/",
