@@ -98,6 +98,11 @@ interface DeletedFile {
     path: string;
 }
 
+interface PRBody {
+    title: string;
+    body: string;
+}
+
 // TDD to Feature breakdown types
 
 interface FeatureBreakdown {

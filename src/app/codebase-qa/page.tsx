@@ -33,6 +33,31 @@ interface Message {
     timestamp?: Date;
 }
 
+// Template Questions Component
+const TemplateQuestions = ({
+    questions,
+    onSelectQuestion,
+}: {
+    questions: string[];
+    onSelectQuestion: any;
+}) => {
+    return (
+        <div className="px-4 py-3 mb-4">
+            <div className="grid grid-cols-1 gap-2">
+                {questions.map((question, index) => (
+                    <button
+                        key={index}
+                        onClick={() => onSelectQuestion(question)}
+                        className="text-left p-3 border rounded-lg hover:bg-muted/50 transition-colors text-sm w-full"
+                    >
+                        {question}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 const CodebaseQA: React.FC = () => {
     const [taskId, setTaskId] = useState("");
     const [repo, setRepo] = useState<string>("");
@@ -44,6 +69,7 @@ const CodebaseQA: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRepoDialogOpen, setIsRepoDialogOpen] = useState(false);
     const [useConversationHistory, setUseConversationHistory] = useState(true);
+    const [showTemplateQuestions, setShowTemplateQuestions] = useState(false);
 
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -80,6 +106,15 @@ const CodebaseQA: React.FC = () => {
         }
     }, [conversation]);
 
+    // Show template questions when repo/branch selected and no conversation yet
+    useEffect(() => {
+        if (repo && branch && conversation.length <= 1) {
+            setShowTemplateQuestions(true);
+        } else {
+            setShowTemplateQuestions(false);
+        }
+    }, [repo, branch, conversation.length]);
+
     const addProgressMessage = (
         message: string,
         type: string = "info",
@@ -94,6 +129,11 @@ const CodebaseQA: React.FC = () => {
                 isMarkdown,
             },
         ]);
+    };
+
+    const handleSelectTemplateQuestion = (templateQuestion: any) => {
+        setQuestion(templateQuestion);
+        setShowTemplateQuestions(false);
     };
 
     const handleSubmitQuestion = async () => {
@@ -270,6 +310,7 @@ const CodebaseQA: React.FC = () => {
         setConversation([]);
         setQuestion("");
         setProgressMessages([]);
+        setShowTemplateQuestions(!!repo && !!branch);
         addProgressMessage("Started a new conversation", "info");
     };
 
@@ -442,32 +483,26 @@ const CodebaseQA: React.FC = () => {
                                             </div>
                                         </div>
                                     ))}
+
+                                    {/* Template Questions - Inside the chat window */}
+                                    {showTemplateQuestions && !isProcessing && (
+                                        <div className="mt-4">
+                                            <p className="text-sm text-muted-foreground px-4 mb-1">
+                                                Try asking:
+                                            </p>
+                                            <TemplateQuestions
+                                                questions={templateQuestions}
+                                                onSelectQuestion={handleSelectTemplateQuestion}
+                                            />
+                                        </div>
+                                    )}
+
                                     <div ref={messagesEndRef} />
                                 </div>
                             </ScrollArea>
 
                             {/* Question Input */}
                             <div className="p-4 border-t mt-auto">
-                                {/* Template Questions - MOVED OUTSIDE the flex container */}
-                                {repo && branch && !isProcessing && (
-                                    <div className="mb-3 flex flex-wrap gap-2">
-                                        <p className="text-sm text-muted-foreground w-full mb-1">
-                                            Try asking:
-                                        </p>
-                                        {templateQuestions.map((q, index) => (
-                                            <Button
-                                                key={index}
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-xs bg-primary/5 hover:bg-primary/10 border-primary/10"
-                                                onClick={() => setQuestion(q)}
-                                            >
-                                                {q}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                )}
-
                                 {/* Textarea and send button in their own flex container */}
                                 <div className="flex gap-2">
                                     <Textarea

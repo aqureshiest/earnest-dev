@@ -96,6 +96,19 @@ export class RepositoryDataService {
         }
     }
 
+    async deleteFileDetails(owner: string, repo: string, ref: string, path: string): Promise<void> {
+        const query = `
+      DELETE FROM filedetails
+      WHERE owner = $1 AND repo = $2 AND ref = $3 AND path = $4
+    `;
+
+        try {
+            await this.pool.query(query, [owner, repo, ref, path]);
+        } catch (error: any) {
+            console.error(`Error deleting file details: ${error}`);
+        }
+    }
+
     async getFileDetails(
         owner: string,
         repo: string,

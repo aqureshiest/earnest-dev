@@ -45,8 +45,8 @@ export async function POST(req: Request) {
                     const prService = new PullRequestService(owner, repo, branch);
                     const prLink = await prService.createPullRequest(
                         generatedCode.response,
-                        prTitle,
-                        response.response || description
+                        response.response?.title || prTitle,
+                        response.response?.body || description
                     );
 
                     sendTaskUpdate(taskId, "progress", "Pull request created.");

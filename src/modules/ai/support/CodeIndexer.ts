@@ -104,9 +104,9 @@ export class CodeIndexer {
                     `Indexing failed: ${failedFiles.length} out of ${totalFiles} files failed (${(
                         failureRate * 100
                     ).toFixed(1)}%). First failed files: ${failedFiles
-                        .slice(0, 5)
-                        .map((f) => f.path)
-                        .join(", ")}...`
+                        .slice(0, 3)
+                        .map((f) => `${f.path}: ${f.error}`)
+                        .join(", ")}`
                 );
             }
 
@@ -179,6 +179,11 @@ export class CodeIndexer {
                 }
             } catch (error) {
                 console.error(`Error processing file ${file.path} into chunks:`, error);
+
+                // delete file details since chunking failed
+                await this.dataService.deleteFileDetails(owner, repo, ref, file.path);
+
+                // Log the error and continue
                 failedFiles.push({
                     path: file.path,
                     error: error instanceof Error ? error : new Error(String(error)),

@@ -83,21 +83,15 @@ export class PrepareCodebase {
                 taskId
             );
 
-            // Log minor failures without reporting errors
-            if (indexResult.failedFiles.length > 0) {
-                console.log(
-                    `${indexResult.failedFiles.length} files failed to process but were below the failure threshold.`
-                );
-            }
-
             // files that didnt fail
-            const successFiles = tokenizedFiles.filter(
-                (f) => !indexResult.failedFiles.some((failed) => failed.path === f.path)
-            );
+            // const successFiles = tokenizedFiles.filter(
+            //     (f) => !indexResult.failedFiles.some((failed) => failed.path === f.path)
+            // );
+            // console.log("successFiles", successFiles);
 
             // 5. Sync branch with file data
-            sendTaskUpdate(taskId, "progress", "Syncing branch...");
-            await this.repositoryService.syncBranch(owner, repo, branch, successFiles);
+            // sendTaskUpdate(taskId, "progress", "Syncing branch...");
+            // await this.repositoryService.syncBranch(owner, repo, branch, successFiles);
         } catch (error: any) {
             // Log and report the error
             console.error(`Error in syncAndIndexRepository: ${error}`);
@@ -112,11 +106,7 @@ export class PrepareCodebase {
                 },
             });
 
-            sendTaskUpdate(
-                taskId,
-                "error",
-                `Repository indexing failed: ${error.message || String(error)}`
-            );
+            sendTaskUpdate(taskId, "error", `Repository indexing failed: ${error}`);
 
             // Re-throw the error to prevent the calling code from assuming the branch is synced
             throw error;
