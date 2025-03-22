@@ -4,6 +4,7 @@ import {
     GetMetricStatisticsCommand,
 } from "@aws-sdk/client-cloudwatch";
 import { MetricDataResult, TimeRange, TimeSeriesParams } from "./types";
+import { METRICS_CONFIG } from "../generate/config";
 
 export class BaseCloudWatchService {
     protected client: CloudWatchClient;
@@ -29,6 +30,10 @@ export class BaseCloudWatchService {
         const { startTime, endTime } = timeRange;
 
         try {
+            if (METRICS_CONFIG.loggingEnabled) {
+                console.log(`Fetching ${metricName} metric sum... Dimensions:`, dimensions);
+            }
+
             const command = new GetMetricStatisticsCommand({
                 Namespace: this.namespace,
                 MetricName: metricName,
@@ -50,6 +55,10 @@ export class BaseCloudWatchService {
                 }
             }
 
+            if (METRICS_CONFIG.loggingEnabled) {
+                console.log(`Fetched ${metricName} metric sum:`, totalSum);
+            }
+
             return totalSum;
         } catch (error) {
             console.error(`Error fetching ${metricName} metrics:`, error);
@@ -65,6 +74,10 @@ export class BaseCloudWatchService {
         const { startTime, endTime } = timeRange;
 
         try {
+            if (METRICS_CONFIG.loggingEnabled) {
+                console.log(`Fetching ${metricName} metric average... Dimensions:`, dimensions);
+            }
+
             const command = new GetMetricStatisticsCommand({
                 Namespace: this.namespace,
                 MetricName: metricName,
@@ -79,6 +92,10 @@ export class BaseCloudWatchService {
 
             if (!response.Datapoints || response.Datapoints.length === 0) {
                 return 0;
+            }
+
+            if (METRICS_CONFIG.loggingEnabled) {
+                console.log(`Fetched ${metricName} metric average:`, response.Datapoints);
             }
 
             // Calculate the average of all daily averages
@@ -111,6 +128,10 @@ export class BaseCloudWatchService {
         // Create a valid ID that meets AWS requirements: must start with a lowercase letter and contain only letters, numbers, and underscores
         const validId = `m${metricName.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}`;
 
+        if (METRICS_CONFIG.loggingEnabled) {
+            console.log(`Fetching time series data for ${metricName}... Dimensions:`, dimensions);
+        }
+
         const command = new GetMetricDataCommand({
             StartTime: startTime,
             EndTime: endTime,
@@ -138,6 +159,13 @@ export class BaseCloudWatchService {
 
             if (!response.MetricDataResults || response.MetricDataResults.length === 0) {
                 return { label, values: [], timestamps: [] };
+            }
+
+            if (METRICS_CONFIG.loggingEnabled) {
+                console.log(
+                    `Fetched time series data for ${metricName}:`,
+                    response.MetricDataResults
+                );
             }
 
             const result = response.MetricDataResults[0];

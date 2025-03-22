@@ -20,7 +20,9 @@ export abstract class BaseMetricsService {
     }: MetricParams): Promise<void> {
         try {
             if (METRICS_CONFIG.loggingEnabled) {
-                console.log(`Tracking metric: ${name}=${value}`);
+                console.log(
+                    `Tracking metric: ${name}=${value}, dimensions=${JSON.stringify(dimensions)}`
+                );
             }
 
             const dimensionsArray = Object.entries(dimensions).map(([Name, Value]) => ({

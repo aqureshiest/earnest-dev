@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { setClient, deleteClient, sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { CodebaseQA } from "@/modules/ai/CodebaseQA";
+import { reportError } from "@/modules/bugsnag/report";
 
 export async function POST(req: Request) {
     const { taskId, owner, repo, branch, selectedModel, question, conversationHistory } =
@@ -62,6 +63,15 @@ Current question: ${question}`;
                 } catch (error: any) {
                     console.error("Error within codebase question stream:", error);
                     sendTaskUpdate(taskId, "error", `Analysis failed. ${error.message}`);
+
+                    // Bugsnag error reporting
+                    reportError(error as Error, {
+                        context: "Codebase QA",
+                        owner,
+                        repo,
+                        branch,
+                        model: selectedModel,
+                    });
                 } finally {
                     // Close the stream
                     deleteClient(taskId);
@@ -82,6 +92,16 @@ Current question: ${question}`;
         });
     } catch (e) {
         console.log(e);
+
+        // Bugsnag error reporting
+        reportError(e as Error, {
+            context: "Codebase QA",
+            owner,
+            repo,
+            branch,
+            model: selectedModel,
+        });
+
         return new Response(JSON.stringify({ error: (e as any).message }), {
             status: 500,
             headers: { "Content-Type": "application/json" },

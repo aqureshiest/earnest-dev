@@ -21,7 +21,7 @@ export class RepositoryDataService {
     async getRepositories(): Promise<string[]> {
         const query = `
       SELECT DISTINCT owner, repo
-      FROM branchcommits
+      FROM filedetails
     `;
 
         try {

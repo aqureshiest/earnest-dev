@@ -93,10 +93,10 @@ const HomePage: React.FC = () => {
                 "Generate code and pull requests for your tasks using AI-powered code generation.",
             buttonText: "Create Pull Request",
             status: "ready" as const,
-            variant: "default" as const,
         },
         {
             href: "/codebase-qa",
+            dashboardHref: "/codebase-qa/dashboard",
             icon: <Brain className="h-6 w-6 text-green-500" />,
             title: "Codebase Q&A",
             description: "Ask questions about your codebase",
@@ -104,6 +104,7 @@ const HomePage: React.FC = () => {
                 "Interact with your codebase using natural language and get answers to your questions.",
             buttonText: "Ask a Question",
             status: "beta" as const,
+            variant: "default",
         },
         {
             href: "/code-analysis",
