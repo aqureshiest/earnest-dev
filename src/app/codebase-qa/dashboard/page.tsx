@@ -37,15 +37,6 @@ interface TokenUsage {
 
 interface TimeSeriesData {
     questionsOverTime: { date: string; value: number }[];
-    questionTypeDistribution: {
-        general: { date: string; value: number }[];
-        specific: { date: string; value: number }[];
-    };
-    processingTimeOverTime: { date: string; value: number }[];
-    tokenUsageOverTime: {
-        input: { date: string; value: number }[];
-        output: { date: string; value: number }[];
-    };
     successRateOverTime: { date: string; value: number }[];
 }
 
@@ -56,6 +47,7 @@ interface DashboardData {
     specificQuestions: number;
     conversationQuestions: number;
     averageFilesAnalyzed: number;
+    averageProcessingTime: number;
     tokenUsage: TokenUsage;
     repositories: string[];
     timeSeriesData: TimeSeriesData;
@@ -209,9 +201,9 @@ const CodebaseQADashboard: React.FC = () => {
                             description="Average files analyzed per question"
                         />
                         <MetricCard
-                            title="Token Cost"
-                            value={`$${data.tokenUsage.tokenCost.toFixed(2)}`}
-                            description="Estimated total cost"
+                            title="Processing Time"
+                            value={`${(data.averageProcessingTime / 1000).toFixed(2)}s`}
+                            description="Average processing time per question"
                         />
                     </div>
 
@@ -395,54 +387,6 @@ const CodebaseQADashboard: React.FC = () => {
                             </CardContent>
                         </Card>
                     </div>
-
-                    {/* Question Type Over Time */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Question Type Distribution Over Time</CardTitle>
-                            <CardDescription>General vs. specific questions by day</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="h-[300px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis
-                                            dataKey="date"
-                                            allowDuplicatedCategory={false}
-                                            type="category"
-                                        />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Legend />
-                                        <Line
-                                            data={
-                                                data.timeSeriesData.questionTypeDistribution.general
-                                            }
-                                            type="monotone"
-                                            dataKey="value"
-                                            stroke="#8884d8"
-                                            strokeWidth={2}
-                                            name="General Questions"
-                                            dot={{ strokeWidth: 2 }}
-                                        />
-                                        <Line
-                                            data={
-                                                data.timeSeriesData.questionTypeDistribution
-                                                    .specific
-                                            }
-                                            type="monotone"
-                                            dataKey="value"
-                                            stroke="#82ca9d"
-                                            strokeWidth={2}
-                                            name="Specific Questions"
-                                            dot={{ strokeWidth: 2 }}
-                                        />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </CardContent>
-                    </Card>
                 </TabsContent>
 
                 <TabsContent value="token-usage" className="space-y-4">
@@ -507,51 +451,6 @@ const CodebaseQADashboard: React.FC = () => {
                         <CardFooter className="text-sm text-muted-foreground">
                             Estimated token cost: ${data.tokenUsage.tokenCost.toFixed(2)}
                         </CardFooter>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Token Usage Over Time</CardTitle>
-                            <CardDescription>Input and output tokens by day</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="h-[300px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis
-                                            dataKey="date"
-                                            allowDuplicatedCategory={false}
-                                            type="category"
-                                        />
-                                        <YAxis />
-                                        <Tooltip
-                                            formatter={(value) => [
-                                                value.toLocaleString(),
-                                                "Tokens",
-                                            ]}
-                                        />
-                                        <Legend />
-                                        <Line
-                                            data={data.timeSeriesData.tokenUsageOverTime.input}
-                                            type="monotone"
-                                            dataKey="value"
-                                            stroke="#8884d8"
-                                            strokeWidth={2}
-                                            name="Input Tokens"
-                                        />
-                                        <Line
-                                            data={data.timeSeriesData.tokenUsageOverTime.output}
-                                            type="monotone"
-                                            dataKey="value"
-                                            stroke="#82ca9d"
-                                            strokeWidth={2}
-                                            name="Output Tokens"
-                                        />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>

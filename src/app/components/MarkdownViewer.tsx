@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import "github-markdown-css";
 import "highlight.js/styles/github.css";
 import { initializeMermaid } from "@/modules/utils/mermaid";
+import { Download } from "lucide-react"; // Import the Download icon from lucide-react
 
 type MarkdownViewerProps = {
     content: string;
@@ -15,7 +16,7 @@ type MarkdownViewerProps = {
 const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
     const [svg, setSvg] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
-    const id = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
+    const id = useRef(`mermaid-${Math.random().toString(36).substring(2, 9)}`);
     const diagramRef = useRef<HTMLDivElement>(null);
 
     // Get mermaid instance
@@ -45,6 +46,43 @@ const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
         renderDiagram();
     }, [content, mermaid]);
 
+    const handleDownload = () => {
+        if (!diagramRef.current) return;
+
+        // Get the SVG element
+        const svgElement = diagramRef.current.querySelector("svg");
+        if (!svgElement) return;
+
+        // Create a copy of the SVG to modify for download
+        const svgClone = svgElement.cloneNode(true) as SVGElement;
+
+        // Make sure text is visible on white background for download
+        svgClone.querySelectorAll("text").forEach((text) => {
+            text.setAttribute("fill", "black");
+        });
+
+        // Set explicit dimensions
+        const bbox = svgElement.getBBox();
+        svgClone.setAttribute("width", `${bbox.width}`);
+        svgClone.setAttribute("height", `${bbox.height}`);
+
+        // Create a Blob containing the SVG
+        const svgData = new XMLSerializer().serializeToString(svgClone);
+        const blob = new Blob([svgData], { type: "image/svg+xml" });
+
+        // Create a download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `diagram-${id.current}.svg`;
+        document.body.appendChild(a);
+        a.click();
+
+        // Clean up
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     if (error) {
         return (
             <div className="p-4 border border-red-500 rounded bg-red-100 dark:bg-red-900 dark:text-red-200">
@@ -55,14 +93,24 @@ const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
     }
 
     return (
-        <>
+        <div className="relative my-4">
+            {/* Download button */}
+            <button
+                onClick={handleDownload}
+                className="absolute top-0 right-0 p-1 rounded-full bg-gray-800 bg-opacity-40 hover:bg-opacity-100 transition-opacity z-10 text-white"
+                title="Download diagram as SVG"
+                aria-label="Download diagram"
+            >
+                <Download size={18} />
+            </button>
+
             {/* Regular diagram display */}
             <div
                 ref={diagramRef}
-                className="my-4 flex justify-center relative group"
+                className="flex justify-center relative"
                 dangerouslySetInnerHTML={{ __html: svg }}
             ></div>
-        </>
+        </div>
     );
 };
 
@@ -145,6 +193,11 @@ const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, className }) =
                 .dark .markdown-body pre code {
                     color: #e2e8f0; /* slate-200 */
                     background-color: transparent;
+                }
+
+                /* Mermaid download button styles */
+                .mermaid-svg {
+                    max-width: 100%;
                 }
             `}</style>
             <ReactMarkdown

@@ -29,6 +29,7 @@ Analyze the provided codebase and answer the user's question accurately, providi
 6. Use markdown formatting to make your response clear and readable.
 7. For complex questions, structure your answer with headings and sections.
 8. If code spans across multiple files, explain the relationships between them.
+9. Use mermaid diagrams when asked for flows and sequence diagrams.
 </instructions>
 `;
     }

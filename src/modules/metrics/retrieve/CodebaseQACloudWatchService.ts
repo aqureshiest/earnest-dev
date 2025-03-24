@@ -1,6 +1,6 @@
 import { GetMetricDataCommand } from "@aws-sdk/client-cloudwatch";
 import { BaseCloudWatchService } from "./BaseCloudwatchService";
-import { MetricDataResult, TimeRange, TokenUsageStats } from "./types";
+import { MetricDataResult, TokenUsageStats } from "./types";
 import { METRICS_CONFIG } from "../generate/config";
 
 export interface QAMetricsStats {
@@ -10,6 +10,7 @@ export interface QAMetricsStats {
     specificQuestions: number;
     averageFilesAnalyzed: number;
     conversationQuestions: number;
+    averageProcessingTime: number;
     tokenUsage: TokenUsageStats;
     repositories: string[];
 }
@@ -123,6 +124,24 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
 
         for (const repo of this.repositories) {
             const repoAvg = await this.getMetricAverage("FilesAnalyzed", [
+                { Name: "Repository", Value: repo },
+            ]);
+
+            if (repoAvg > 0) {
+                totalAvg += repoAvg;
+                repoCount++;
+            }
+        }
+
+        return repoCount > 0 ? totalAvg / repoCount : 0;
+    }
+
+    async getAverageProcessingTime(): Promise<number> {
+        let totalAvg = 0;
+        let repoCount = 0;
+
+        for (const repo of this.repositories) {
+            const repoAvg = await this.getMetricAverage("QAProcessingTime", [
                 { Name: "Repository", Value: repo },
             ]);
 
@@ -278,317 +297,6 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
         }
     }
 
-    async getQuestionTypeDistributionOverTime(
-        startTime: Date,
-        endTime: Date
-    ): Promise<{
-        general: MetricDataResult;
-        specific: MetricDataResult;
-    }> {
-        // Create a command with one query per repository and type
-        const command = new GetMetricDataCommand({
-            StartTime: startTime,
-            EndTime: endTime,
-            ScanBy: "TimestampAscending",
-            MetricDataQueries: [
-                // Generate queries for each repository and question type
-                ...this.repositories.flatMap((repo, repoIndex) => [
-                    {
-                        Id: `general${repoIndex}`,
-                        MetricStat: {
-                            Metric: {
-                                Namespace: this.namespace,
-                                MetricName: "QuestionType",
-                                Dimensions: [
-                                    { Name: "Repository", Value: repo },
-                                    { Name: "Type", Value: "general" },
-                                ],
-                            },
-                            Period: 86400,
-                            Stat: "Sum",
-                        },
-                        Label: `${repo} General Questions`,
-                    },
-                    {
-                        Id: `specific${repoIndex}`,
-                        MetricStat: {
-                            Metric: {
-                                Namespace: this.namespace,
-                                MetricName: "QuestionType",
-                                Dimensions: [
-                                    { Name: "Repository", Value: repo },
-                                    { Name: "Type", Value: "specific" },
-                                ],
-                            },
-                            Period: 86400,
-                            Stat: "Sum",
-                        },
-                        Label: `${repo} Specific Questions`,
-                    },
-                ]),
-
-                // Add sum expressions if there's more than one repository
-                ...(this.repositories.length > 1
-                    ? [
-                          {
-                              Id: "totalGeneral",
-                              Expression: this.repositories
-                                  .map((_, index) => `general${index}`)
-                                  .join("+"),
-                              Label: "General Questions",
-                              ReturnData: true,
-                          },
-                          {
-                              Id: "totalSpecific",
-                              Expression: this.repositories
-                                  .map((_, index) => `specific${index}`)
-                                  .join("+"),
-                              Label: "Specific Questions",
-                              ReturnData: true,
-                          },
-                      ]
-                    : [
-                          {
-                              Id: "totalGeneral",
-                              Expression: "general0",
-                              Label: "General Questions",
-                              ReturnData: true,
-                          },
-                          {
-                              Id: "totalSpecific",
-                              Expression: "specific0",
-                              Label: "Specific Questions",
-                              ReturnData: true,
-                          },
-                      ]),
-            ],
-        });
-
-        try {
-            const response = await this.client.send(command);
-
-            if (!response.MetricDataResults || response.MetricDataResults.length === 0) {
-                return {
-                    general: { label: "General Questions", values: [], timestamps: [] },
-                    specific: { label: "Specific Questions", values: [], timestamps: [] },
-                };
-            }
-
-            // Extract the general and specific question results
-            const generalResult = response.MetricDataResults.find((r) => r.Id === "totalGeneral");
-            const specificResult = response.MetricDataResults.find((r) => r.Id === "totalSpecific");
-
-            return {
-                general: {
-                    label: generalResult?.Label || "General Questions",
-                    values: generalResult?.Values || [],
-                    timestamps: generalResult?.Timestamps || [],
-                },
-                specific: {
-                    label: specificResult?.Label || "Specific Questions",
-                    values: specificResult?.Values || [],
-                    timestamps: specificResult?.Timestamps || [],
-                },
-            };
-        } catch (error) {
-            console.error("Error fetching question type distribution over time:", error);
-            throw error;
-        }
-    }
-
-    async getQAProcessingTimeOverTime(startTime: Date, endTime: Date): Promise<MetricDataResult> {
-        const command = new GetMetricDataCommand({
-            StartTime: startTime,
-            EndTime: endTime,
-            ScanBy: "TimestampAscending",
-            MetricDataQueries: [
-                {
-                    Id: "mprocessingtime",
-                    Expression: `AVG(SEARCH('{${METRICS_CONFIG.namespace},Repository} MetricName=\"QAProcessingTime\"', 'Average', 86400))`,
-                    Label: "Average Processing Time (ms)",
-                    Period: 86400, // 1 day aggregation
-                    ReturnData: true,
-                },
-            ],
-        });
-
-        try {
-            const response = await this.client.send(command);
-
-            if (!response.MetricDataResults || response.MetricDataResults.length === 0) {
-                return { label: "Average Processing Time (ms)", values: [], timestamps: [] };
-            }
-
-            const result = response.MetricDataResults[0];
-
-            return {
-                label: result.Label || "Average Processing Time (ms)",
-                values: result.Values || [],
-                timestamps: result.Timestamps || [],
-            };
-        } catch (error) {
-            console.error("Error fetching processing time over time:", error);
-            throw error;
-        }
-    }
-
-    async getQATokenUsageOverTime(
-        startTime: Date,
-        endTime: Date
-    ): Promise<{
-        input: MetricDataResult;
-        output: MetricDataResult;
-    }> {
-        // Similar to getQuestionsOverTime, create separate metric queries for each repository and type
-        const questionTypes = ["general", "specific"];
-        const metricQueries = [];
-
-        // Create an ID counter to generate unique IDs for each query
-        let idCounter = 0;
-
-        // Create metrics for each combination of repository and type
-        for (const repo of this.repositories) {
-            for (const type of questionTypes) {
-                // Add a query for input tokens
-                metricQueries.push({
-                    Id: `input${idCounter}`,
-                    MetricStat: {
-                        Metric: {
-                            Namespace: this.namespace,
-                            MetricName: "QAInputTokens",
-                            Dimensions: [
-                                { Name: "Repository", Value: repo },
-                                { Name: "Type", Value: type },
-                            ],
-                        },
-                        Period: 86400,
-                        Stat: "Sum",
-                    },
-                    Label: `${repo} ${type} Input Tokens`,
-                });
-
-                // Add a query for output tokens
-                metricQueries.push({
-                    Id: `output${idCounter}`,
-                    MetricStat: {
-                        Metric: {
-                            Namespace: this.namespace,
-                            MetricName: "QAOutputTokens",
-                            Dimensions: [
-                                { Name: "Repository", Value: repo },
-                                { Name: "Type", Value: type },
-                            ],
-                        },
-                        Period: 86400,
-                        Stat: "Sum",
-                    },
-                    Label: `${repo} ${type} Output Tokens`,
-                });
-
-                idCounter++;
-            }
-
-            // Also check for tokens with just the repository dimension
-            metricQueries.push({
-                Id: `input${idCounter}`,
-                MetricStat: {
-                    Metric: {
-                        Namespace: this.namespace,
-                        MetricName: "QAInputTokens",
-                        Dimensions: [{ Name: "Repository", Value: repo }],
-                    },
-                    Period: 86400,
-                    Stat: "Sum",
-                },
-                Label: `${repo} Input Tokens`,
-            });
-
-            metricQueries.push({
-                Id: `output${idCounter}`,
-                MetricStat: {
-                    Metric: {
-                        Namespace: this.namespace,
-                        MetricName: "QAOutputTokens",
-                        Dimensions: [{ Name: "Repository", Value: repo }],
-                    },
-                    Period: 86400,
-                    Stat: "Sum",
-                },
-                Label: `${repo} Output Tokens`,
-            });
-
-            idCounter++;
-        }
-
-        // Add expressions to sum all the input and output tokens
-        const inputIds = [];
-        const outputIds = [];
-        for (let i = 0; i < idCounter; i++) {
-            inputIds.push(`input${i}`);
-            outputIds.push(`output${i}`);
-        }
-
-        metricQueries.push({
-            Id: "totalInput",
-            Expression: inputIds.join("+"),
-            Label: "Input Tokens",
-            ReturnData: true,
-        });
-
-        metricQueries.push({
-            Id: "totalOutput",
-            Expression: outputIds.join("+"),
-            Label: "Output Tokens",
-            ReturnData: true,
-        });
-
-        const command = new GetMetricDataCommand({
-            StartTime: startTime,
-            EndTime: endTime,
-            ScanBy: "TimestampAscending",
-            MetricDataQueries: metricQueries,
-        });
-
-        try {
-            const response = await this.client.send(command);
-
-            if (!response.MetricDataResults || response.MetricDataResults.length === 0) {
-                // If no data, create a placeholder with zeros that matches the other time series
-                return {
-                    input: { label: "Input Tokens", values: [0], timestamps: [new Date()] },
-                    output: { label: "Output Tokens", values: [0], timestamps: [new Date()] },
-                };
-            }
-
-            const inputResult = response.MetricDataResults.find((r) => r.Id === "totalInput");
-            const outputResult = response.MetricDataResults.find((r) => r.Id === "totalOutput");
-
-            return {
-                input: {
-                    label: inputResult?.Label || "Input Tokens",
-                    values: inputResult?.Values?.length ? inputResult.Values : [0],
-                    timestamps: inputResult?.Timestamps?.length
-                        ? inputResult.Timestamps
-                        : [new Date()],
-                },
-                output: {
-                    label: outputResult?.Label || "Output Tokens",
-                    values: outputResult?.Values?.length ? outputResult.Values : [0],
-                    timestamps: outputResult?.Timestamps?.length
-                        ? outputResult.Timestamps
-                        : [new Date()],
-                },
-            };
-        } catch (error) {
-            console.error("Error fetching token usage over time:", error);
-            // Create default values that match other time series
-            return {
-                input: { label: "Input Tokens", values: [0], timestamps: [new Date()] },
-                output: { label: "Output Tokens", values: [0], timestamps: [new Date()] },
-            };
-        }
-    }
-
     async getQASuccessRateOverTime(startTime: Date, endTime: Date): Promise<MetricDataResult> {
         const command = new GetMetricDataCommand({
             StartTime: startTime,
@@ -655,6 +363,7 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
             questionTypes,
             conversationQuestions,
             averageFilesAnalyzed,
+            averageProcessingTime,
             tokenUsage,
         ] = await Promise.all([
             this.getTotalQARequestsSum(),
@@ -662,6 +371,7 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
             this.getQuestionTypes(),
             this.getConversationQuestions(),
             this.getAverageFilesAnalyzed(),
+            this.getAverageProcessingTime(),
             this.getQATokenUsage(),
         ]);
 
@@ -672,6 +382,7 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
             specificQuestions: questionTypes.specificCount,
             conversationQuestions,
             averageFilesAnalyzed,
+            averageProcessingTime,
             tokenUsage,
             repositories: this.repositories,
         };
@@ -680,32 +391,14 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
     async getQATimeSeriesData(startTime: Date, endTime: Date): Promise<any> {
         try {
             // Get all time series data in parallel
-            const [
-                questionsOverTime,
-                questionTypeData,
-                processingTimeOverTime,
-                tokenUsageData,
-                successRateOverTime,
-            ] = await Promise.all([
+            const [questionsOverTime, successRateOverTime] = await Promise.all([
                 this.getQuestionsOverTime(startTime, endTime),
-                this.getQuestionTypeDistributionOverTime(startTime, endTime),
-                this.getQAProcessingTimeOverTime(startTime, endTime),
-                this.getQATokenUsageOverTime(startTime, endTime),
                 this.getQASuccessRateOverTime(startTime, endTime),
             ]);
 
             // Format the time series data
             return {
                 questionsOverTime: this.formatTimeSeriesData(questionsOverTime),
-                questionTypeDistribution: {
-                    general: this.formatTimeSeriesData(questionTypeData.general),
-                    specific: this.formatTimeSeriesData(questionTypeData.specific),
-                },
-                processingTimeOverTime: this.formatTimeSeriesData(processingTimeOverTime),
-                tokenUsageOverTime: {
-                    input: this.formatTimeSeriesData(tokenUsageData.input),
-                    output: this.formatTimeSeriesData(tokenUsageData.output),
-                },
                 successRateOverTime: this.formatTimeSeriesData(successRateOverTime),
             };
         } catch (error) {
@@ -713,9 +406,6 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
             // Return empty data on error
             return {
                 questionsOverTime: [],
-                questionTypeDistribution: { general: [], specific: [] },
-                processingTimeOverTime: [],
-                tokenUsageOverTime: { input: [], output: [] },
                 successRateOverTime: [],
             };
         }

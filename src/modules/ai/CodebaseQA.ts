@@ -22,14 +22,6 @@ export class CodebaseQA {
         // Track start time
         const startTime = new Date().getTime();
 
-        // Track initial request metrics
-        const hasHistory = task.includes("Previous conversation:");
-        await this.metricsService.trackQARequest({
-            owner,
-            repo,
-            isConversation: hasHistory,
-        });
-
         try {
             // Step 1: Classify the question to determine the task
             sendTaskUpdate(taskId, "progress", "Understanding question...");
@@ -107,13 +99,10 @@ export class CodebaseQA {
             // Track metrics
             const totalDuration = endTime - startTime;
             await this.metricsService.trackQADuration({ owner, repo }, totalDuration);
-            await this.metricsService.trackQASuccess({ owner, repo }, true);
 
             return answer;
         } catch (error: any) {
             console.error("Error in CodebaseQA workflow:", error);
-            // Track failure
-            await this.metricsService.trackQASuccess({ owner, repo }, false);
             throw error;
         }
     }

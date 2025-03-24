@@ -248,11 +248,11 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
 
             // Calculate optimal threshold
             const threshold = maximizeTokenUsage ? 0.2 : calculateSimilarityThreshold(scoredFiles);
-            console.log(
-                chalk.yellow(
-                    `similarity threshold for step "${step.title}": ${threshold}, max? ${maximizeTokenUsage}`
-                )
-            );
+            // console.log(
+            //     chalk.yellow(
+            //         `similarity threshold for step "${step.title}": ${threshold}, max? ${maximizeTokenUsage}`
+            //     )
+            // );
 
             // Add top similar files that aren't already included (up to our limit)
             for (const file of similarFiles) {
@@ -278,10 +278,10 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
             });
         }
 
-        console.log(
-            chalk.yellow("\n..... Final set of Files to use ......\n"),
-            filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
-        );
+        // console.log(
+        //     chalk.yellow("\n..... Final set of Files to use ......\n"),
+        //     filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
+        // );
 
         if (filesToUse.length === 0) {
             throw new Error("No relevant files found for step, Cant proceed");

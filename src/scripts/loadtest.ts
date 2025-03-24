@@ -47,29 +47,23 @@ interface TestResult {
 const API_ENDPOINT = "http://localhost:3000/api/codebase-qa"; // Updated to correct endpoint path
 const TEST_CONFIG: TestConfig = {
     initialRequests: 1, // Start with 1 request
-    rampUpFactor: 5, // Scale up by this factor when ready
+    rampUpFactor: 10, // Scale up by this factor when ready
     maxConcurrent: 50, // Maximum concurrent requests
-    timeoutMs: 120000, // Request timeout in milliseconds (2 minutes)
-    delayBetweenRequestsMs: 500, // Delay between starting requests
+    timeoutMs: 60000 * 10, // Request timeout in milliseconds (2 minutes)
+    delayBetweenRequestsMs: 1500, // Delay between starting requests
 };
 
 // Available real repos to test with
-const REPOS = [
-    "bookstore",
-    "as-snapshot",
-    "ns-snapshot",
-    "afs-snapshot",
-    "earnest-dev",
-    "servicing-p-snapshot",
-];
+const REPOS = ["bookstore", "as-snapshot", "servicing-p-snapshot"];
 
 // Sample questions to ask
 const QUESTIONS = [
     "How does error handling work in this codebase?",
     "Explain the main architecture of this application",
     "What are the key data models used?",
-    "How is authentication implemented?",
-    "What testing frameworks are used in this project?",
+    "What are the key APIs used?",
+    "Can you suggest improvements to the codebase?",
+    "Draw a sequence diagram for the main flow",
 ];
 
 // Test payload template
