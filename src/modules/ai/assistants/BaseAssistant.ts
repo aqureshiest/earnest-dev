@@ -16,20 +16,24 @@ abstract class BaseAssistant<T extends TaskRequest, R> implements AIAssistant<T,
     abstract getSystemPrompt(): string;
     abstract getPrompt(request: T): string;
 
-    abstract process(request: T): Promise<AIAssistantResponse<R> | null>;
+    abstract process(
+        request: T,
+        onToken?: (token: string) => void
+    ): Promise<AIAssistantResponse<R> | null>;
 
     protected abstract handleResponse(response: string, taskId?: string): R;
 
     protected async generateResponse(
         model: string,
         systemPrompt: string,
-        prompt: string
+        prompt: string,
+        onToken?: (token: string) => void
     ): Promise<AIResponse | null> {
         // pick the ai model
         const aiService = AIServiceFactory.createAIService(model);
 
         // generate code
-        return await aiService.generateResponse(systemPrompt, prompt);
+        return await aiService.generateResponse(systemPrompt, prompt, onToken);
     }
 
     protected async generateImageResponse(

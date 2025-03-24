@@ -58,9 +58,15 @@ Current question: ${question}`;
                         files: [],
                     };
 
+                    // Initialize the streaming response
+                    sendTaskUpdate(taskId, "streaming_start", "");
+
                     // Use the orchestrator to run the workflow
                     const codebaseQA = new CodebaseQA();
-                    const response = await codebaseQA.runWorkflow(taskRequest);
+                    const response = await codebaseQA.runWorkflow(taskRequest, (token) => {
+                        // Send each token as it arrives
+                        sendTaskUpdate(taskId, "token", token);
+                    });
 
                     // Send the final answer
                     sendTaskUpdate(taskId, "answer", response.response);

@@ -1,5 +1,3 @@
-import { deprecate } from "util";
-
 export type LLMModel = {
     id: string;
     name: string;
@@ -34,14 +32,14 @@ export const LLM_MODELS: { [key: string]: LLMModel } = {
         id: "us.anthropic.claude-3-5-haiku-20241022-v1:0",
         name: "AWS Bedrock Claude 3.5 Haiku V2",
     },
-    GEMINI_1_5_FLASH: {
-        id: "gemini-1.5-flash",
-        name: "Google Gemini 1.5 Flash",
-    },
-    OLLAMA_LLAMA: {
-        id: "llama3:latest",
-        name: "OLLama Llama",
-    },
+    // GEMINI_1_5_FLASH: {
+    //     id: "gemini-1.5-flash",
+    //     name: "Google Gemini 1.5 Flash",
+    // },
+    // OLLAMA_LLAMA: {
+    //     id: "llama3:latest",
+    //     name: "OLLama Llama",
+    // },
 };
 
 export type LLM = {
@@ -97,14 +95,14 @@ export const LLMS: LLM[] = [
         tokenPaddingFactor: 1.18,
     },
     // Gemini
-    {
-        model: LLM_MODELS.GEMINI_1_5_FLASH.id,
-        inputCost: 0,
-        outputCost: 0,
-        maxInputTokens: 200000,
-        maxOutputTokens: 4096,
-        tokenPaddingFactor: 1,
-    },
+    // {
+    //     model: LLM_MODELS.GEMINI_1_5_FLASH.id,
+    //     inputCost: 0,
+    //     outputCost: 0,
+    //     maxInputTokens: 200000,
+    //     maxOutputTokens: 4096,
+    //     tokenPaddingFactor: 1,
+    // },
     // AWS Bedrock
     {
         model: LLM_MODELS.AWS_BEDROCK_CLAUDE_37_SONNET.id,
@@ -123,12 +121,12 @@ export const LLMS: LLM[] = [
         tokenPaddingFactor: 1.18,
     },
     // OLLama
-    {
-        model: LLM_MODELS.OLLAMA_LLAMA.id,
-        inputCost: 0,
-        outputCost: 0,
-        maxInputTokens: 20000,
-        maxOutputTokens: 4096,
-        tokenPaddingFactor: 1,
-    },
+    // {
+    //     model: LLM_MODELS.OLLAMA_LLAMA.id,
+    //     inputCost: 0,
+    //     outputCost: 0,
+    //     maxInputTokens: 20000,
+    //     maxOutputTokens: 4096,
+    //     tokenPaddingFactor: 1,
+    // },
 ];

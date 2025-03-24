@@ -3,7 +3,10 @@ import { BaseAssistant } from "./BaseAssistant";
 import chalk from "chalk";
 
 abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant<T, R> {
-    async process(request: T): Promise<AIAssistantResponse<R> | null> {
+    async process(
+        request: T,
+        onToken?: (token: string) => void
+    ): Promise<AIAssistantResponse<R> | null> {
         const { taskId, model, task, params } = request;
 
         const modelToUse = this.overrideModel || model;
@@ -38,7 +41,12 @@ abstract class StandardAssistant<T extends TaskRequest, R> extends BaseAssistant
         saveRunInfo(request, folder, "user_prompt", finalizedPrompt);
 
         // generate responsex
-        const aiResponse = await this.generateResponse(modelToUse, systemPrompt, finalizedPrompt);
+        const aiResponse = await this.generateResponse(
+            modelToUse,
+            systemPrompt,
+            finalizedPrompt,
+            onToken
+        );
         if (!aiResponse) return null;
 
         // parse the response

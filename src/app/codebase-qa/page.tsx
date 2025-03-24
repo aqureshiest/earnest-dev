@@ -31,6 +31,7 @@ interface Message {
     role: "user" | "assistant" | "system";
     content: string;
     timestamp?: Date;
+    isStreaming?: boolean;
 }
 
 // Template Questions Component
@@ -158,6 +159,7 @@ const CodebaseQA: React.FC = () => {
             role: "assistant",
             content: "",
             timestamp: new Date(),
+            isStreaming: false,
         };
         setConversation((prev) => [...prev, loadingMessage]);
 
@@ -213,6 +215,7 @@ const CodebaseQA: React.FC = () => {
                         role: "assistant",
                         content: `Error: ${error.message}`,
                         timestamp: new Date(),
+                        isStreaming: false,
                     };
                 }
                 return newConv;
@@ -260,16 +263,51 @@ const CodebaseQA: React.FC = () => {
             case "progress":
                 addProgressMessage(data.message);
                 break;
+            case "streaming_start":
+                // Initialize streaming state
+                setConversation((prev) => {
+                    const newConv = [...prev];
+                    if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
+                        newConv[newConv.length - 1] = {
+                            ...newConv[newConv.length - 1],
+                            content: "",
+                            isStreaming: true,
+                        };
+                    }
+                    return newConv;
+                });
+                addProgressMessage("Starting response stream...");
+                break;
+
+            case "token":
+                // Handle incoming token
+                setConversation((prev) => {
+                    const newConv = [...prev];
+                    if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
+                        newConv[newConv.length - 1] = {
+                            ...newConv[newConv.length - 1],
+                            content: newConv[newConv.length - 1].content + data.message,
+                            isStreaming: true,
+                        };
+                    }
+                    return newConv;
+                });
+                break;
             case "answer":
                 // Replace the loading message with the actual answer
                 setConversation((prev) => {
                     const newConv = [...prev];
                     // Replace the last message (loading) with answer
                     if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
+                        // newConv[newConv.length - 1] = {
+                        //     role: "assistant",
+                        //     content: data.message,  // replace full answer
+                        //     timestamp: new Date(),
+                        //     isStreaming: false,
+                        // };
                         newConv[newConv.length - 1] = {
-                            role: "assistant",
-                            content: data.message,
-                            timestamp: new Date(),
+                            ...newConv[newConv.length - 1], // Keep all existing properties
+                            isStreaming: false, // Update only the streaming flag
                         };
                     }
                     return newConv;
@@ -286,6 +324,7 @@ const CodebaseQA: React.FC = () => {
                             role: "assistant",
                             content: `Error: ${data.message}`,
                             timestamp: new Date(),
+                            isStreaming: false,
                         };
                     }
                     return newConv;
@@ -293,6 +332,17 @@ const CodebaseQA: React.FC = () => {
                 break;
             case "final":
                 addProgressMessage(data.message, "success");
+                // Mark streaming as complete
+                setConversation((prev) => {
+                    const newConv = [...prev];
+                    if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
+                        newConv[newConv.length - 1] = {
+                            ...newConv[newConv.length - 1],
+                            isStreaming: false,
+                        };
+                    }
+                    return newConv;
+                });
                 break;
         }
     };
@@ -471,6 +521,14 @@ const CodebaseQA: React.FC = () => {
                                                         <div className="flex items-center gap-2">
                                                             <Loader2 className="h-4 w-4 animate-spin" />
                                                             <span>Working on it...</span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Streaming indicator */}
+                                                    {message.isStreaming && (
+                                                        <div className="mt-2 text-xs flex items-center text-muted-foreground animate-pulse">
+                                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                            <span>Streaming response...</span>
                                                         </div>
                                                     )}
                                                 </div>

@@ -26,7 +26,15 @@ export class OllamaAIService extends BaseAIService {
         this.baseUrl = baseUrl;
     }
 
-    async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
+    async generateResponse(
+        systemPrompt: string,
+        prompt: string,
+        onToken?: (token: string) => void
+    ) {
+        if (onToken) {
+            throw new Error("Ollama does not support streaming mode.");
+        }
+
         console.log(chalk.blue("----------------- Ollama Service -----------------"));
         console.log("> ", systemPrompt);
         console.log(

@@ -17,5 +17,5 @@ interface AIAssistantResponse<T> {
 interface AIAssistant<T extends TaskRequest, R> {
     getSystemPrompt(): string;
     getPrompt(params?: any): string;
-    process(request: T): Promise<AIAssistantResponse<R> | null>;
+    process(request: T, onToken?: (token: string) => void): Promise<AIAssistantResponse<R> | null>;
 }

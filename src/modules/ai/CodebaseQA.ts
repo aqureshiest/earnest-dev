@@ -16,7 +16,10 @@ export class CodebaseQA {
         this.metricsService = new CodebaseQAMetricsService();
     }
 
-    async runWorkflow(taskRequest: CodebaseQuestionRequest): Promise<AIAssistantResponse<string>> {
+    async runWorkflow(
+        taskRequest: CodebaseQuestionRequest,
+        onToken?: (token: string) => void
+    ): Promise<AIAssistantResponse<string>> {
         const { taskId, task, owner, repo } = taskRequest;
 
         // Track start time
@@ -73,7 +76,7 @@ export class CodebaseQA {
 
             // Step 3: Process with the assistant (it will handle token limits)
             sendTaskUpdate(taskId, "progress", "Understanding codebase and preparing answer...");
-            const answer = await this.questionAssistant.process(taskRequest);
+            const answer = await this.questionAssistant.process(taskRequest, onToken);
 
             if (!answer) {
                 throw new Error("Failed to generate answer.");

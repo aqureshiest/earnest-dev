@@ -3,7 +3,10 @@ import { BaseAssistant } from "./BaseAssistant";
 import chalk from "chalk";
 
 abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> {
-    async process(request: CodingTaskRequest): Promise<AIAssistantResponse<R> | null> {
+    async process(
+        request: CodingTaskRequest,
+        onToken?: (token: string) => void
+    ): Promise<AIAssistantResponse<R> | null> {
         const { model, task, taskId, files, params } = request;
 
         const modelToUse = this.overrideModel || model;
@@ -44,7 +47,8 @@ abstract class CodebaseAssistant<R> extends BaseAssistant<CodingTaskRequest, R> 
         const aiResponse = await this.generateResponse(
             modelToUse,
             systemPrompt,
-            finalPromptWithFiles
+            finalPromptWithFiles,
+            onToken
         );
         if (!aiResponse) return null;
 

@@ -2,6 +2,7 @@ import { calculateLLMCost } from "@/modules/utils/llmCost";
 import { LLM_MODELS, LLMS } from "@/modules/utils/llmInfo";
 import Anthropic from "@anthropic-ai/sdk";
 import { AIResponse, BaseAIService } from "./BaseAIService";
+import { createHash } from "crypto";
 
 export class ClaudeAIService extends BaseAIService {
     private anthropic: Anthropic;
@@ -11,61 +12,123 @@ export class ClaudeAIService extends BaseAIService {
         this.anthropic = new Anthropic();
     }
 
-    async generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse> {
+    async generateResponse(
+        systemPrompt: string,
+        prompt: string,
+        onToken?: (token: string) => void
+    ): Promise<AIResponse> {
         this.logServiceHeader("Claude Service");
         this.logPrompts(systemPrompt, prompt);
 
         const cacheKey = this.getCacheKey(this.model, systemPrompt, prompt);
-        const cachedResponse = await this.getCachedResponse(cacheKey);
-        if (cachedResponse) {
-            this.logCacheHit(this.constructor.name);
-            this.logResponse(cachedResponse.response, "Claude Cached");
-            return cachedResponse;
+
+        // If no streaming is needed, use cached response if available
+        if (!onToken) {
+            const cachedResponse = await this.getCachedResponse(cacheKey);
+            if (cachedResponse) {
+                this.logCacheHit(this.constructor.name);
+                this.logResponse(cachedResponse.response, "Claude Cached");
+                return cachedResponse;
+            }
         }
 
         try {
             const LLM = LLMS.find((m) => m.model === this.model);
             if (!LLM) {
-                throw new Error(`LLM {this.model} not found`);
+                throw new Error(`LLM ${this.model} not found`);
             }
 
-            const completion = await this.anthropic.messages.create(
-                {
+            // If we have an onToken callback, use streaming mode
+            if (onToken) {
+                let fullResponse = "";
+                let inputTokens = 0;
+                let outputTokens = 0;
+
+                // Create streaming request
+                const stream = await this.anthropic.messages.create({
                     model: this.model,
                     max_tokens: LLM.maxOutputTokens,
                     system: systemPrompt,
                     messages: [{ role: "user", content: prompt }],
                     temperature: 0,
+                    stream: true,
+                });
+
+                // Process the stream
+                for await (const chunk of stream) {
+                    if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+                        const content = chunk.delta.text || "";
+                        if (content) {
+                            fullResponse += content;
+
+                            // Call the onToken callback
+                            onToken(content);
+                        }
+                    } else if (chunk.type === "message_stop") {
+                        // End of the stream
+                        break;
+                    }
                 }
-                // {
-                //     headers: {
-                //         "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-                //     },
-                // }
-            );
 
-            const response =
-                completion.content[0]?.type == "text" ? completion.content[0].text : "";
-            if (!response) {
-                throw new Error("No response generated.");
+                this.logResponse(fullResponse, "Claude Streaming");
+
+                if (!fullResponse) {
+                    throw new Error("No response generated.");
+                }
+
+                // For streaming responses, we need to estimate token counts
+                inputTokens = this.estimateTokenCount(systemPrompt + prompt);
+                outputTokens = this.estimateTokenCount(fullResponse);
+
+                const { inputCost, outputCost } = calculateLLMCost(
+                    this.model,
+                    inputTokens,
+                    outputTokens
+                );
+
+                const result: AIResponse = {
+                    response: fullResponse,
+                    inputTokens,
+                    outputTokens,
+                    cost: inputCost + outputCost,
+                };
+
+                // Cache the full response
+                await this.cacheResponse(cacheKey, result);
+                return result;
+            } else {
+                // Non-streaming mode
+                const completion = await this.anthropic.messages.create({
+                    model: this.model,
+                    max_tokens: LLM.maxOutputTokens,
+                    system: systemPrompt,
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0,
+                });
+
+                const response =
+                    completion.content[0]?.type == "text" ? completion.content[0].text : "";
+                if (!response) {
+                    throw new Error("No response generated.");
+                }
+                this.logResponse(response, "Claude");
+
+                const { inputCost, outputCost } = calculateLLMCost(
+                    this.model,
+                    completion.usage?.input_tokens,
+                    completion.usage?.output_tokens
+                );
+
+                const result: AIResponse = {
+                    response,
+                    inputTokens: completion.usage?.input_tokens || 0,
+                    outputTokens: completion.usage?.output_tokens || 0,
+                    cost: inputCost + outputCost,
+                };
+
+                await this.cacheResponse(cacheKey, result);
+                return result;
             }
-            this.logResponse(response, "Claude");
-
-            const { inputCost, outputCost } = calculateLLMCost(
-                this.model,
-                completion.usage?.input_tokens,
-                completion.usage?.output_tokens
-            );
-
-            const result: AIResponse = {
-                response,
-                inputTokens: completion.usage?.input_tokens || 0,
-                outputTokens: completion.usage?.output_tokens || 0,
-                cost: inputCost + outputCost,
-            };
-
-            await this.cacheResponse(cacheKey, result);
-            return result;
         } catch (error) {
             this.logError("Error generating AI response:", error);
             throw error;
@@ -82,7 +145,7 @@ export class ClaudeAIService extends BaseAIService {
         this.logPrompts(systemPrompt, textPrompt);
 
         // Create cache key including image hash
-        const imageHash = require("crypto").createHash("sha256").update(image).digest("hex");
+        const imageHash = createHash("sha256").update(image).digest("hex");
         const cacheKey = this.getCacheKey(
             this.model,
             systemPrompt,
@@ -173,5 +236,11 @@ export class ClaudeAIService extends BaseAIService {
             this.logError("Error analyzing image:", error);
             throw error;
         }
+    }
+
+    private estimateTokenCount(text: string): number {
+        // Simple estimation - can be replaced with a more accurate tokenizer
+        // Claude tends to have approximately 1 token per 4 characters for English text
+        return Math.ceil(text.length / 4);
     }
 }
