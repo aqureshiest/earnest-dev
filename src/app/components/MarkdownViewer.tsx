@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -10,10 +10,14 @@ import { Download } from "lucide-react"; // Import the Download icon from lucide
 type MarkdownViewerProps = {
     content: string;
     className?: string;
+    isStreaming?: boolean;
 };
 
 // Custom component to render Mermaid diagrams
-const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
+const MermaidRenderer: React.FC<{ content: string; isStreaming?: boolean }> = ({
+    content,
+    isStreaming,
+}) => {
     const [svg, setSvg] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
     const id = useRef(`mermaid-${Math.random().toString(36).substring(2, 9)}`);
@@ -23,6 +27,10 @@ const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
     const mermaid = initializeMermaid();
 
     useEffect(() => {
+        if (isStreaming) {
+            return;
+        }
+
         const renderDiagram = async () => {
             try {
                 // Configure mermaid rendering for dark mode
@@ -44,7 +52,7 @@ const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
         };
 
         renderDiagram();
-    }, [content, mermaid]);
+    }, [content, mermaid, isStreaming]);
 
     const handleDownload = () => {
         if (!diagramRef.current) return;
@@ -83,6 +91,18 @@ const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
         URL.revokeObjectURL(url);
     };
 
+    // If we're streaming, show placeholder
+    if (isStreaming) {
+        return (
+            <div className="p-4 my-4 border rounded bg-slate-800 flex items-center justify-center">
+                <div className="text-center text-slate-300">
+                    <p className="mb-2">Building diagram...</p>
+                    <p className="text-xs">Diagram will be displayed once streaming is complete.</p>
+                </div>
+            </div>
+        );
+    }
+
     if (error) {
         return (
             <div className="p-4 border border-red-500 rounded bg-red-100 dark:bg-red-900 dark:text-red-200">
@@ -114,32 +134,27 @@ const MermaidRenderer: React.FC<{ content: string }> = ({ content }) => {
     );
 };
 
-// Custom code component to handle different types of code blocks
-// Using the proper type definition that ReactMarkdown expects
-const CodeBlock = ({
+const MarkdownViewer: React.FC<MarkdownViewerProps> = ({
+    content,
     className,
-    children,
-    ...props
-}: React.ClassAttributes<HTMLElement> &
-    React.HTMLAttributes<HTMLElement> & {
-        children?: React.ReactNode;
-    }) => {
-    // Check if this is a mermaid code block
-    // ReactMarkdown will add "language-xyz" class to code blocks with ```xyz format
-    if (className && className.indexOf("language-mermaid") > -1) {
-        const content = React.Children.toArray(children).join("");
-        return <MermaidRenderer content={content} />;
-    }
+    isStreaming = false,
+}) => {
+    const CodeBlock = useCallback(
+        ({ className, children, ...props }: { className?: string; children?: React.ReactNode }) => {
+            if (className && className.indexOf("language-mermaid") > -1) {
+                const content = React.Children.toArray(children).join("");
+                return <MermaidRenderer content={content} isStreaming={isStreaming} />;
+            }
 
-    // Default code rendering for non-mermaid
-    return (
-        <code className={className} {...props}>
-            {children}
-        </code>
+            return (
+                <code className={className} {...props}>
+                    {children}
+                </code>
+            );
+        },
+        [isStreaming]
     );
-};
 
-const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, className }) => {
     return (
         <div
             className={`

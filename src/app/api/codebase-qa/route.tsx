@@ -5,8 +5,16 @@ import { reportError } from "@/modules/bugsnag/report";
 import { CodebaseQAMetricsService } from "@/modules/metrics/generate/CodebaseQAMetricsService";
 
 export async function POST(req: Request) {
-    const { taskId, owner, repo, branch, selectedModel, question, conversationHistory } =
-        await req.json();
+    const {
+        taskId,
+        owner,
+        repo,
+        branch,
+        selectedModel,
+        question,
+        conversationHistory,
+        stream: streamResponse,
+    } = await req.json();
 
     if (!taskId) {
         return NextResponse.json({ error: "Task Id is required" }, { status: 400 });
@@ -58,15 +66,14 @@ Current question: ${question}`;
                         files: [],
                     };
 
-                    // Initialize the streaming response
-                    sendTaskUpdate(taskId, "streaming_start", "");
-
                     // Use the orchestrator to run the workflow
                     const codebaseQA = new CodebaseQA();
-                    const response = await codebaseQA.runWorkflow(taskRequest, (token) => {
-                        // Send each token as it arrives
-                        sendTaskUpdate(taskId, "token", token);
-                    });
+                    const response = streamResponse
+                        ? await codebaseQA.runWorkflow(taskRequest, (token) => {
+                              // Send each token as it arrives
+                              sendTaskUpdate(taskId, "token", token);
+                          })
+                        : await codebaseQA.runWorkflow(taskRequest);
 
                     // Send the final answer
                     sendTaskUpdate(taskId, "answer", response.response);

@@ -76,6 +76,12 @@ export class CodebaseQA {
 
             // Step 3: Process with the assistant (it will handle token limits)
             sendTaskUpdate(taskId, "progress", "Understanding codebase and preparing answer...");
+
+            // Initialize the streaming response
+            if (onToken) {
+                sendTaskUpdate(taskId, "streaming_start", "");
+            }
+
             const answer = await this.questionAssistant.process(taskRequest, onToken);
 
             if (!answer) {

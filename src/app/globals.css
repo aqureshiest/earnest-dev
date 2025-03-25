@@ -140,3 +140,18 @@ body {
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
 }
+
+.fixed.inset-0.z-50 {
+    animation: expandToFullscreen 0.2s ease-out forwards;
+}
+
+@keyframes expandToFullscreen {
+    from {
+        transform: scale(0.98);
+        opacity: 0.8;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

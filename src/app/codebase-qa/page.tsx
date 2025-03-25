@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Brain, Code, Send, Loader2, RefreshCw, Maximize2, Minimize2 } from "lucide-react";
+import { Brain, Code, Send, Loader2, RefreshCw, Minimize, Maximize } from "lucide-react";
 import EnhancedProgressFeed, {
     EnhancedProgressMessage,
 } from "@/app/components/EnhancedProgressFeed";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     Dialog,
     DialogContent,
@@ -70,9 +70,8 @@ const CodebaseQA: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRepoDialogOpen, setIsRepoDialogOpen] = useState(false);
     const [useConversationHistory, setUseConversationHistory] = useState(true);
+    const [useStreamingMode, setUseStreamingMode] = useState(true);
     const [showTemplateQuestions, setShowTemplateQuestions] = useState(false);
-
-    const [isExpanded, setIsExpanded] = useState(false);
 
     const helpMessage = `**Codebase Q&A**
 - Select a repository to explore your code
@@ -96,13 +95,20 @@ const CodebaseQA: React.FC = () => {
         },
     ]);
 
+    const [autoScroll, setAutoScroll] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const [isFullPageView, setIsFullPageView] = useState(false);
+
+    const toggleFullPageView = () => {
+        setIsFullPageView((prev) => !prev);
+    };
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
 
     // Scroll to bottom when new messages are added
     useEffect(() => {
-        if (messagesEndRef.current) {
+        if (autoScroll && messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
     }, [conversation]);
@@ -138,9 +144,7 @@ const CodebaseQA: React.FC = () => {
     };
 
     const handleSubmitQuestion = async () => {
-        console.log("Submitting question:", question);
         if (!question.trim() || !repo || !branch || isProcessing) return;
-        console.log("Processing question...");
 
         setIsProcessing(true);
         const newTaskId = Date.now().toString();
@@ -194,6 +198,7 @@ const CodebaseQA: React.FC = () => {
                     selectedModel,
                     question: question.trim(),
                     conversationHistory: useConversationHistory ? conversationHistory : [],
+                    stream: useStreamingMode,
                 }),
             });
 
@@ -294,21 +299,23 @@ const CodebaseQA: React.FC = () => {
                 });
                 break;
             case "answer":
-                // Replace the loading message with the actual answer
                 setConversation((prev) => {
                     const newConv = [...prev];
                     // Replace the last message (loading) with answer
                     if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
-                        // newConv[newConv.length - 1] = {
-                        //     role: "assistant",
-                        //     content: data.message,  // replace full answer
-                        //     timestamp: new Date(),
-                        //     isStreaming: false,
-                        // };
-                        newConv[newConv.length - 1] = {
-                            ...newConv[newConv.length - 1], // Keep all existing properties
-                            isStreaming: false, // Update only the streaming flag
-                        };
+                        if (useStreamingMode) {
+                            newConv[newConv.length - 1] = {
+                                ...newConv[newConv.length - 1], // Keep all existing properties
+                                isStreaming: false, // Update only the streaming flag
+                            };
+                        } else {
+                            newConv[newConv.length - 1] = {
+                                role: "assistant",
+                                content: data.message, // replace full answer
+                                timestamp: new Date(),
+                                isStreaming: false,
+                            };
+                        }
                     }
                     return newConv;
                 });
@@ -397,11 +404,32 @@ const CodebaseQA: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <div className="flex items-center space-x-2">
                             <Switch
+                                id="streaming-mode"
+                                checked={useStreamingMode}
+                                onCheckedChange={setUseStreamingMode}
+                                disabled={isProcessing}
+                            />
+                            <Label htmlFor="streaming-mode">Stream Response</Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <Switch
                                 id="conversation-mode"
                                 checked={useConversationHistory}
                                 onCheckedChange={setUseConversationHistory}
+                                disabled={isProcessing}
                             />
                             <Label htmlFor="conversation-mode">Conversation Mode</Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                id="auto-scroll"
+                                checked={autoScroll}
+                                onCheckedChange={setAutoScroll}
+                                disabled={isProcessing}
+                            />
+                            <Label htmlFor="auto-scroll">Auto Scroll</Label>
                         </div>
 
                         <Button
@@ -409,6 +437,7 @@ const CodebaseQA: React.FC = () => {
                             size="sm"
                             onClick={handleStartNewConversation}
                             className="flex items-center gap-2"
+                            disabled={isProcessing}
                         >
                             <RefreshCw className="w-4 h-4" />
                             New Conversation
@@ -416,7 +445,7 @@ const CodebaseQA: React.FC = () => {
 
                         <Dialog open={isRepoDialogOpen} onOpenChange={setIsRepoDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button className="flex items-center gap-2">
+                                <Button className="flex items-center gap-2" disabled={isProcessing}>
                                     <Code className="w-4 h-4" />
                                     {repo ? `${repo}/${branch}` : "Select Repository"}
                                 </Button>
@@ -459,22 +488,38 @@ const CodebaseQA: React.FC = () => {
                     </div>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div
+                    className={`
+  ${
+      isFullPageView
+          ? "fixed inset-0 z-50 p-0 m-0 grid grid-cols-1" // Fullscreen mode - single column
+          : "grid grid-cols-1 md:grid-cols-4 gap-4"
+  }     // Normal grid layout
+`}
+                >
                     {/* Main Chat Area - dynamically sized based on expanded state */}
                     <Card
-                        className={`h-[calc(100vh-150px)] flex flex-col relative ${
-                            isExpanded ? "md:col-span-4" : "md:col-span-3"
-                        }`}
+                        className={`
+    ${
+        isFullPageView
+            ? "h-screen rounded-none col-span-1" // Fullscreen mode
+            : "h-[calc(100vh-150px)] md:col-span-3"
+    } // Normal mode
+    flex flex-col relative
+  `}
                     >
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setIsExpanded(!isExpanded)}
+                            onClick={toggleFullPageView}
                             className="absolute top-2 right-2 h-8 w-8 z-10 hidden md:flex"
-                            title={isExpanded ? "Collapse" : "Expand"}
+                            title={isFullPageView ? "Exit fullscreen" : "Fullscreen mode"}
                         >
-                            <Maximize2 className={isExpanded ? "hidden" : "h-4 w-4"} />
-                            <Minimize2 className={isExpanded ? "h-4 w-4" : "hidden"} />
+                            {isFullPageView ? (
+                                <Minimize className="h-4 w-4" />
+                            ) : (
+                                <Maximize className="h-4 w-4" />
+                            )}
                         </Button>
                         <CardContent className="flex-grow overflow-hidden p-0 flex flex-col">
                             {/* Conversation History */}
@@ -516,7 +561,10 @@ const CodebaseQA: React.FC = () => {
                                                             {message.content}
                                                         </div>
                                                     ) : message.content ? (
-                                                        <MarkdownViewer content={message.content} />
+                                                        <MarkdownViewer
+                                                            content={message.content}
+                                                            isStreaming={message.isStreaming}
+                                                        />
                                                     ) : (
                                                         <div className="flex items-center gap-2">
                                                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -602,7 +650,7 @@ const CodebaseQA: React.FC = () => {
                     </Card>
 
                     {/* Progress Feed - hidden when expanded */}
-                    {!isExpanded && (
+                    {!isFullPageView && (
                         <div className="h-[calc(100vh-150px)] flex flex-col">
                             <EnhancedProgressFeed messages={progressMessages} maxHeight="500px" />
                         </div>
