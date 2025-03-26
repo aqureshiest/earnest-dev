@@ -30,23 +30,25 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
         this.repositories = repositories;
     }
 
-    async getTotalQARequestsSum(): Promise<number> {
+    async getTotalQARequestsSum(startTime: Date, endTime: Date): Promise<number> {
         let totalSum = 0;
 
         for (const repo of this.repositories) {
-            const repoSum = await this.getMetricSum("QARequests", [
-                { Name: "Repository", Value: repo },
-            ]);
+            const repoSum = await this.getMetricSum(
+                "QARequests",
+                [{ Name: "Repository", Value: repo }],
+                { startTime, endTime }
+            );
             totalSum += repoSum;
         }
 
         return totalSum;
     }
 
-    async getQASuccessRate(): Promise<number> {
-        const timeRange = this.getDefaultTimeRange();
+    async getQASuccessRate(startTime: Date, endTime: Date): Promise<number> {
         let totalRequests = 0;
         let totalSuccesses = 0;
+        const timeRange = { startTime, endTime };
 
         for (const repo of this.repositories) {
             const dimensions = [{ Name: "Repository", Value: repo }];
@@ -65,10 +67,10 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
         return (totalSuccesses / totalRequests) * 100;
     }
 
-    async getQuestionTypes(): Promise<QuestionTypeStats> {
-        const timeRange = this.getDefaultTimeRange();
+    async getQuestionTypes(startTime: Date, endTime: Date): Promise<QuestionTypeStats> {
         let generalCount = 0;
         let specificCount = 0;
+        const timeRange = { startTime, endTime };
 
         for (const repo of this.repositories) {
             // Get general questions count
@@ -105,27 +107,31 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
         };
     }
 
-    async getConversationQuestions(): Promise<number> {
+    async getConversationQuestions(startTime: Date, endTime: Date): Promise<number> {
         let totalSum = 0;
 
         for (const repo of this.repositories) {
-            const repoSum = await this.getMetricSum("ConversationQuestions", [
-                { Name: "Repository", Value: repo },
-            ]);
+            const repoSum = await this.getMetricSum(
+                "ConversationQuestions",
+                [{ Name: "Repository", Value: repo }],
+                { startTime, endTime }
+            );
             totalSum += repoSum;
         }
 
         return totalSum;
     }
 
-    async getAverageFilesAnalyzed(): Promise<number> {
+    async getAverageFilesAnalyzed(startTime: Date, endTime: Date): Promise<number> {
         let totalAvg = 0;
         let repoCount = 0;
 
         for (const repo of this.repositories) {
-            const repoAvg = await this.getMetricAverage("FilesAnalyzed", [
-                { Name: "Repository", Value: repo },
-            ]);
+            const repoAvg = await this.getMetricAverage(
+                "FilesAnalyzed",
+                [{ Name: "Repository", Value: repo }],
+                { startTime, endTime }
+            );
 
             if (repoAvg > 0) {
                 totalAvg += repoAvg;
@@ -136,14 +142,16 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
         return repoCount > 0 ? totalAvg / repoCount : 0;
     }
 
-    async getAverageProcessingTime(): Promise<number> {
+    async getAverageProcessingTime(startTime: Date, endTime: Date): Promise<number> {
         let totalAvg = 0;
         let repoCount = 0;
 
         for (const repo of this.repositories) {
-            const repoAvg = await this.getMetricAverage("QAProcessingTime", [
-                { Name: "Repository", Value: repo },
-            ]);
+            const repoAvg = await this.getMetricAverage(
+                "QAProcessingTime",
+                [{ Name: "Repository", Value: repo }],
+                { startTime, endTime }
+            );
 
             if (repoAvg > 0) {
                 totalAvg += repoAvg;
@@ -154,12 +162,12 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
         return repoCount > 0 ? totalAvg / repoCount : 0;
     }
 
-    async getQATokenUsage(): Promise<TokenUsageStats> {
-        const timeRange = this.getDefaultTimeRange();
+    async getQATokenUsage(startTime: Date, endTime: Date): Promise<TokenUsageStats> {
         let inputTokens = 0;
         let outputTokens = 0;
         let totalTokens = 0;
         let tokenCost = 0;
+        const timeRange = { startTime, endTime };
 
         // Token metrics include both Repository and Type dimensions
         const questionTypes = ["general", "specific"];
@@ -356,7 +364,7 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
         }
     }
 
-    async getAllQAMetrics(): Promise<QAMetricsStats> {
+    async getAllQAMetrics(startTime: Date, endTime: Date): Promise<QAMetricsStats> {
         const [
             totalRequests,
             successRate,
@@ -366,13 +374,13 @@ export class CodebaseQACloudWatchService extends BaseCloudWatchService {
             averageProcessingTime,
             tokenUsage,
         ] = await Promise.all([
-            this.getTotalQARequestsSum(),
-            this.getQASuccessRate(),
-            this.getQuestionTypes(),
-            this.getConversationQuestions(),
-            this.getAverageFilesAnalyzed(),
-            this.getAverageProcessingTime(),
-            this.getQATokenUsage(),
+            this.getTotalQARequestsSum(startTime, endTime),
+            this.getQASuccessRate(startTime, endTime),
+            this.getQuestionTypes(startTime, endTime),
+            this.getConversationQuestions(startTime, endTime),
+            this.getAverageFilesAnalyzed(startTime, endTime),
+            this.getAverageProcessingTime(startTime, endTime),
+            this.getQATokenUsage(startTime, endTime),
         ]);
 
         return {

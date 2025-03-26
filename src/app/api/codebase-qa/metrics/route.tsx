@@ -18,7 +18,7 @@ export async function GET() {
         startDate.setDate(endDate.getDate() - 30); // Last 30 days
 
         const [qaMetrics, timeSeriesData] = await Promise.all([
-            cloudWatch.getAllQAMetrics(),
+            cloudWatch.getAllQAMetrics(startDate, endDate),
             cloudWatch.getQATimeSeriesData(startDate, endDate),
         ]);
 

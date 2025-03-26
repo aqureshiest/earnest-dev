@@ -138,7 +138,7 @@ async function sendRequest(payload: TestPayload): Promise<TestResult> {
                 Accept: "text/event-stream",
             },
             body: JSON.stringify(payload),
-            signal: controller.signal,
+            // signal: controller.signal,
         });
 
         clearTimeout(timeoutId);

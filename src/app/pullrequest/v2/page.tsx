@@ -683,6 +683,7 @@ const PullRequestV2: React.FC = () => {
                                             id="maximizeTokenUsage"
                                             className="ml-2"
                                             checked={maximizeTokenUsage}
+                                            disabled={isCreating}
                                             onCheckedChange={() =>
                                                 setMaximizeTokenUsage((prev) => !prev)
                                             }

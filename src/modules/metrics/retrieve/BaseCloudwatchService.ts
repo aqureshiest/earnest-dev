@@ -15,17 +15,10 @@ export class BaseCloudWatchService {
         this.namespace = namespace;
     }
 
-    protected getDefaultTimeRange(): TimeRange {
-        const endTime = new Date();
-        const startTime = new Date();
-        startTime.setDate(startTime.getDate() - 30); // Last 30 days
-        return { startTime, endTime };
-    }
-
     protected async getMetricSum(
         metricName: string,
         dimensions: { Name: string; Value: string }[] = [],
-        timeRange: TimeRange = this.getDefaultTimeRange()
+        timeRange: TimeRange
     ): Promise<number> {
         const { startTime, endTime } = timeRange;
 
@@ -69,7 +62,7 @@ export class BaseCloudWatchService {
     protected async getMetricAverage(
         metricName: string,
         dimensions: { Name: string; Value: string }[] = [],
-        timeRange: TimeRange = this.getDefaultTimeRange()
+        timeRange: TimeRange
     ): Promise<number> {
         const { startTime, endTime } = timeRange;
 
