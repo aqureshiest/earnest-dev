@@ -7,12 +7,12 @@ export class PRDCloudWatchService extends BaseCloudWatchService {
         super(namespace ? namespace : METRICS_CONFIG.namespace);
     }
 
-    async getPRDRequestCount(): Promise<number> {
-        return this.getMetricSum("PRD_Requests");
+    async getPRDRequestCount(startTime: Date, endTime: Date): Promise<number> {
+        return this.getMetricSum("PRD_Requests", [], { startTime, endTime });
     }
 
-    async getPRDSuccessRate(): Promise<number> {
-        const timeRange = this.getDefaultTimeRange();
+    async getPRDSuccessRate(startTime: Date, endTime: Date): Promise<number> {
+        const timeRange = { startTime, endTime };
         const totalRequests = await this.getMetricSum("PRD_Requests", [], timeRange);
         const totalSuccesses = await this.getMetricSum("PRD_Success", [], timeRange);
 
@@ -24,24 +24,24 @@ export class PRDCloudWatchService extends BaseCloudWatchService {
         return (totalSuccesses / totalRequests) * 100;
     }
 
-    async getPRDAverageDuration(): Promise<number> {
-        return this.getMetricAverage("PRD_Duration");
+    async getPRDAverageDuration(startTime: Date, endTime: Date): Promise<number> {
+        return this.getMetricAverage("PRD_Duration", [], { startTime, endTime });
     }
 
-    async getPRDFeatureCount(): Promise<number> {
-        return this.getMetricSum("PRD_FeatureCount");
+    async getPRDFeatureCount(startTime: Date, endTime: Date): Promise<number> {
+        return this.getMetricSum("PRD_FeatureCount", [], { startTime, endTime });
     }
 
-    async getPRDScreenCount(): Promise<number> {
-        return this.getMetricSum("PRD_ScreenCount");
+    async getPRDScreenCount(startTime: Date, endTime: Date): Promise<number> {
+        return this.getMetricSum("PRD_ScreenCount", [], { startTime, endTime });
     }
 
-    async getPRDWordCount(): Promise<number> {
-        return this.getMetricSum("PRD_WordCount");
+    async getPRDWordCount(startTime: Date, endTime: Date): Promise<number> {
+        return this.getMetricSum("PRD_WordCount", [], { startTime, endTime });
     }
 
-    async getPRDTokenUsage(): Promise<TokenUsageStats> {
-        const timeRange = this.getDefaultTimeRange();
+    async getPRDTokenUsage(startTime: Date, endTime: Date): Promise<TokenUsageStats> {
+        const timeRange = { startTime, endTime };
 
         const [inputTokens, outputTokens, totalTokens, tokenCost] = await Promise.all([
             this.getMetricSum("PRD_InputTokens", [], timeRange),
@@ -64,7 +64,7 @@ export class PRDCloudWatchService extends BaseCloudWatchService {
         };
     }
 
-    async getAllPRDMetrics(): Promise<PRDMetricsStats> {
+    async getAllPRDMetrics(startTime: Date, endTime: Date): Promise<PRDMetricsStats> {
         const [
             requestCount,
             successRate,
@@ -74,13 +74,13 @@ export class PRDCloudWatchService extends BaseCloudWatchService {
             wordCount,
             tokenUsage,
         ] = await Promise.all([
-            this.getPRDRequestCount(),
-            this.getPRDSuccessRate(),
-            this.getPRDAverageDuration(),
-            this.getPRDFeatureCount(),
-            this.getPRDScreenCount(),
-            this.getPRDWordCount(),
-            this.getPRDTokenUsage(),
+            this.getPRDRequestCount(startTime, endTime),
+            this.getPRDSuccessRate(startTime, endTime),
+            this.getPRDAverageDuration(startTime, endTime),
+            this.getPRDFeatureCount(startTime, endTime),
+            this.getPRDScreenCount(startTime, endTime),
+            this.getPRDWordCount(startTime, endTime),
+            this.getPRDTokenUsage(startTime, endTime),
         ]);
 
         return {
