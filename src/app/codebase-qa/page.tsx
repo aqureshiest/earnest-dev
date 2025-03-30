@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Brain, Code, Send, Loader2, RefreshCw, Minimize, Maximize } from "lucide-react";
 import EnhancedProgressFeed, {
     EnhancedProgressMessage,
@@ -26,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import MarkdownViewer from "../components/MarkdownViewer";
 import RepoAndBranchSelection from "../components/RepoAndBranchSelection";
 import AIModelSelection from "../components/AIModelSelection";
+import { templateQuestions } from "./templateQuestions";
 
 interface Message {
     role: "user" | "assistant" | "system";
@@ -45,15 +45,21 @@ const TemplateQuestions = ({
     return (
         <div className="px-4 py-3 mb-4">
             <div className="grid grid-cols-1 gap-2">
-                {questions.map((question, index) => (
-                    <button
-                        key={index}
-                        onClick={() => onSelectQuestion(question)}
-                        className="text-left p-3 border rounded-lg hover:bg-muted/50 transition-colors text-sm w-full"
-                    >
-                        {question}
-                    </button>
-                ))}
+                {questions.map((question, index) => {
+                    const label = question.includes("::") ? question.split("::")[0] : question;
+                    const text = question.includes("::")
+                        ? question.split("::")[1].trim()
+                        : question;
+                    return (
+                        <button
+                            key={index}
+                            onClick={() => onSelectQuestion(text)}
+                            className="text-left p-3 border rounded-lg hover:bg-muted/50 transition-colors text-sm w-full"
+                        >
+                            {label}
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );
@@ -81,12 +87,6 @@ const CodebaseQA: React.FC = () => {
 - First analysis may take a longer time to process the codebase
 `;
 
-    const [templateQuestions] = useState([
-        "Explain how this repo works?",
-        "Generate an architecture diagram of this codebase",
-        "Identify potential improvements in this code",
-    ]);
-
     const [conversation, setConversation] = useState<Message[]>([
         {
             role: "system",
@@ -96,7 +96,25 @@ const CodebaseQA: React.FC = () => {
     ]);
 
     const [autoScroll, setAutoScroll] = useState(true);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const handleScroll = () => {
+        if (!scrollContainerRef.current) return;
+
+        const container = scrollContainerRef.current;
+        const isAtBottom =
+            container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+
+        // If scrolled to bottom, enable auto-scroll, otherwise disable it
+        setAutoScroll(isAtBottom);
+    };
+
+    useEffect(() => {
+        if (autoScroll && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [conversation, autoScroll]);
 
     const [isFullPageView, setIsFullPageView] = useState(false);
 
@@ -105,13 +123,6 @@ const CodebaseQA: React.FC = () => {
     };
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
-
-    // Scroll to bottom when new messages are added
-    useEffect(() => {
-        if (autoScroll && messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [conversation]);
 
     // Show template questions when repo/branch selected and no conversation yet
     useEffect(() => {
@@ -422,16 +433,6 @@ const CodebaseQA: React.FC = () => {
                             <Label htmlFor="conversation-mode">Conversation Mode</Label>
                         </div>
 
-                        <div className="flex items-center space-x-2">
-                            <Switch
-                                id="auto-scroll"
-                                checked={autoScroll}
-                                onCheckedChange={setAutoScroll}
-                                disabled={isProcessing}
-                            />
-                            <Label htmlFor="auto-scroll">Auto Scroll</Label>
-                        </div>
-
                         <Button
                             variant="outline"
                             size="sm"
@@ -523,7 +524,11 @@ const CodebaseQA: React.FC = () => {
                         </Button>
                         <CardContent className="flex-grow overflow-hidden p-0 flex flex-col">
                             {/* Conversation History */}
-                            <ScrollArea className="flex-grow p-4">
+                            <div
+                                className="flex-grow p-4 overflow-y-auto"
+                                onScroll={handleScroll}
+                                ref={scrollContainerRef}
+                            >
                                 <div className="space-y-4">
                                     {conversation.map((message, index) => (
                                         <div
@@ -605,7 +610,7 @@ const CodebaseQA: React.FC = () => {
 
                                     <div ref={messagesEndRef} />
                                 </div>
-                            </ScrollArea>
+                            </div>
 
                             {/* Question Input */}
                             <div className="p-4 border-t mt-auto">
