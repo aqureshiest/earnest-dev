@@ -254,6 +254,21 @@ class PullRequestService {
                 body: prBody,
             });
 
+            // Add "AI-Generated" label to the pull request
+            try {
+                await this.octokit.issues.addLabels({
+                    owner: this.owner,
+                    repo: this.repo,
+                    issue_number: prData.number,
+                    labels: ["AI-Generated"],
+                });
+                console.log(`Added "AI-Generated" label to PR #${prData.number}`);
+            } catch (labelError) {
+                // Log the error but don't fail the PR creation
+                console.error(`Error adding "AI-Generated" label to PR #${prData.number}:`, labelError);
+                console.log("PR was created successfully, but label could not be added");
+            }
+
             // Count files for the PR creation metric
             const fileCount =
                 (codeChanges.newFiles?.length || 0) +
