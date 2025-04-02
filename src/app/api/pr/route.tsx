@@ -43,13 +43,29 @@ export async function POST(req: Request) {
 
                     // generate PR
                     const prService = new PullRequestService(owner, repo, branch);
-                    const prLink = await prService.createPullRequest(
-                        generatedCode.response,
-                        prTitle,
-                        response.response || description
-                    );
+                    let prLink;
+                    try {
+                        prLink = await prService.createPullRequest(
+                            generatedCode.response,
+                            prTitle,
+                            response.response || description
+                        );
+                        
+                        sendTaskUpdate(taskId, "progress", "Pull request created with AI-Generated label.");
+                    } catch (error: any) {
+                        // Check if the error is specifically about label addition
+                        if (error.message && error.message.includes("label") && error.prLink) {
+                            // If we have a PR link but label addition failed, we can still return the PR link
+                            prLink = error.prLink;
+                            sendTaskUpdate(taskId, "progress", "Pull request created, but adding AI-Generated label failed.");
+                            console.warn(`Label addition failed for PR in ${owner}/${repo}, but PR was created: ${error.message}`);
+                        } else {
+                            // If it's a different error, rethrow it
+                            throw error;
+                        }
+                    }
 
-                    sendTaskUpdate(taskId, "progress", "Pull request created.");
+                    sendTaskUpdate(taskId, "progress", "Pull request creation completed.");
                     sendTaskUpdate(taskId, "final", { prLink });
                 } catch (error: any) {
                     console.error("Error within generate pr stream:", error);
