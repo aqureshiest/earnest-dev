@@ -1,8 +1,8 @@
-import { EXCLUDE_PATTERNS } from "@/constants";
 import { GitHubService } from "./GitHubService";
 import { retryWithExponentialBackoff } from "../utils/retryWithExponentialBackoff";
 import { RepositoryDataService } from "../db/RepositoryDataService";
 import { reportError } from "../bugsnag/report";
+import { FileFilter } from "../ai/support/FileFilter";
 
 interface FetchError {
     path: string;
@@ -82,7 +82,7 @@ export class RepositoryService {
 
         // apply exclusion filter
         const filteredFiles = files.filter(
-            (file) => file.path && !RepositoryService.shouldExclude(file.path)
+            (file) => file.path && !FileFilter.shouldExclude(file.path)
         );
 
         for (const file of filteredFiles) {
@@ -254,15 +254,5 @@ export class RepositoryService {
 
         // save branch commit (for next iteration)
         await this.dataService.saveBranchCommit(owner, repo, ref, ghBranch.commit.sha);
-    }
-
-    static shouldExclude(filePath: string): boolean {
-        return EXCLUDE_PATTERNS.some((pattern) => {
-            if (pattern.endsWith("/")) {
-                return filePath.includes(pattern);
-            } else {
-                return filePath.endsWith(pattern);
-            }
-        });
     }
 }

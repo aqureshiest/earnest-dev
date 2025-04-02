@@ -98,7 +98,7 @@ export const codeMetadata = async () => {
         repo: "bookstore",
         branch: "main",
         task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_HAIKU.id,
+        model: LLM_MODELS.AWS_BEDROCK_CLAUDE_35_HAIKU_V2.id,
         files: [],
         params: {},
     };

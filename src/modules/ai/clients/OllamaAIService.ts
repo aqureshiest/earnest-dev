@@ -18,10 +18,7 @@ interface OllamaResponse {
 export class OllamaAIService extends BaseAIService {
     private baseUrl: string;
 
-    constructor(
-        model: string = LLM_MODELS.OLLAMA_LLAMA.id,
-        baseUrl: string = "http://localhost:11434"
-    ) {
+    constructor(model: string = "", baseUrl: string = "http://localhost:11434") {
         super(model);
         this.baseUrl = baseUrl;
     }

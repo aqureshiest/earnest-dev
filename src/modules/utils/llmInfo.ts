@@ -3,7 +3,19 @@ export type LLMModel = {
     name: string;
 };
 
-export const LLM_MODELS: { [key: string]: LLMModel } = {
+// Define specific keys for LLM_MODELS
+export type LLMModelKey =
+    | "OPENAI_O3_MINI"
+    | "OPENAI_GPT_4O"
+    | "OPENAI_GPT_4O_MINI"
+    | "ANTHROPIC_CLAUDE_3_7_SONNET"
+    | "ANTHROPIC_CLAUDE_3_5_HAIKU_NEW"
+    | "AWS_BEDROCK_CLAUDE_37_SONNET"
+    | "AWS_BEDROCK_CLAUDE_35_HAIKU_V2"
+    | "GEMINI_2_5_EXP_BUILD";
+// | 'OLLAMA_LLAMA';
+
+export const LLM_MODELS: Record<LLMModelKey, LLMModel> = {
     OPENAI_O3_MINI: {
         id: "o3-mini",
         name: "OpenAI O3 Mini",
@@ -32,10 +44,10 @@ export const LLM_MODELS: { [key: string]: LLMModel } = {
         id: "us.anthropic.claude-3-5-haiku-20241022-v1:0",
         name: "AWS Bedrock Claude 3.5 Haiku V2",
     },
-    // GEMINI_1_5_FLASH: {
-    //     id: "gemini-1.5-flash",
-    //     name: "Google Gemini 1.5 Flash",
-    // },
+    GEMINI_2_5_EXP_BUILD: {
+        id: "gemini-2.5-pro-exp-03-25",
+        name: "Google Gemini 2.5 Experimental Build",
+    },
     // OLLAMA_LLAMA: {
     //     id: "llama3:latest",
     //     name: "OLLama Llama",
@@ -95,21 +107,21 @@ export const LLMS: LLM[] = [
         tokenPaddingFactor: 1.18,
     },
     // Gemini
-    // {
-    //     model: LLM_MODELS.GEMINI_1_5_FLASH.id,
-    //     inputCost: 0,
-    //     outputCost: 0,
-    //     maxInputTokens: 200000,
-    //     maxOutputTokens: 4096,
-    //     tokenPaddingFactor: 1,
-    // },
+    {
+        model: LLM_MODELS.GEMINI_2_5_EXP_BUILD.id,
+        inputCost: 0,
+        outputCost: 0,
+        maxInputTokens: 200000,
+        maxOutputTokens: 25000,
+        tokenPaddingFactor: 1,
+    },
     // AWS Bedrock
     {
         model: LLM_MODELS.AWS_BEDROCK_CLAUDE_37_SONNET.id,
         inputCost: 3,
         outputCost: 15,
         maxInputTokens: 200000,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 25000,
         tokenPaddingFactor: 1.18,
     },
     {

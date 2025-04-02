@@ -64,6 +64,16 @@ export class ClaudeAIService extends BaseAIService {
                             // Call the onToken callback
                             onToken(content);
                         }
+                    } else if (chunk.type === "message_start") {
+                        // Set input tokens once
+                        if (chunk.message?.usage.input_tokens && inputTokens === 0) {
+                            inputTokens = chunk.message.usage.input_tokens;
+                        }
+                    } else if (chunk.type === "message_delta") {
+                        // set output tokens
+                        if (chunk.usage?.output_tokens) {
+                            outputTokens = Math.max(outputTokens, chunk.usage.output_tokens);
+                        }
                     } else if (chunk.type === "message_stop") {
                         // End of the stream
                         break;
@@ -75,10 +85,6 @@ export class ClaudeAIService extends BaseAIService {
                 if (!fullResponse) {
                     throw new Error("No response generated.");
                 }
-
-                // For streaming responses, we need to estimate token counts
-                inputTokens = this.estimateTokenCount(systemPrompt + prompt);
-                outputTokens = this.estimateTokenCount(fullResponse);
 
                 const { inputCost, outputCost } = calculateLLMCost(
                     this.model,
@@ -164,8 +170,6 @@ export class ClaudeAIService extends BaseAIService {
                 throw new Error(`LLM ${this.model} not found`);
             }
 
-            console.log("media_type", media_type);
-
             const completion = await this.anthropic.messages.create(
                 {
                     model: this.model,
@@ -236,11 +240,5 @@ export class ClaudeAIService extends BaseAIService {
             this.logError("Error analyzing image:", error);
             throw error;
         }
-    }
-
-    private estimateTokenCount(text: string): number {
-        // Simple estimation - can be replaced with a more accurate tokenizer
-        // Claude tends to have approximately 1 token per 4 characters for English text
-        return Math.ceil(text.length / 4);
     }
 }

@@ -3,6 +3,7 @@ import { calculateLLMCost } from "../../utils/llmCost";
 import { LLM_MODELS, LLMS } from "../../utils/llmInfo";
 import { BaseAIService, AIResponse } from "./BaseAIService";
 import { createHash } from "crypto";
+import { ResponseInputMessageContentList } from "openai/resources/responses/responses.mjs";
 
 export class OpenAIService extends BaseAIService {
     private openai: OpenAI;
@@ -45,8 +46,9 @@ export class OpenAIService extends BaseAIService {
                 let outputTokens = 0;
 
                 // Create streaming request
-                const stream = await this.openai.chat.completions.create({
-                    messages: [
+                const stream = await this.openai.responses.create({
+                    model: this.model,
+                    input: [
                         {
                             role: "system",
                             content: systemPrompt,
@@ -56,20 +58,28 @@ export class OpenAIService extends BaseAIService {
                             content: prompt,
                         },
                     ],
-                    model: this.model,
-                    max_completion_tokens: LLM.maxOutputTokens,
+                    max_output_tokens: LLM.maxOutputTokens,
                     temperature: this.model.startsWith("o") ? 1 : 0,
                     stream: true,
                 });
 
                 // Process the stream
                 for await (const chunk of stream) {
-                    const content = chunk.choices[0]?.delta?.content || "";
-                    if (content) {
-                        fullResponse += content;
+                    if (chunk.type == "response.output_text.delta") {
+                        const content = chunk.delta || "";
+                        if (content) {
+                            fullResponse += content;
 
-                        // Call the onToken callback
-                        onToken(content);
+                            // Call the onToken callback
+                            onToken(content);
+                        }
+                    } else if (chunk.type == "response.completed") {
+                        if (chunk.response.usage?.input_tokens) {
+                            inputTokens = chunk.response.usage.input_tokens;
+                        }
+                        if (chunk.response.usage?.output_tokens) {
+                            outputTokens = chunk.response.usage.output_tokens;
+                        }
                     }
                 }
 
@@ -78,11 +88,6 @@ export class OpenAIService extends BaseAIService {
                 if (!fullResponse) {
                     throw new Error("No response generated.");
                 }
-
-                // For streaming responses, we need to estimate token counts
-                // since they're not provided directly by the API
-                inputTokens = this.estimateTokenCount(systemPrompt + prompt);
-                outputTokens = this.estimateTokenCount(fullResponse);
 
                 const { inputCost, outputCost } = calculateLLMCost(
                     this.model,
@@ -103,8 +108,8 @@ export class OpenAIService extends BaseAIService {
             }
             // Otherwise, use non-streaming mode
             else {
-                const completion = await this.openai.chat.completions.create({
-                    messages: [
+                const completion = await this.openai.responses.create({
+                    input: [
                         {
                             role: "system",
                             content: systemPrompt,
@@ -115,11 +120,11 @@ export class OpenAIService extends BaseAIService {
                         },
                     ],
                     model: this.model,
-                    max_completion_tokens: LLM.maxOutputTokens,
+                    max_output_tokens: LLM.maxOutputTokens,
                     temperature: this.model.startsWith("o") ? 1 : 0,
                 });
 
-                const response = completion.choices[0]?.message?.content?.trim();
+                const response = completion.output_text.trim();
                 this.logResponse(response, "OpenAI");
 
                 if (!response) {
@@ -128,14 +133,14 @@ export class OpenAIService extends BaseAIService {
 
                 const { inputCost, outputCost } = calculateLLMCost(
                     this.model,
-                    completion.usage?.prompt_tokens || 0,
-                    completion.usage?.completion_tokens || 0
+                    completion.usage?.input_tokens || 0,
+                    completion.usage?.output_tokens || 0
                 );
 
                 const result: AIResponse = {
                     response,
-                    inputTokens: completion.usage?.prompt_tokens || 0,
-                    outputTokens: completion.usage?.completion_tokens || 0,
+                    inputTokens: completion.usage?.input_tokens || 0,
+                    outputTokens: completion.usage?.output_tokens || 0,
                     cost: inputCost + outputCost,
                 };
 
@@ -154,12 +159,7 @@ export class OpenAIService extends BaseAIService {
         image: Buffer,
         mediaType: "image/png" | "application/pdf"
     ): Promise<AIResponse> {
-        // only supporting image/png for now
-        if (mediaType !== "image/png") {
-            throw new Error("Unsupported media type. Only 'image/png' is supported.");
-        }
-
-        this.logServiceHeader("OpenAI Image Service");
+        this.logServiceHeader("OpenAI Image/Doc Service");
         this.logPrompts(systemPrompt, textPrompt);
 
         const imageBuffer = Buffer.isBuffer(image) ? image : Buffer.from(image);
@@ -184,33 +184,48 @@ export class OpenAIService extends BaseAIService {
 
             const base64Image = image.toString("base64");
 
-            const completion = await this.openai.chat.completions.create({
+            const contents: ResponseInputMessageContentList =
+                mediaType == "image/png"
+                    ? [
+                          {
+                              type: "input_text",
+                              text: textPrompt,
+                          },
+                          {
+                              type: "input_image",
+                              image_url: `data:image/png;base64,${base64Image}`,
+                              detail: "auto",
+                          },
+                      ]
+                    : // application/pdf
+                      [
+                          {
+                              type: "input_file",
+                              filename: "document.pdf",
+                              file_data: `data:${mediaType};base64,${base64Image}`,
+                          },
+                          {
+                              type: "input_text",
+                              text: textPrompt,
+                          },
+                      ];
+
+            const completion = await this.openai.responses.create({
                 model: this.model,
-                messages: [
+                input: [
                     {
                         role: "system",
                         content: systemPrompt,
                     },
                     {
                         role: "user",
-                        content: [
-                            {
-                                type: "text",
-                                text: textPrompt,
-                            },
-                            {
-                                type: "image_url",
-                                image_url: {
-                                    url: `data:image/png;base64,${base64Image}`,
-                                },
-                            },
-                        ],
+                        content: contents,
                     },
                 ],
-                max_completion_tokens: LLM.maxOutputTokens,
+                max_output_tokens: LLM.maxOutputTokens,
             });
 
-            const response = completion.choices[0]?.message?.content?.trim();
+            const response = completion.output_text.trim();
             this.logResponse(response, "Image Analysis");
 
             if (!response) {
@@ -219,14 +234,14 @@ export class OpenAIService extends BaseAIService {
 
             const { inputCost, outputCost } = calculateLLMCost(
                 this.model,
-                completion.usage?.prompt_tokens || 0,
-                completion.usage?.completion_tokens || 0
+                completion.usage?.input_tokens || 0,
+                completion.usage?.output_tokens || 0
             );
 
             const result: AIResponse = {
                 response,
-                inputTokens: completion.usage?.prompt_tokens || 0,
-                outputTokens: completion.usage?.completion_tokens || 0,
+                inputTokens: completion.usage?.input_tokens || 0,
+                outputTokens: completion.usage?.output_tokens || 0,
                 cost: inputCost + outputCost,
             };
 
@@ -236,11 +251,5 @@ export class OpenAIService extends BaseAIService {
             this.logError("Error analyzing image:", error);
             throw error;
         }
-    }
-
-    private estimateTokenCount(text: string): number {
-        // Simple estimation - can be replaced with a more accurate tokenizer
-        // For English text, ~4 chars is roughly 1 token
-        return Math.ceil(text.length / 4);
     }
 }

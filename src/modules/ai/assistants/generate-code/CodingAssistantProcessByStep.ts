@@ -11,7 +11,7 @@ import { calculateSimilarityThreshold, ScoredFile } from "@/modules/utils/simila
 import { reportError } from "@/modules/bugsnag/report";
 
 export class CodingAssistantProcessByStep extends CodingAssistant {
-    tokenAllocation: number = 20;
+    tokenAllocation: number = 30;
 
     private indexer: CodeIndexer;
     private dataService: RepositoryDataService;

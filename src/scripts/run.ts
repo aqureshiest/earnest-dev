@@ -1,4 +1,5 @@
-import { RepositoryService } from "@/modules/github/RepositoryService";
+import { FileFilter } from "@/modules/ai/support/FileFilter";
+import { GitHubService } from "@/modules/github/GitHubService";
 import { loadEnvConfig } from "@next/env";
 
 loadEnvConfig("");
@@ -6,10 +7,19 @@ loadEnvConfig("");
 export const run = async () => {
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
 
-    const repo = new RepositoryService();
+    const service = new GitHubService();
+
+    const table: any[] = [];
 
     runWithTime("getRepoFiles", async () => {
-        await repo.getRepositoryFiles(owner, "as-snapshot");
+        const files = await service.listRepoFiles(owner, "ss-snapshot", "main");
+
+        for (const file of files) {
+            const exclude = FileFilter.shouldExclude(file.path || "");
+            table.push({ path: file.path, include: !exclude ? "✅" : "❌" });
+        }
+
+        console.table(table);
     });
 };
 

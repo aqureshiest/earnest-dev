@@ -3,6 +3,7 @@ import { BaseAIService } from "./BaseAIService";
 import { OpenAIService } from "./OpenAIService";
 import { ClaudeAIService } from "./ClaudeAIService";
 import { BedrockAIService } from "./BedrockAIService";
+import { GeminiAIService } from "./GeminiAIService";
 
 class AIServiceFactory {
     static createAIService(model: string): BaseAIService {
@@ -14,8 +15,8 @@ class AIServiceFactory {
             case LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW.id:
             case LLM_MODELS.ANTHROPIC_CLAUDE_3_7_SONNET.id:
                 return new ClaudeAIService(model);
-            // case LLM_MODELS.GEMINI_1_5_FLASH.id:
-            // return new GeminiAIService(model);
+            case LLM_MODELS.GEMINI_2_5_EXP_BUILD.id:
+                return new GeminiAIService(model);
             case LLM_MODELS.AWS_BEDROCK_CLAUDE_37_SONNET.id:
             case LLM_MODELS.AWS_BEDROCK_CLAUDE_35_HAIKU_V2.id:
                 return new BedrockAIService(model);

@@ -11,7 +11,7 @@ export const trimPrompt = async () => {
         repo: repo,
         branch: "main",
         task: "",
-        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_SONNET.id,
+        model: LLM_MODELS.ANTHROPIC_CLAUDE_3_5_HAIKU_NEW.id,
         files: [],
         params: {},
     };
