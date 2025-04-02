@@ -1,21 +1,26 @@
 import { displayTime } from "../utils/displayTime";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
-import { LLM_MODELS } from "../utils/llmInfo";
 import { CodebaseQuestionAssistant } from "./assistants/codebase-qa/CodebaseQuestionAssistant";
 import { PrepareCodebase } from "./PrepareCodebase";
 import { CodebaseQuestionClassifierAssistant } from "./assistants/codebase-qa/CodebaseQuestionClassifierAssistant";
+import { CodebaseQAMetricsService } from "../metrics/generate/CodebaseQAMetricsService";
 
 export class CodebaseQA {
     private questionAssistant: CodebaseQuestionAssistant;
     private questionClassifier: CodebaseQuestionClassifierAssistant;
+    private metricsService: CodebaseQAMetricsService;
 
     constructor() {
         this.questionAssistant = new CodebaseQuestionAssistant();
         this.questionClassifier = new CodebaseQuestionClassifierAssistant();
+        this.metricsService = new CodebaseQAMetricsService();
     }
 
-    async runWorkflow(taskRequest: CodebaseQuestionRequest): Promise<AIAssistantResponse<string>> {
-        const { taskId, task } = taskRequest;
+    async runWorkflow(
+        taskRequest: CodebaseQuestionRequest,
+        onToken?: (token: string) => void
+    ): Promise<AIAssistantResponse<string>> {
+        const { taskId, task, owner, repo } = taskRequest;
 
         // Track start time
         const startTime = new Date().getTime();
@@ -25,6 +30,8 @@ export class CodebaseQA {
             sendTaskUpdate(taskId, "progress", "Understanding question...");
             const classificationResponse = await this.questionClassifier.process(taskRequest);
             const classification = classificationResponse!.response;
+
+            const questionType = classification?.isGeneral ? "general" : "specific";
 
             if (classification?.isGeneral) {
                 sendTaskUpdate(
@@ -40,6 +47,16 @@ export class CodebaseQA {
                 );
             }
 
+            // Track classification token usage
+            await this.metricsService.trackQATokenUsage({
+                owner,
+                repo,
+                inputTokens: classificationResponse!.inputTokens,
+                outputTokens: classificationResponse!.outputTokens,
+                cost: classificationResponse!.cost,
+                questionType,
+            });
+
             // Step 2: prepare codebase
             sendTaskUpdate(taskId, "progress", "Processing codebase...");
             const codebase = new PrepareCodebase();
@@ -49,9 +66,23 @@ export class CodebaseQA {
             });
             taskRequest.files = filesToUse;
 
+            // Track files analyzed
+            await this.metricsService.trackQuestionRequest({
+                owner,
+                repo,
+                questionType,
+                filesAnalyzed: filesToUse.length,
+            });
+
             // Step 3: Process with the assistant (it will handle token limits)
             sendTaskUpdate(taskId, "progress", "Understanding codebase and preparing answer...");
-            const answer = await this.questionAssistant.process(taskRequest);
+
+            // Initialize the streaming response
+            if (onToken) {
+                sendTaskUpdate(taskId, "streaming_start", "");
+            }
+
+            const answer = await this.questionAssistant.process(taskRequest, onToken);
 
             if (!answer) {
                 throw new Error("Failed to generate answer.");
@@ -60,20 +91,27 @@ export class CodebaseQA {
             // Calculate and report metrics
             await this.emitMetrics(taskId, answer);
 
+            // Track token usage metrics in CloudWatch
+            await this.metricsService.trackQATokenUsage({
+                owner,
+                repo,
+                inputTokens: answer.inputTokens,
+                outputTokens: answer.outputTokens,
+                cost: answer.cost,
+                questionType,
+            });
+
             // Report time taken
             const endTime = new Date().getTime();
             sendTaskUpdate(taskId, "progress", `Time taken: ${displayTime(startTime, endTime)}`);
 
             // Track metrics
             const totalDuration = endTime - startTime;
-            // await trackDuration(owner, repo, totalDuration);
-            // await trackSuccess(owner, repo, true);
+            await this.metricsService.trackQADuration({ owner, repo }, totalDuration);
 
             return answer;
         } catch (error: any) {
             console.error("Error in CodebaseQA workflow:", error);
-            // TODO
-            // await trackSuccess(owner, repo, false);
             throw error;
         }
     }

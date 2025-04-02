@@ -8,7 +8,7 @@ export class GeneratePR {
         this.writerAssistant = new WriterAssistant();
     }
 
-    async runWorkflow(taskRequest: CodingTaskRequest): Promise<AIAssistantResponse<string>> {
+    async runWorkflow(taskRequest: CodingTaskRequest): Promise<AIAssistantResponse<PRBody>> {
         const { taskId, params } = taskRequest;
 
         // make sure implementation plan and generated code are provided in the params
@@ -20,16 +20,16 @@ export class GeneratePR {
         sendTaskUpdate(taskId, "progress", "Generating PR...");
 
         // write PR description
-        const prDescription = await this.writerAssistant.process(taskRequest);
+        const pr = await this.writerAssistant.process(taskRequest);
 
-        if (!prDescription) {
+        if (!pr || !pr.response) {
             throw new Error("PR description not generated.");
         }
 
         sendTaskUpdate(taskId, "complete", { assistant: "PR", response: "" });
-        await this.emitMetrics(taskId, prDescription);
+        await this.emitMetrics(taskId, pr);
 
-        return prDescription;
+        return pr;
     }
 
     private async emitMetrics(taskId: string, result: AIAssistantResponse<any>) {

@@ -1,116 +1,198 @@
-# Earnest AI Dev
+I'll update the README file based on the information provided. Here's the revised version:
 
-Earnest AI Dev is a project designed to empower developers at Earnest by leveraging AI assistants to generate code.
+# Earnest AI Tools Local Development Guide
 
-## Table of Contents
+This guide will walk you through setting up the project for local development.
 
-- [Core Setup](#core-setup)
-  - [GitHub Token](#github-token)
-  - [Supabase](#supabase)
-- [AI Model Setup](#ai-model-setup)
-  - [AWS Bedrock](#aws-bedrock)
-  - [OpenAI](#openai)
-  - [Anthropic](#anthropic)
-- [Installation and Setup](#installation-and-setup)
-- [Running the Project](#running-the-project)
-- [Environment Example File](#environment-example-file)
+## Prerequisites
 
-## Core Setup
+- Git
+- Docker and Docker Compose
+- AWS CLI
+- saml2aws
+- Node.js environment (for local development outside Docker)
 
-These steps are required regardless of which AI models you plan to use.
+## Setup Process
 
-### GitHub Token
-
-1. Go to your GitHub account.
-2. Navigate to **Settings** > **Developer settings** > **Personal access tokens**.
-3. Generate a new token with `repo` scope to allow access to your repositories.
-4. Under `Permissions`, select `Read and write` for `Pull requests` and `Contents`.
-5. Copy the token and set it as the value for `GITHUB_TOKEN` and `NEXT_PUBLIC_GITHUB_TOKEN` in your `.env.local` file.
-6. The `NEXT_PUBLIC_GITHUB_OWNER` should be set to the GitHub username or organization name owning the repositories.
-
-### Supabase
-
-1. Sign up or log in to [Supabase](https://supabase.com/).
-2. Create a new project or select an existing one.
-3. Go to the **Project Settings** > **API** section.
-4. Copy the `URL` and `anon` key provided.
-5. Set the `NEXT_PUBLIC_SUPABASE_URL` to the copied `URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the `anon` key in your `.env.local` file.
-6. Run the SQL from `src/modules/db/schema.sql` in Supabase SQL editor to create the tables and the function.
-
-## AI Model Setup
-
-Choose and configure one or more of the following AI model providers:
-
-### AWS Bedrock
-
-1. Configure AWS credentials using SAML2AWS:
-    ```bash
-    saml2aws login
-    ```
-2. When prompted, log in to your OKTA account and select the AWS development account.
-
-3. Set your AWS profile:
-    ```bash
-    export AWS_PROFILE=est-development-Okta-Development-Eng
-    ```
-
-### OpenAI
-
-1. Sign up or log in to [OpenAI](https://platform.openai.com/).
-2. Navigate to **API Keys** under your account settings.
-3. Generate a new API key.
-4. Copy the key and set it as the value for `OPENAI_API_KEY` in your `.env.local` file.
-
-### Anthropic
-
-1. Sign up or log in to [Anthropic](https://www.anthropic.com/).
-2. Navigate to the API section under your account settings.
-3. Generate a new API key.
-4. Copy the key and set it as the value for `ANTHROPIC_API_KEY` in your `.env.local` file.
-
-## Installation and Setup
-
-To set up the project locally, follow these steps:
-
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/yourusername/earnest-dev.git
-    ```
-2. Navigate to the project directory:
-    ```bash
-    cd earnest-dev
-    ```
-3. Install dependencies:
-    ```bash
-    npm install
-    ```
-4. Set up your `.env.local` file with the necessary environment variables as described above.
-
-## Running the Project
-
-To run the Next.js project locally, use the following command:
+### 1. Clone the Repository
 
 ```bash
-npm run dev
+git clone https://github.com/aqureshiest/earnest-dev
+cd earnest-dev
 ```
 
-This will start the development server, and you can view the project at http://localhost:3000.
+### 2. GitHub App Authentication
 
-## Environment Example File
+We require GitHub App authentication:
 
-Below is an example .env file. You can use this as a template by saving it as .env.local and replacing the placeholder values with your actual keys.
+1. Create a new GitHub App:
+   - Go to your GitHub account
+   - Navigate to **Settings** > **Developer settings** > **GitHub Apps**
+   - Click **New GitHub App**
+   - Name it `earnest-ai-tools`
+   - For Homepage URL, specify `http://localhost:3000`
+   - Uncheck "Active" under Webhook
+   - Save the app
+
+2. Configure app permissions:
+   - Under Repository permissions, set both **Contents** and **Pull Requests** to **Read & write**
+
+3. Generate authentication credentials:
+   - Generate a private key and download it
+   - Generate a client secret
+   - Install the GitHub App on your repositories (all or selected)
+
+4. Generate JWT token using this script:
+   ```bash
+   # Save this as gh-jwt.sh
+   #!/usr/bin/env bash
+
+    set -o pipefail
+
+    client_id=$1 # Client ID as first argument
+
+    pem=$( cat $2 ) # file path of the private key as second argument
+
+    now=$(date +%s)
+    iat=$((${now} - 60)) # Issues 60 seconds in the past
+    exp=$((${now} + 600)) # Expires 10 minutes in the future
+
+    b64enc() { openssl base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n'; }
+
+    header_json='{
+        "typ":"JWT",
+        "alg":"RS256"
+    }'
+    # Header encode
+    header=$( echo -n "${header_json}" | b64enc )
+
+    payload_json="{
+        \"iat\":${iat},
+        \"exp\":${exp},
+        \"iss\":\"${client_id}\"
+    }"
+    # Payload encode
+    payload=$( echo -n "${payload_json}" | b64enc )
+
+    # Signature
+    header_payload="${header}"."${payload}"
+    signature=$(
+        openssl dgst -sha256 -sign <(echo -n "${pem}") \
+        <(echo -n "${header_payload}") | b64enc
+    )
+
+    # Create JWT
+    JWT="${header_payload}"."${signature}"
+    printf '%s\n' "JWT: $JWT"
+   ```
+
+5. Run the script to get your JWT:
+   ```bash
+   bash gh-jwt.sh <client-id> <path-to-private-key>
+   ```
+
+6. Get the installation ID:
+   ```bash
+   curl -X GET \
+   -H "Authorization: Bearer <jwt_token>" \
+   -H "Accept: application/vnd.github+json" \
+   https://api.github.com/app/installations
+   ```
+   The `id` in the response is your installation ID.
+
+### 3. Environment Configuration
+
+Create a `.env.production` file in the project root with the following contents:
 
 ```
-GITHUB_TOKEN=your_github_token
-NEXT_PUBLIC_GITHUB_TOKEN=your_github_token
-NEXT_PUBLIC_GITHUB_OWNER=your_github_username_or_organization
+# Application Configuration
+NODE_ENV=production
+PORT=3000
 
-# only needed if you are running openai models
-OPENAI_API_KEY=your_openai_api_key
+# GitHub App Authentication
+GITHUB_PRIVATE_KEY=<contents-of-your-private-key-file>
+GITHUB_APP_ID=<your-github-app-id>
+GITHUB_CLIENT_ID=<your-github-client-id>
+GITHUB_CLIENT_SECRET=<your-github-client-secret>
+GITHUB_INSTALLATION_ID=<your-github-installation-id>
+NEXT_PUBLIC_GITHUB_OWNER=<your-github-username>
 
-# only needed if you are running anthropic claude models
-ANTHROPIC_API_KEY=your_anthropic_api_key
+# defined in docker compose
+# DATABASE_URL=postgres://postgres@localhost:5432/
 
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# app settings
+WRITE_RUN_INFO_TO_FILE=true
+AI_SERVICE_USE_CACHE=true
+
+EMBEDDING_PROVIDER=titan
+
+METRICS_LOGGING_ENABLED=true
+
+BUGSNAG_API_KEY=abc_123
+
+# AWS configuration
+AWS_REGION=us-east-1
+AWS_PROFILE=<your-aws-profile-name>
 ```
+
+Replace the placeholder values with your actual GitHub App credentials and AWS profile.
+
+### 4. AWS Access Setup
+
+#### Verify AWS Bedrock Model Access
+
+Before proceeding, ensure you have access to the required AWS Bedrock models:
+
+1. Login to Okta
+2. Select AWS Dev from the available applications
+3. Navigate to AWS Bedrock service
+4. Click on **Model Catalog** under Foundation Models
+5. Verify you have access to:
+   - **Claude 3.7 Sonnet**
+   - **Claude 3.5 Haiku**
+   - **Titan Text Embeddings V2**
+
+If you don't have access to these models, request access.
+
+#### Configure AWS Credentials
+
+1. Authenticate and obtain AWS credentials:
+   ```bash
+   saml2aws login
+   ```
+   This will populate your `~/.aws/credentials` file with temporary AWS credentials.
+
+2. Identify your AWS profile name:
+   ```bash
+   cat ~/.aws/credentials
+   ```
+   Look for a profile name like `est-development-Okta-Development-Eng` in the output.
+
+3. Update your `.env.production` file with this profile name:
+   ```
+   AWS_PROFILE=est-development-Okta-Development-Eng
+   ```
+   Note: Your profile name might be different.
+
+### 5. Set AWS Credentials Permissions
+
+Set proper permissions on your AWS credentials to ensure Docker can access them:
+
+```bash
+chmod 755 ~/.aws
+chmod 644 ~/.aws/credentials
+```
+
+### 6. Start the Application
+
+Build and start the Docker containers:
+
+```bash
+docker compose up --build
+```
+
+This will:
+- Build the application container
+- Start a PostgreSQL container with pgvector extension
+- Mount your AWS credentials into the container
+- Expose the application on http://localhost:3000

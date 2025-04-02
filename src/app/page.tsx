@@ -93,29 +93,29 @@ const HomePage: React.FC = () => {
                 "Generate code and pull requests for your tasks using AI-powered code generation.",
             buttonText: "Create Pull Request",
             status: "ready" as const,
-            variant: "default" as const,
         },
         {
             href: "/codebase-qa",
+            dashboardHref: "/codebase-qa/dashboard",
             icon: <Brain className="h-6 w-6 text-green-500" />,
             title: "Codebase Q&A",
             description: "Ask questions about your codebase",
             content:
                 "Interact with your codebase using natural language and get answers to your questions.",
             buttonText: "Ask a Question",
-            status: "beta" as const,
+            status: "ready" as const,
         },
-        {
-            href: "/code-analysis",
-            icon: <BadgeCheck className="h-6 w-6 text-purple-500" />,
-            title: "Design Patterns Analysis",
-            description: "AI-powered design pattern analysis",
-            content:
-                "Analyze your codebase for design patterns and get insights on how to improve your code quality",
-            buttonText: "Audit Repository",
-            status: "development" as const,
-            variant: "outline" as const,
-        },
+        // {
+        //     href: "/code-analysis",
+        //     icon: <BadgeCheck className="h-6 w-6 text-purple-500" />,
+        //     title: "Design Patterns Analysis",
+        //     description: "AI-powered design pattern analysis",
+        //     content:
+        //         "Analyze your codebase for design patterns and get insights on how to improve your code quality",
+        //     buttonText: "Audit Repository",
+        //     status: "development" as const,
+        //     variant: "outline" as const,
+        // },
     ];
 
     const pmTools = [
@@ -130,17 +130,17 @@ const HomePage: React.FC = () => {
             status: "ready" as const,
             variant: "default" as const,
         },
-        {
-            href: "/jiratickets",
-            icon: <Ticket className="h-6 w-6 text-blue-500" />,
-            title: "AI Jira Tickets",
-            description: "Automated project planning assistant",
-            content:
-                "Transform technical design documents into well-structured Jira epics and tickets with intelligent task breakdown and estimation.",
-            buttonText: "Generate Tickets",
-            status: "development" as const,
-            variant: "outline" as const,
-        },
+        // {
+        //     href: "/jiratickets",
+        //     icon: <Ticket className="h-6 w-6 text-blue-500" />,
+        //     title: "AI Jira Tickets",
+        //     description: "Automated project planning assistant",
+        //     content:
+        //         "Transform technical design documents into well-structured Jira epics and tickets with intelligent task breakdown and estimation.",
+        //     buttonText: "Generate Tickets",
+        //     status: "development" as const,
+        //     variant: "outline" as const,
+        // },
     ];
 
     const qeTools = [

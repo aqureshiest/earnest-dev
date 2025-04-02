@@ -6,12 +6,11 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Brain, Code, Send, Loader2, RefreshCw } from "lucide-react";
+import { Brain, Code, Send, Loader2, RefreshCw, Minimize, Maximize } from "lucide-react";
 import EnhancedProgressFeed, {
     EnhancedProgressMessage,
 } from "@/app/components/EnhancedProgressFeed";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     Dialog,
     DialogContent,
@@ -26,12 +25,45 @@ import { Label } from "@/components/ui/label";
 import MarkdownViewer from "../components/MarkdownViewer";
 import RepoAndBranchSelection from "../components/RepoAndBranchSelection";
 import AIModelSelection from "../components/AIModelSelection";
+import { templateQuestions } from "./templateQuestions";
 
 interface Message {
     role: "user" | "assistant" | "system";
     content: string;
     timestamp?: Date;
+    isStreaming?: boolean;
 }
+
+// Template Questions Component
+const TemplateQuestions = ({
+    questions,
+    onSelectQuestion,
+}: {
+    questions: string[];
+    onSelectQuestion: any;
+}) => {
+    return (
+        <div className="px-4 py-3 mb-4">
+            <div className="grid grid-cols-1 gap-2">
+                {questions.map((question, index) => {
+                    const label = question.includes("::") ? question.split("::")[0] : question;
+                    const text = question.includes("::")
+                        ? question.split("::")[1].trim()
+                        : question;
+                    return (
+                        <button
+                            key={index}
+                            onClick={() => onSelectQuestion(text)}
+                            className="text-left p-3 border rounded-lg hover:bg-muted/50 transition-colors text-sm w-full"
+                        >
+                            {label}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
 
 const CodebaseQA: React.FC = () => {
     const [taskId, setTaskId] = useState("");
@@ -44,15 +76,16 @@ const CodebaseQA: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRepoDialogOpen, setIsRepoDialogOpen] = useState(false);
     const [useConversationHistory, setUseConversationHistory] = useState(true);
+    const [useStreamingMode, setUseStreamingMode] = useState(true);
+    const [showTemplateQuestions, setShowTemplateQuestions] = useState(false);
 
-    const helpMessage = `Welcome to Codebase Q&A! Select a repository and ask questions about the code.
-                
-            Conversation mode ON: Your questions will include context from past few exchanges.
-            Conversation mode OFF: Each question is treated independently.
-                        
-            To start a new conversation, click "New Conversation" or select a different repository.
-            
-            Note: The first question may take a moment to process as the codebase is being analyzed.`;
+    const helpMessage = `**Codebase Q&A**
+- Select a repository to explore your code
+- **Conversation Mode** ON to ask follow up questions (limit to a few questions)
+- **Conversation Mode** OFF for independent questions
+- Use **New Conversation** to start fresh
+- First analysis may take a longer time to process the codebase
+`;
 
     const [conversation, setConversation] = useState<Message[]>([
         {
@@ -62,16 +95,43 @@ const CodebaseQA: React.FC = () => {
         },
     ]);
 
+    const [autoScroll, setAutoScroll] = useState(true);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const handleScroll = () => {
+        if (!scrollContainerRef.current) return;
+
+        const container = scrollContainerRef.current;
+        const isAtBottom =
+            container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+
+        // If scrolled to bottom, enable auto-scroll, otherwise disable it
+        setAutoScroll(isAtBottom);
+    };
+
+    useEffect(() => {
+        if (autoScroll && messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [conversation, autoScroll]);
+
+    const [isFullPageView, setIsFullPageView] = useState(false);
+
+    const toggleFullPageView = () => {
+        setIsFullPageView((prev) => !prev);
+    };
 
     const owner = process.env.NEXT_PUBLIC_GITHUB_OWNER!;
 
-    // Scroll to bottom when new messages are added
+    // Show template questions when repo/branch selected and no conversation yet
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        if (repo && branch && conversation.length <= 1) {
+            setShowTemplateQuestions(true);
+        } else {
+            setShowTemplateQuestions(false);
         }
-    }, [conversation]);
+    }, [repo, branch, conversation.length]);
 
     const addProgressMessage = (
         message: string,
@@ -87,6 +147,11 @@ const CodebaseQA: React.FC = () => {
                 isMarkdown,
             },
         ]);
+    };
+
+    const handleSelectTemplateQuestion = (templateQuestion: any) => {
+        setQuestion(templateQuestion);
+        setShowTemplateQuestions(false);
     };
 
     const handleSubmitQuestion = async () => {
@@ -109,6 +174,7 @@ const CodebaseQA: React.FC = () => {
             role: "assistant",
             content: "",
             timestamp: new Date(),
+            isStreaming: false,
         };
         setConversation((prev) => [...prev, loadingMessage]);
 
@@ -143,6 +209,7 @@ const CodebaseQA: React.FC = () => {
                     selectedModel,
                     question: question.trim(),
                     conversationHistory: useConversationHistory ? conversationHistory : [],
+                    stream: useStreamingMode,
                 }),
             });
 
@@ -164,6 +231,7 @@ const CodebaseQA: React.FC = () => {
                         role: "assistant",
                         content: `Error: ${error.message}`,
                         timestamp: new Date(),
+                        isStreaming: false,
                     };
                 }
                 return newConv;
@@ -211,17 +279,54 @@ const CodebaseQA: React.FC = () => {
             case "progress":
                 addProgressMessage(data.message);
                 break;
+            case "streaming_start":
+                // Initialize streaming state
+                setConversation((prev) => {
+                    const newConv = [...prev];
+                    if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
+                        newConv[newConv.length - 1] = {
+                            ...newConv[newConv.length - 1],
+                            content: "",
+                            isStreaming: true,
+                        };
+                    }
+                    return newConv;
+                });
+                addProgressMessage("Starting response stream...");
+                break;
+
+            case "token":
+                // Handle incoming token
+                setConversation((prev) => {
+                    const newConv = [...prev];
+                    if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
+                        newConv[newConv.length - 1] = {
+                            ...newConv[newConv.length - 1],
+                            content: newConv[newConv.length - 1].content + data.message,
+                            isStreaming: true,
+                        };
+                    }
+                    return newConv;
+                });
+                break;
             case "answer":
-                // Replace the loading message with the actual answer
                 setConversation((prev) => {
                     const newConv = [...prev];
                     // Replace the last message (loading) with answer
                     if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
-                        newConv[newConv.length - 1] = {
-                            role: "assistant",
-                            content: data.message,
-                            timestamp: new Date(),
-                        };
+                        if (useStreamingMode) {
+                            newConv[newConv.length - 1] = {
+                                ...newConv[newConv.length - 1], // Keep all existing properties
+                                isStreaming: false, // Update only the streaming flag
+                            };
+                        } else {
+                            newConv[newConv.length - 1] = {
+                                role: "assistant",
+                                content: data.message, // replace full answer
+                                timestamp: new Date(),
+                                isStreaming: false,
+                            };
+                        }
                     }
                     return newConv;
                 });
@@ -237,6 +342,7 @@ const CodebaseQA: React.FC = () => {
                             role: "assistant",
                             content: `Error: ${data.message}`,
                             timestamp: new Date(),
+                            isStreaming: false,
                         };
                     }
                     return newConv;
@@ -244,6 +350,17 @@ const CodebaseQA: React.FC = () => {
                 break;
             case "final":
                 addProgressMessage(data.message, "success");
+                // Mark streaming as complete
+                setConversation((prev) => {
+                    const newConv = [...prev];
+                    if (newConv.length > 0 && newConv[newConv.length - 1].role === "assistant") {
+                        newConv[newConv.length - 1] = {
+                            ...newConv[newConv.length - 1],
+                            isStreaming: false,
+                        };
+                    }
+                    return newConv;
+                });
                 break;
         }
     };
@@ -258,14 +375,10 @@ const CodebaseQA: React.FC = () => {
 
     // Start a new conversation
     const handleStartNewConversation = () => {
-        setConversation([
-            {
-                role: "system",
-                content: helpMessage,
-                timestamp: new Date(),
-            },
-        ]);
+        setConversation([]);
+        setQuestion("");
         setProgressMessages([]);
+        setShowTemplateQuestions(!!repo && !!branch);
         addProgressMessage("Started a new conversation", "info");
     };
 
@@ -302,9 +415,20 @@ const CodebaseQA: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <div className="flex items-center space-x-2">
                             <Switch
+                                id="streaming-mode"
+                                checked={useStreamingMode}
+                                onCheckedChange={setUseStreamingMode}
+                                disabled={isProcessing}
+                            />
+                            <Label htmlFor="streaming-mode">Stream Response</Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <Switch
                                 id="conversation-mode"
                                 checked={useConversationHistory}
                                 onCheckedChange={setUseConversationHistory}
+                                disabled={isProcessing}
                             />
                             <Label htmlFor="conversation-mode">Conversation Mode</Label>
                         </div>
@@ -314,6 +438,7 @@ const CodebaseQA: React.FC = () => {
                             size="sm"
                             onClick={handleStartNewConversation}
                             className="flex items-center gap-2"
+                            disabled={isProcessing}
                         >
                             <RefreshCw className="w-4 h-4" />
                             New Conversation
@@ -321,7 +446,7 @@ const CodebaseQA: React.FC = () => {
 
                         <Dialog open={isRepoDialogOpen} onOpenChange={setIsRepoDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button className="flex items-center gap-2">
+                                <Button className="flex items-center gap-2" disabled={isProcessing}>
                                     <Code className="w-4 h-4" />
                                     {repo ? `${repo}/${branch}` : "Select Repository"}
                                 </Button>
@@ -364,12 +489,46 @@ const CodebaseQA: React.FC = () => {
                     </div>
                 </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Main Chat Area - 3/4 width on medium screens and above */}
-                    <Card className="h-[calc(100vh-150px)] flex flex-col md:col-span-3">
+                <div
+                    className={`
+  ${
+      isFullPageView
+          ? "fixed inset-0 z-50 p-0 m-0 grid grid-cols-1" // Fullscreen mode - single column
+          : "grid grid-cols-1 md:grid-cols-4 gap-4"
+  }     // Normal grid layout
+`}
+                >
+                    {/* Main Chat Area - dynamically sized based on expanded state */}
+                    <Card
+                        className={`
+    ${
+        isFullPageView
+            ? "h-screen rounded-none col-span-1" // Fullscreen mode
+            : "h-[calc(100vh-150px)] md:col-span-3"
+    } // Normal mode
+    flex flex-col relative
+  `}
+                    >
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={toggleFullPageView}
+                            className="absolute top-2 right-2 h-8 w-8 z-10 hidden md:flex"
+                            title={isFullPageView ? "Exit fullscreen" : "Fullscreen mode"}
+                        >
+                            {isFullPageView ? (
+                                <Minimize className="h-4 w-4" />
+                            ) : (
+                                <Maximize className="h-4 w-4" />
+                            )}
+                        </Button>
                         <CardContent className="flex-grow overflow-hidden p-0 flex flex-col">
                             {/* Conversation History */}
-                            <ScrollArea className="flex-grow p-4">
+                            <div
+                                className="flex-grow p-4 overflow-y-auto"
+                                onScroll={handleScroll}
+                                ref={scrollContainerRef}
+                            >
                                 <div className="space-y-4">
                                     {conversation.map((message, index) => (
                                         <div
@@ -402,17 +561,27 @@ const CodebaseQA: React.FC = () => {
                                                             : "bg-card border"
                                                     }`}
                                                 >
-                                                    {message.role === "system" ||
-                                                    message.role === "user" ? (
+                                                    {message.role === "user" ? (
                                                         <div className="whitespace-pre-wrap">
                                                             {message.content}
                                                         </div>
                                                     ) : message.content ? (
-                                                        <MarkdownViewer content={message.content} />
+                                                        <MarkdownViewer
+                                                            content={message.content}
+                                                            isStreaming={message.isStreaming}
+                                                        />
                                                     ) : (
                                                         <div className="flex items-center gap-2">
                                                             <Loader2 className="h-4 w-4 animate-spin" />
                                                             <span>Working on it...</span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Streaming indicator */}
+                                                    {message.isStreaming && (
+                                                        <div className="mt-2 text-xs flex items-center text-muted-foreground animate-pulse">
+                                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                            <span>Streaming response...</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -425,12 +594,27 @@ const CodebaseQA: React.FC = () => {
                                             </div>
                                         </div>
                                     ))}
+
+                                    {/* Template Questions - Inside the chat window */}
+                                    {showTemplateQuestions && !isProcessing && (
+                                        <div className="mt-4">
+                                            <p className="text-sm text-muted-foreground px-4 mb-1">
+                                                Try asking:
+                                            </p>
+                                            <TemplateQuestions
+                                                questions={templateQuestions}
+                                                onSelectQuestion={handleSelectTemplateQuestion}
+                                            />
+                                        </div>
+                                    )}
+
                                     <div ref={messagesEndRef} />
                                 </div>
-                            </ScrollArea>
+                            </div>
 
                             {/* Question Input */}
                             <div className="p-4 border-t mt-auto">
+                                {/* Textarea and send button in their own flex container */}
                                 <div className="flex gap-2">
                                     <Textarea
                                         value={question}
@@ -470,12 +654,12 @@ const CodebaseQA: React.FC = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Progress Feed - 1/4 width on medium screens and above */}
-                    <div className="h-[calc(100vh-150px)] flex flex-col">
-                        {/* <CardContent className="p-4 flex-grow overflow-hidden"> */}
-                        <EnhancedProgressFeed messages={progressMessages} maxHeight="550px" />
-                        {/* </CardContent> */}
-                    </div>
+                    {/* Progress Feed - hidden when expanded */}
+                    {!isFullPageView && (
+                        <div className="h-[calc(100vh-150px)] flex flex-col">
+                            <EnhancedProgressFeed messages={progressMessages} maxHeight="500px" />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

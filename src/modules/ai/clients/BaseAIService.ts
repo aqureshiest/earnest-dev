@@ -23,7 +23,11 @@ export abstract class BaseAIService {
         this.useCache = process.env.AI_SERVICE_USE_CACHE === "true";
     }
 
-    abstract generateResponse(systemPrompt: string, prompt: string): Promise<AIResponse>;
+    abstract generateResponse(
+        systemPrompt: string,
+        prompt: string,
+        onToken?: (token: string) => void
+    ): Promise<AIResponse>;
 
     abstract generateImageResponse(
         systemPrompt: string,

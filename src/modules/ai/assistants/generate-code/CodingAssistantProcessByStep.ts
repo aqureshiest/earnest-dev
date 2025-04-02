@@ -11,7 +11,7 @@ import { calculateSimilarityThreshold, ScoredFile } from "@/modules/utils/simila
 import { reportError } from "@/modules/bugsnag/report";
 
 export class CodingAssistantProcessByStep extends CodingAssistant {
-    tokenAllocation: number = 20;
+    tokenAllocation: number = 30;
 
     private indexer: CodeIndexer;
     private dataService: RepositoryDataService;
@@ -95,7 +95,7 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                 );
 
                 // Process this step with relevant context
-                const { codeChanges, summary } = await this.processStepWithRelevantContext(
+                const { codeChanges, summary, error } = await this.processStepWithRelevantContext(
                     request,
                     model,
                     step,
@@ -132,10 +132,10 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
                         status: "error",
                         stepIndex: stepIndex,
                         totalSteps: totalStepCount,
-                        error: "Failed to process step",
+                        error: "Failed to process step: " + (error || "Unknown error"),
                     });
 
-                    reportError("Failed to process step", {
+                    reportError("Failed to process step " + (error || "Unknown error"), {
                         step: {
                             title: step.title,
                         },
@@ -210,6 +210,7 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
         branch: string,
         maximizeTokenUsage = false
     ): Promise<FileDetails[]> {
+        // console.log(chalk.yellow(`Finding relevant files for step >> "${step.title}"`));
         // First, add all files explicitly mentioned in the step
         const targetFiles = new Set<string>();
         const filesToUse: FileDetails[] = [];
@@ -230,6 +231,7 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
             const stepQuery = `${step.title}. ${step.thoughts}. ${step.files
                 .map((file) => `${file.operation} ${file.path}: ${file.todos.join(", ")}`)
                 .join(" ")}`;
+            // console.log("Step query:", stepQuery);
 
             const embedding = await this.indexer.generateEmbedding(stepQuery);
 
@@ -248,11 +250,11 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
 
             // Calculate optimal threshold
             const threshold = maximizeTokenUsage ? 0.2 : calculateSimilarityThreshold(scoredFiles);
-            console.log(
-                chalk.yellow(
-                    `similarity threshold for step "${step.title}": ${threshold}, max? ${maximizeTokenUsage}`
-                )
-            );
+            // console.log(
+            //     chalk.yellow(
+            //         `similarity threshold for step "${step.title}": ${threshold}, max? ${maximizeTokenUsage}`
+            //     )
+            // );
 
             // Add top similar files that aren't already included (up to our limit)
             for (const file of similarFiles) {
@@ -278,10 +280,10 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
             });
         }
 
-        console.log(
-            chalk.yellow("\n..... Final set of Files to use ......\n"),
-            filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
-        );
+        // console.log(
+        //     chalk.yellow("\n..... Final set of Files to use ......\n"),
+        //     filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
+        // );
 
         if (filesToUse.length === 0) {
             throw new Error("No relevant files found for step, Cant proceed");
@@ -301,6 +303,7 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
     ): Promise<{
         codeChanges: CodeChanges | null;
         summary: { technicalSummary: string; markdownSummary: string } | null;
+        error?: string | null;
     }> {
         console.log(`Processing step "${step.title}" with ${relevantFiles.length} files`);
         sendTaskUpdate(
@@ -352,10 +355,10 @@ export class CodingAssistantProcessByStep extends CodingAssistant {
             metrics.cost += aiResponse.cost;
 
             return { codeChanges, summary };
-        } catch (error) {
+        } catch (error: any) {
             console.error(`Error parsing response for step "${step.title}":`, error);
             console.error("Response excerpt:", aiResponse.response.substring(0, 500) + "...");
-            return { codeChanges: null, summary: null };
+            return { codeChanges: null, summary: null, error: error.message };
         }
     }
 
@@ -561,7 +564,10 @@ ${this.completedSteps
             // Get code_changes block
             const match = response.match(/<code_changes>[\s\S]*?<\/code_changes>/);
             if (!match) {
-                throw new Error("No code_changes block found in response");
+                if (!response.includes("</code_changes>")) {
+                    throw new Error("Response cut off for being too long, Reduce task complexity");
+                }
+                throw new Error("Response does not contain expected code_changes");
             }
 
             const fullContents = match[0];

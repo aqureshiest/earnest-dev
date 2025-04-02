@@ -10,7 +10,6 @@ import { RepositoryDataService } from "@/modules/db/RepositoryDataService";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import { CustomBedrockEmbeddings } from "./CustomBedrockEmbeddings";
-import { reportError } from "@/modules/bugsnag/report";
 
 export interface FileChunk {
     fileId: number;
@@ -68,31 +67,22 @@ export class CodeIndexer {
         repo: string,
         ref: string,
         taskId?: string
-    ): Promise<void> {
+    ): Promise<{
+        failedFiles: Array<{ path: string; error: Error }>;
+    }> {
         // Process files in batches to avoid overloading
         const BATCH_SIZE = 10;
         const totalFiles = files.length;
+        const failedFiles: Array<{ path: string; error: Error }> = [];
+        const FAILURE_THRESHOLD = 0.05; // 5% failure threshold
 
         try {
             for (let i = 0; i < files.length; i += BATCH_SIZE) {
                 const fileBatch = files.slice(i, i + BATCH_SIZE);
+                const batchResults = await this.processFileBatch(fileBatch, owner, repo, ref);
 
-                try {
-                    await this.processFileBatch(fileBatch, owner, repo, ref);
-                } catch (error) {
-                    // Report batch processing error but continue with next batch
-                    reportError(error as Error, {
-                        codeIndexer: {
-                            operation: "processFileBatch",
-                            batchIndex: i / BATCH_SIZE,
-                            owner,
-                            repo,
-                            ref,
-                            filesInBatch: fileBatch.map((f) => f.path),
-                        },
-                    });
-                    console.error(`Error processing batch ${i / BATCH_SIZE}:`, error);
-                }
+                // Collect failed files from this batch
+                failedFiles.push(...batchResults.failedFiles);
 
                 // Calculate progress
                 const filesProcessed = Math.min(i + BATCH_SIZE, totalFiles);
@@ -107,23 +97,35 @@ export class CodeIndexer {
                 }
             }
 
-            // Final completion message
-            const completionMessage = `Processing complete: ${totalFiles} files processed`;
-            console.log(completionMessage);
-            if (taskId) {
-                sendTaskUpdate(taskId, "progress", completionMessage);
+            // Check if too many files failed
+            const failureRate = failedFiles.length / totalFiles;
+            if (failureRate > FAILURE_THRESHOLD) {
+                throw new Error(
+                    `Indexing failed: ${failedFiles.length} out of ${totalFiles} files failed (${(
+                        failureRate * 100
+                    ).toFixed(1)}%). First failed files: ${failedFiles
+                        .slice(0, 3)
+                        .map((f) => `${f.path}: ${f.error}`)
+                        .join(", ")}`
+                );
             }
-        } catch (error) {
-            reportError(error as Error, {
-                codeIndexer: {
-                    operation: "processFilesIntoChunks",
-                    totalFiles,
-                    owner,
-                    repo,
-                    ref,
+
+            // Final completion message
+            const successCount = totalFiles - failedFiles.length;
+            console.log(
+                `Processing complete: ${successCount} files processed, ${failedFiles.length} failed`
+            );
+            if (taskId) {
+                sendTaskUpdate(
                     taskId,
-                },
-            });
+                    "progress",
+                    `Processing complete: ${successCount} files processed`
+                );
+            }
+
+            return { failedFiles };
+        } catch (error) {
+            console.error("Error processing files into chunks:", error);
             throw error;
         }
     }
@@ -133,7 +135,11 @@ export class CodeIndexer {
         owner: string,
         repo: string,
         ref: string
-    ): Promise<void> {
+    ): Promise<{
+        failedFiles: Array<{ path: string; error: Error }>;
+    }> {
+        const failedFiles: Array<{ path: string; error: Error }> = [];
+
         for (const file of files) {
             if (!file.content || file.content.trim().length === 0) continue;
 
@@ -174,20 +180,18 @@ export class CodeIndexer {
             } catch (error) {
                 console.error(`Error processing file ${file.path} into chunks:`, error);
 
-                reportError(error as Error, {
-                    codeIndexer: {
-                        operation: "processFileBatch",
-                        filePath: file.path,
-                        owner,
-                        repo,
-                        ref,
-                        fileSize: file.content?.length || 0,
-                    },
-                });
+                // delete file details since chunking failed
+                await this.dataService.deleteFileDetails(owner, repo, ref, file.path);
 
-                throw error;
+                // Log the error and continue
+                failedFiles.push({
+                    path: file.path,
+                    error: error instanceof Error ? error : new Error(String(error)),
+                });
             }
         }
+
+        return { failedFiles };
     }
 
     private getSplitterForFile(
@@ -241,14 +245,7 @@ export class CodeIndexer {
         try {
             return await this.embeddings.embedDocuments(texts);
         } catch (error) {
-            reportError(error as Error, {
-                codeIndexer: {
-                    operation: "generateEmbeddings",
-                    textsCount: texts.length,
-                    textsSample: texts.map((t) => t.substring(0, 100) + "...").join("\n"),
-                },
-            });
-            throw error;
+            throw error instanceof Error ? error : new Error(String(error));
         }
     }
 
@@ -256,14 +253,7 @@ export class CodeIndexer {
         try {
             return await this.embeddings.embedQuery(text);
         } catch (error) {
-            reportError(error as Error, {
-                codeIndexer: {
-                    operation: "generateEmbedding",
-                    textLength: text.length,
-                    textSample: text.substring(0, 200) + "...",
-                },
-            });
-            throw error;
+            throw error instanceof Error ? error : new Error(String(error));
         }
     }
 }

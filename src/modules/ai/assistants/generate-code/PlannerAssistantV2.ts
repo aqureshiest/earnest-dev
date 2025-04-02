@@ -1,6 +1,8 @@
 import { PlannerAssistant } from "./PlannerAssistant";
 
 export class PlannerAssistantV2 extends PlannerAssistant {
+    tokenAllocation = 80;
+
     getSystemPrompt(): string {
         return `
 You are a senior software engineer working on a project. Your task is to generate a concise, efficient implementation plan for a coding task based on the provided task_description, existing_codebase, specifications for the task, and response_format instructions.

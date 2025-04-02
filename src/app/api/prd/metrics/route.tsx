@@ -11,7 +11,7 @@ export async function GET() {
         startDate.setDate(endDate.getDate() - 30); // Last 30 days
 
         const [prdMetrics, timeSeriesData] = await Promise.all([
-            cloudWatch.getAllPRDMetrics(),
+            cloudWatch.getAllPRDMetrics(startDate, endDate),
             cloudWatch.getPRDTimeSeriesData(startDate, endDate),
         ]);
 

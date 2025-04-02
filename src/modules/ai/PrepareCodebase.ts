@@ -3,6 +3,7 @@ import { TokenLimiter } from "./support/TokenLimiter";
 import { RepositoryDataService } from "../db/RepositoryDataService";
 import { CodeIndexer } from "./support/CodeIndexer";
 import { sendTaskUpdate } from "../utils/sendTaskUpdate";
+import { reportError } from "../bugsnag/report";
 
 export class PrepareCodebase {
     private repositoryService: RepositoryService;
@@ -21,13 +22,13 @@ export class PrepareCodebase {
         const { owner, repo, branch, task: description, taskId, model } = taskRequest;
 
         // Check if branch is already synced
-        sendTaskUpdate(taskId, "progress", "Checking branch sync status...");
-        const isSynced = await this.repositoryService.isBranchSynced(owner, repo, branch);
+        // sendTaskUpdate(taskId, "progress", "Checking branch sync status...");
+        // const isSynced = await this.repositoryService.isBranchSynced(owner, repo, branch);
 
-        if (!isSynced) {
-            // Branch is not synced, we need to do a full sync and index
-            await this.syncAndIndexRepository(owner, repo, branch, taskId, model);
-        }
+        // (skip this check for now, lets always attempt to sync)
+        // if (!isSynced) {
+        await this.syncAndIndexRepository(owner, repo, branch, taskId, model);
+        // }
 
         // Find similar files based on description or return all files
         if (description) {
@@ -48,29 +49,67 @@ export class PrepareCodebase {
         taskId: string,
         model: string
     ): Promise<void> {
-        // 1. Fetch repository files and process only the ones that need processing
-        sendTaskUpdate(taskId, "progress", "Indexing repository...");
-        const files: FileDetails[] = (
-            await this.repositoryService.getRepositoryFiles(owner, repo, branch)
-        ).filter((f) => f.needsProcessing);
-        sendTaskUpdate(taskId, "progress", `Found ${files.length} files that need processing.`);
+        try {
+            // 1. Fetch repository files and process only the ones that need processing
+            const files: FileDetails[] = (
+                await this.repositoryService.getRepositoryFiles(owner, repo, branch)
+            ).filter((f) => f.needsProcessing);
 
-        // 2. Fetch file contents
-        sendTaskUpdate(taskId, "progress", "Tokenizing files...");
-        const filesWithContent: FileDetails[] = await this.repositoryService.fetchFiles(files);
+            // no indexing needed if no files
+            if (files.length === 0) {
+                sendTaskUpdate(taskId, "progress", "Codebase indexing up to date.");
+                return;
+            }
 
-        // 3. Tokenize files
-        const tokenizedFiles: FileDetails[] = this.tokenLimiter.tokenizeFiles(
-            filesWithContent,
-            model
-        );
+            sendTaskUpdate(taskId, "progress", `Found ${files.length} files that need indexing.`);
 
-        // 4. Process and index chunks for all files
-        sendTaskUpdate(taskId, "progress", "Processing files into chunks...");
-        await this.indexer.processFilesIntoChunks(tokenizedFiles, owner, repo, branch, taskId);
+            // 2. Fetch file contents
+            sendTaskUpdate(taskId, "progress", "Tokenizing files...");
+            const filesWithContent: FileDetails[] = await this.repositoryService.fetchFiles(files);
 
-        // 5. Sync branch with file data
-        sendTaskUpdate(taskId, "progress", "Syncing branch...");
-        await this.repositoryService.syncBranch(owner, repo, branch, tokenizedFiles);
+            // 3. Tokenize files
+            const tokenizedFiles: FileDetails[] = this.tokenLimiter.tokenizeFiles(
+                filesWithContent,
+                model
+            );
+
+            // 4. Process and index chunks for all files
+            sendTaskUpdate(taskId, "progress", "Processing files into chunks...");
+            const indexResult = await this.indexer.processFilesIntoChunks(
+                tokenizedFiles,
+                owner,
+                repo,
+                branch,
+                taskId
+            );
+
+            // files that didnt fail
+            // const successFiles = tokenizedFiles.filter(
+            //     (f) => !indexResult.failedFiles.some((failed) => failed.path === f.path)
+            // );
+            // console.log("successFiles", successFiles);
+
+            // 5. Sync branch with file data
+            // sendTaskUpdate(taskId, "progress", "Syncing branch...");
+            // await this.repositoryService.syncBranch(owner, repo, branch, successFiles);
+        } catch (error: any) {
+            // Log and report the error
+            console.error(`Error in syncAndIndexRepository: ${error}`);
+            reportError(error instanceof Error ? error : new Error(String(error)), {
+                codeIndexer: {
+                    operation: "syncAndIndexRepository",
+                    owner,
+                    repo,
+                    branch,
+                    taskId,
+                    model,
+                },
+            });
+
+            sendTaskUpdate(taskId, "error", `Repository indexing failed: ${error}`);
+
+            // Re-throw the error to prevent the calling code from assuming the branch is synced
+            throw error;
+        }
     }
 }

@@ -49,3 +49,51 @@ export interface PRDStatsParams {
     outputTokens: number;
     cost: number;
 }
+
+export interface QAMetricsRequest {
+    repositories: string[];
+    startDate?: string;
+    endDate?: string;
+}
+
+export interface QAMetricsResponse {
+    summary: QAMetricsSummary;
+    timeSeriesData: QATimeSeriesData;
+}
+
+export interface QAMetricsSummary {
+    totalRequests: number;
+    successRate: number;
+    generalQuestions: number;
+    specificQuestions: number;
+    generalPercentage: number;
+    specificPercentage: number;
+    conversationQuestions: number;
+    conversationPercentage: number;
+    averageFilesAnalyzed: number;
+    tokenUsage: {
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+        tokenCost: number;
+    };
+}
+
+export interface QATimeSeriesData {
+    questionsOverTime: TimeSeriesDataPoint[];
+    questionTypeDistribution: {
+        general: TimeSeriesDataPoint[];
+        specific: TimeSeriesDataPoint[];
+    };
+    processingTimeOverTime: TimeSeriesDataPoint[];
+    tokenUsageOverTime: {
+        input: TimeSeriesDataPoint[];
+        output: TimeSeriesDataPoint[];
+    };
+    successRateOverTime: TimeSeriesDataPoint[];
+}
+
+export interface TimeSeriesDataPoint {
+    date: string;
+    value: number;
+}

@@ -4,7 +4,7 @@ services:
             context: .
             dockerfile: Dockerfile
             args:
-                NEXT_PUBLIC_GITHUB_OWNER: aqureshiest
+                NEXT_PUBLIC_GITHUB_OWNER: meetearnest
         ports:
             - "3000:3000"
         env_file:
@@ -12,7 +12,7 @@ services:
         environment:
             - NODE_ENV=production
             - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
-            - NEXT_PUBLIC_GITHUB_OWNER=aqureshiest
+            - NEXT_PUBLIC_GITHUB_OWNER=meetearnest
         depends_on:
             postgres:
                 condition: service_healthy

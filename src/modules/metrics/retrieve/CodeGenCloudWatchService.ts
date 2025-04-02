@@ -11,23 +11,25 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
         this.repositories = repositories;
     }
 
-    async getTotalRequestsSum(): Promise<number> {
+    async getTotalRequestsSum(startTime: Date, endTime: Date): Promise<number> {
         let totalSum = 0;
 
         for (const repo of this.repositories) {
-            const repoSum = await this.getMetricSum("Requests", [
-                { Name: "Repository", Value: repo },
-            ]);
+            const repoSum = await this.getMetricSum(
+                "Requests",
+                [{ Name: "Repository", Value: repo }],
+                { startTime, endTime }
+            );
             totalSum += repoSum;
         }
 
         return totalSum;
     }
 
-    async getSuccessRate(): Promise<number> {
-        const timeRange = this.getDefaultTimeRange();
+    async getSuccessRate(startTime: Date, endTime: Date): Promise<number> {
         let totalRequests = 0;
         let totalSuccesses = 0;
+        const timeRange = { startTime, endTime };
 
         for (const repo of this.repositories) {
             const dimensions = [{ Name: "Repository", Value: repo }];
@@ -46,38 +48,42 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
         return (totalSuccesses / totalRequests) * 100;
     }
 
-    async getPRsCreated(): Promise<number> {
+    async getPRsCreated(startTime: Date, endTime: Date): Promise<number> {
         let totalSum = 0;
 
         for (const repo of this.repositories) {
-            const repoSum = await this.getMetricSum("PRsCreated", [
-                { Name: "Repository", Value: repo },
-            ]);
+            const repoSum = await this.getMetricSum(
+                "PRsCreated",
+                [{ Name: "Repository", Value: repo }],
+                { startTime, endTime }
+            );
             totalSum += repoSum;
         }
 
         return totalSum;
     }
 
-    async getLinesOfCode(): Promise<number> {
+    async getLinesOfCode(startTime: Date, endTime: Date): Promise<number> {
         let totalSum = 0;
 
         for (const repo of this.repositories) {
-            const repoSum = await this.getMetricSum("LinesOfCode", [
-                { Name: "Repository", Value: repo },
-            ]);
+            const repoSum = await this.getMetricSum(
+                "LinesOfCode",
+                [{ Name: "Repository", Value: repo }],
+                { startTime, endTime }
+            );
             totalSum += repoSum;
         }
 
         return totalSum;
     }
 
-    async getTokenUsage(): Promise<TokenUsageStats> {
-        const timeRange = this.getDefaultTimeRange();
+    async getTokenUsage(startTime: Date, endTime: Date): Promise<TokenUsageStats> {
         let inputTokens = 0;
         let outputTokens = 0;
         let totalTokens = 0;
         let tokenCost = 0;
+        const timeRange = { startTime, endTime };
 
         for (const repo of this.repositories) {
             const dimensions = [{ Name: "Repository", Value: repo }];
@@ -143,14 +149,14 @@ export class CodeGenCloudWatchService extends BaseCloudWatchService {
         }
     }
 
-    async getAllMetrics(): Promise<CodeGenMetricsStats> {
+    async getAllMetrics(startTime: Date, endTime: Date): Promise<CodeGenMetricsStats> {
         const [totalRequests, successRate, prsCreated, linesOfCode, tokenUsage] = await Promise.all(
             [
-                this.getTotalRequestsSum(),
-                this.getSuccessRate(),
-                this.getPRsCreated(),
-                this.getLinesOfCode(),
-                this.getTokenUsage(),
+                this.getTotalRequestsSum(startTime, endTime),
+                this.getSuccessRate(startTime, endTime),
+                this.getPRsCreated(startTime, endTime),
+                this.getLinesOfCode(startTime, endTime),
+                this.getTokenUsage(startTime, endTime),
             ]
         );
 

@@ -17,7 +17,7 @@ export async function GET() {
         startDate.setDate(endDate.getDate() - 30); // Last 30 days
 
         // Fetch core metrics
-        const codeGenMetrics = await cloudWatch.getAllMetrics();
+        const codeGenMetrics = await cloudWatch.getAllMetrics(startDate, endDate);
 
         // Get time series data for various metrics
         const [requestsOverTime, successRateOverTime, linesOfCodeOverTime, prsCreatedOverTime] =

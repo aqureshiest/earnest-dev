@@ -24,12 +24,14 @@ export class TokenLimiter {
             throw new Error(`LLM ${model} not found`);
         }
 
+        // make space for input and output tokens
+        const availableInputTokens = LLM.maxInputTokens - LLM.maxOutputTokens - this.BUFFER;
+
         // Calculate tokens based on percentage of max input tokens
         const percentage = Math.max(0, Math.min(100, allocatedPercentage)) / 100;
-        const allocatedTokens = Math.floor(LLM.maxInputTokens * percentage);
+        const allocatedTokens = Math.floor(availableInputTokens * percentage);
 
-        // Still apply buffer to the allocated tokens
-        return Math.max(0, allocatedTokens - this.BUFFER);
+        return Math.max(0, allocatedTokens);
     }
 
     tokenizeFiles(files: FileDetails[], model: string): FileDetails[] {

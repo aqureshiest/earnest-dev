@@ -127,8 +127,9 @@ export async function POST(req: Request) {
 
                     // Bugsnag error reporting
                     reportError(error as Error, {
-                        endpoint: "prd",
                         context: "Generating PRD",
+                        goal: input.goalStatement,
+                        numOffeatures: input.keyFeatures.length,
                     });
                 } finally {
                     controller.close();

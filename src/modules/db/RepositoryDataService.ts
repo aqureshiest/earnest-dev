@@ -21,7 +21,7 @@ export class RepositoryDataService {
     async getRepositories(): Promise<string[]> {
         const query = `
       SELECT DISTINCT owner, repo
-      FROM branchcommits
+      FROM filedetails
     `;
 
         try {
@@ -93,6 +93,19 @@ export class RepositoryDataService {
             return result.rows[0].id;
         } catch (error: any) {
             throw new Error(`Error saving file details ${file.path}: ${error.message}`);
+        }
+    }
+
+    async deleteFileDetails(owner: string, repo: string, ref: string, path: string): Promise<void> {
+        const query = `
+      DELETE FROM filedetails
+      WHERE owner = $1 AND repo = $2 AND ref = $3 AND path = $4
+    `;
+
+        try {
+            await this.pool.query(query, [owner, repo, ref, path]);
+        } catch (error: any) {
+            console.error(`Error deleting file details: ${error}`);
         }
     }
 
@@ -315,10 +328,10 @@ export class RepositoryDataService {
                 })
                 .sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
 
-            console.log(
-                "\n-- Files to use based on similarity search:---\n",
-                filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
-            );
+            // console.log(
+            //     "\n-- Files to use based on similarity search:---\n",
+            //     filesToUse.map((f) => `${f.path} - ${f.similarity}`).join("\n")
+            // );
 
             return filesToUse;
         } catch (error: any) {

@@ -11,6 +11,7 @@ import { codeanalysis } from "./audit/codeanalysis";
 import { rds } from "./rds";
 import { ext } from "./exts/ext";
 import { analyzeIntMap } from "./int-tests/analyze-int-map";
+import { loadtest } from "./loadtest";
 
 const program = new Command();
 
@@ -29,5 +30,7 @@ program.command("ext").action(ext);
 
 // int tests
 program.command("analyzeIntMap").action(analyzeIntMap);
+
+program.command("loadtest").action(loadtest);
 
 program.parse(process.argv);

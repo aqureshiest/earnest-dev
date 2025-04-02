@@ -5,18 +5,14 @@ import { PromptBuilder } from "@/modules/ai/support/PromptBuilder";
 import { TokenLimiter } from "@/modules/ai/support/TokenLimiter";
 import { LLM_MODELS } from "@/modules/utils/llmInfo";
 
-export class WriterAssistant extends CodebaseAssistant<string> {
-    private responseParser: ResponseParser<string>;
-
-    responseType = "markdown";
+export class WriterAssistant extends CodebaseAssistant<PRBody> {
+    responseType = "xml";
 
     // override model to a smaller one
     overrideModel = LLM_MODELS.AWS_BEDROCK_CLAUDE_35_HAIKU_V2.id;
 
     constructor() {
         super(new PromptBuilder(), new TokenLimiter());
-
-        this.responseParser = new ResponseParser<string>();
     }
 
     getSystemPrompt(): string {
@@ -67,7 +63,8 @@ ${GENERATED_CODE_PLACEHOLDER}
 </generated_code>
 
 <response_format_instructions>
-Respond with the PR description in markdown format.
+<pr_title>title of the pr</pr_title>
+<pr_body>Respond with the PR description in markdown format.</pr_body>
 </response_format_instructions>
 
 Note: **Do not repeat yourself in the PR description.**
@@ -76,8 +73,10 @@ Please go ahead and generate the PR description based on the provided informatio
 `;
     }
 
-    handleResponse(response: string): string {
-        const description = this.responseParser.parse(response) as any;
-        return description;
+    handleResponse(response: string): PRBody {
+        const title = response.match(/<pr_title>(.*?)<\/pr_title>/)?.[1] || "";
+        const body = response.match(/<pr_body>([\s\S]*?)<\/pr_body>/)?.[1] || "";
+
+        return { title, body };
     }
 }

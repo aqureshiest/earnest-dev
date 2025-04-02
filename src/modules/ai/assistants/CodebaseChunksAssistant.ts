@@ -3,7 +3,10 @@ import { BaseAssistant } from "./BaseAssistant";
 import { sendTaskUpdate } from "@/modules/utils/sendTaskUpdate";
 
 abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskRequest, R> {
-    async process(request: CodingTaskRequest): Promise<AIAssistantResponse<R> | null> {
+    async process(
+        request: CodingTaskRequest,
+        onToken?: (token: string) => void
+    ): Promise<AIAssistantResponse<R> | null> {
         const { model, task, files, params } = request;
 
         console.log(
@@ -57,7 +60,8 @@ abstract class CodebaseChunksAssistant<R> extends BaseAssistant<CodingTaskReques
                 const aiResponse = await this.generateResponse(
                     model,
                     systemPrompt,
-                    finalPromptWithFiles
+                    finalPromptWithFiles,
+                    onToken
                 );
                 if (!aiResponse) {
                     console.warn(`No response for chunk ${index + 1}`);
