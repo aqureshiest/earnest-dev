@@ -11,7 +11,6 @@ services:
             - .env.production
         environment:
             - NODE_ENV=production
-            - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
             - NEXT_PUBLIC_GITHUB_OWNER=meetearnest
         depends_on:
             postgres:
