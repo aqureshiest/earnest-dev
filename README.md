@@ -1,5 +1,3 @@
-I'll update the README file based on the information provided. Here's the revised version:
-
 # Earnest AI Tools Local Development Guide
 
 This guide will walk you through setting up the project for local development.
