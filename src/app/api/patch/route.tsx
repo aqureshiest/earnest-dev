@@ -29,8 +29,13 @@ export async function POST(req: NextRequest) {
             title || "Generated code changes"
         );
 
+        // Add a note about AI-Generated label for consistency with PR creation
+        const patchWithLabelNote = patchContent + 
+            "\n# Note: When applying this patch, consider adding the 'AI-Generated' label\n" +
+            "# to maintain consistency with PRs created through the application.\n";
+
         // Create a response with the patch content as a downloadable file
-        const response = new NextResponse(patchContent);
+        const response = new NextResponse(patchWithLabelNote);
 
         // Set appropriate headers for file download
         response.headers.set("Content-Type", "text/plain");
